@@ -1,0 +1,2 @@
+3
+seqm2(rr, selm3(seqm3(selm3(ifNestToRight, ifFoodToRight, seqm3(selm3(ifRobotToRight, ifFoodToRight, seqm3(probm3(rl, rl, ifOnFood), rl, r)), rl, r)), ifRobotToRight, ifRobotToRight), ifNestToRight, rl))
