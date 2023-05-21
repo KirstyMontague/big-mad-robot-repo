@@ -4,10 +4,10 @@ import numpy
 
 class eaParams():
 	
-	is_qdpy = False # QD2 # QD1
+	is_qdpy = True # QD2 # QD1
 	
-	init_batch_size = 100
-	batch_size = 50
+	init_batch_size = 25
+	batch_size = 25
 	characteristics = 3
 	saveHeatmap = False
 	objective = "density" # QD2 # QD1
