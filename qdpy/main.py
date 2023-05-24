@@ -334,10 +334,6 @@ if not params.stop:
 			else:
 				ea.run()
 
-
-			print("\n\nfinished evolution\n")
-			print("Total elapsed: "+str(ea.total_elapsed)+"\n")
-
 			# printInfo(grid)
 			# printBestIndividuals(grid)
 

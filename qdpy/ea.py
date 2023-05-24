@@ -194,6 +194,11 @@ class EA():
 
 	def saveDuration(self):
 		self.total_elapsed = timer() - self.start_time
+		
+		minutes = self.total_elapsed / 60
+		minutes_str = str("%.2f" % minutes)
+		print("Duration " +minutes_str+"\n")
+
 		if self.params.saveOutput:
 			with open(self.params.path()+"params.txt", 'a') as f:
 				f.write("generations: "+str(self.params.generations) + "\n")
@@ -205,14 +210,16 @@ class EA():
 		cumulative_archive = self.redundancy.getCumulativeArchive()
 		
 		for i in range(10):
-			archive_path = "../Extended/test/"+self.params.description+"/"+str(i+1)+"/archive.pkl"
+			archive_path = "../gp/test/"+self.params.description+"/"+str(i+1)+"/archive.pkl"
 			if os.path.exists(archive_path):
+				print("reading from "+archive_path)
 				with open(archive_path, "rb") as archive_file:
 					cumulative_archive.update(pickle.load(archive_file))
 		
-		for i in range(self.params.deapSeed - 1):
-			archive_path = "./test/"+self.params.description+"/"+str(i+1)+"/archive.pkl"
-			if os.path.exists(archive_path):
+		for i in range(10):
+			archive_path = "../qdpy/test/"+self.params.description+"/"+str(i+1)+"/archive.pkl"
+			if i + 1 != self.params.deapSeed and os.path.exists(archive_path):
+				print("reading from "+archive_path)
 				with open(archive_path, "rb") as archive_file:
 					cumulative_archive.update(pickle.load(archive_file))
 		
@@ -325,15 +332,7 @@ class EA():
 		
 		batch = init_batch
 
-		avg = 0
-		for x in self.container:
-			avg += len(x)
-		avg = avg / len(self.container)
-		avg_string = str("%.1f" % avg)
-		
-		best_fitness = str("%.6f" % self.getBestHDRandom(self.container).fitness.values[0])
-			
-		print ("\t"+str(self.params.deapSeed)+" - "+str(self.start_gen)+"\t| "+avg_string+" | "+best_fitness+"\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
+		self.printOutput(self.start_gen, invalid_new, invalid_orig, matched)
 		
 		if self.params.saveOutput:
 			if not self.params.fitness_grid: self.utilities.saveQDScore(container, 0, "w")
@@ -398,16 +397,7 @@ class EA():
 		# print ("number updated, rejected, discarded " + str(nb_updated) + ", "+str(container.nb_rejected) + ", " + str(container.nb_discarded))
 		# print ("== " + str(self.params.deapSeed) + " == generation " + str(i) + " / "+ str(self.params.generations) +" ==========================================================")
 		
-		avg = 0
-		for x in self.container:
-			avg += len(x)
-		avg = avg / len(self.container)
-		avg_string = str("%.1f" % avg)
-		
-		# no repro after this change because RNG
-		best_fitness = str("%.6f" % self.getBestHDRandom(self.container).fitness.values[0])
-			
-		print ("\t"+str(self.params.deapSeed)+" - "+str(i)+"\t| "+avg_string+" | "+best_fitness+"\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
+		self.printOutput(i, invalid_new, invalid_orig, matched)
 		
 		if (self.params.printContainer):
 			print ("\nPrint all individuals in container\n")
@@ -433,8 +423,27 @@ class EA():
 		
 		if iteration_callback != None:
 			iteration_callback(i, offspring, container)
-	
-	
+
+	def printOutput(self, generation, invalid_new, invalid_orig, matched):
+		
+		avg = 0
+		for x in self.container:
+			avg += len(x)
+		avg = avg / len(self.container)
+		avg_string = str("%.1f" % avg)
+		
+		# no repro after this change because using RNG
+		best = self.getBestHDRandom(self.container)
+		best_length = str(len(best))
+		best_fitness = str("%.6f" % best.fitness.values[0])
+		
+		output_string = "\t"+str(self.params.deapSeed)+" - "+str(self.start_gen)+"\t| "
+		output_string += avg_string+" | "+best_fitness+" - "+best_length
+		output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
+		output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
+		
+		print (output_string)
+
 	def assignDuplicateFitness(self, population, offspring, matched):
 		
 		offspring_chromosomes = []
