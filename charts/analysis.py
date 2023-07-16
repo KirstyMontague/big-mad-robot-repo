@@ -3,17 +3,18 @@ import sys
 sys.path.insert(0, '..')
 
 import matplotlib.pyplot as plt
-from pathlib import Path
+# from pathlib import Path
 
 from scipy.stats import ttest_ind
 from scipy.stats import shapiro
 from scipy.stats import mannwhitneyu
+import statistics
 
-import os
-import numpy
+# import os
+# import numpy
 import pickle
 
-from containers import *
+# from containers import *
 
 from deap import base, creator, tools, gp
 
@@ -24,7 +25,139 @@ from utilities import Utilities
 class Analysis():
 	
 	objectives = ["density", "nest", "food", "idensity", "inest", "ifood"]
+	objective_descriptions = ["Increase robot density", "Go to nest", "Go to food", "Reduce robot density", "Go away from nest", "Go away from food"]
 	
+	objectives_info = {
+		"density" : {
+			"name" : "density",
+			"description" : "Increase neighbourhood density",
+			"index" : 0,
+			"identifier" : "d",
+			# "baseline_url": "../../../Backups/AutoDecomposition/density/combined1000.csv",
+			"baseline_url": "../../../Extended/AutoDecomposition/test-before-skye/density/",
+			"non_derated_qdpy_url": "../../../QDPY/NewDEAP/test/density/batch-100-50/",
+			"qdpy_url": "../qdpy/test/batch-25-25/density/",
+			"conversions_url": "../../../QDPY/NewDEAP/conversions/density/",
+			"qdpy_50_url": "../qdpy/test/batch-100-50/density/",
+			"qdpy_25_url": "../qdpy/test/batch-25-25/density/",
+			"mt_url": "../gp/test/density-nest-food/",
+		},
+		"nest" : {
+			"name" : "nest",
+			"description" : "Go to nest",
+			"index" : 1,
+			"identifier" : "n",
+			# "baseline_url": "../../../Backups/AutoDecomposition/nest/combined1000.csv",
+			"baseline_url": "../../../Extended/AutoDecomposition/test-before-skye/nest/",
+			"non_derated_qdpy_url": "../../../QDPY/NewDEAP/test/nest/batch-100-50/",
+			"qdpy_url": "../qdpy/test/batch-25-25/nest/",
+			"conversions_url": "../../../QDPY/NewDEAP/conversions/nest/",
+			"qdpy_50_url": "../qdpy/test/batch-100-50/nest/",
+			"qdpy_25_url": "../qdpy/test/batch-25-25/nest/",
+			"mt_url": "../gp/test/density-nest-food/",
+		},
+		"food" : {
+			"name" : "food",
+			"description" : "Go to food",
+			"index" : 2,
+			"identifier" : "f",
+			# "baseline_url": "../../../Backups/AutoDecomposition/food/combined1000.csv",
+			"baseline_url": "../../../Extended/AutoDecomposition/test-before-skye/food/",
+			"non_derated_qdpy_url": "../../../QDPY/NewDEAP/test/food/batch-100-50/",
+			"qdpy_url": "../qdpy/test/batch-25-25/food/",
+			"conversions_url": "../../../QDPY/NewDEAP/conversions/food/",
+			"qdpy_50_url": "../qdpy/test/batch-100-50/food/",
+			"qdpy_25_url": "../qdpy/test/batch-25-25/food/",
+			"mt_url": "../gp/test/density-nest-food/",
+		},
+		"density-nest-food" : {
+			"name" : "density-nest-food",
+			"names" : ["density","nest","food"],
+			"description" : ["Increase neighbourhood density", "Go to nest", "Go to food"],
+			"mt_url": "../gp/test/density-nest-food/",
+		},
+	}
+
+	algorithms = {
+		"baseline" : {
+			"name" : "baseline",
+			"type" : "DEAP",
+			"code" : "GP_",
+			"prefix" : "",
+			"categories" : ["EA1a", "EA1b", "EA1c"],
+			"ylim" : [[0.5, 0.61], [0.6, 0.9], [0.7, 0.9]], # box plots only
+		},
+		"derated" : {
+			"name" : "derated",
+			"type" : "DEAP",
+			"code" : "GP_",
+			"prefix" : "Derated ",
+			"categories" : ["EA1a", "EA1b", "EA1c"],
+			"ylim" : [[0.5, 0.61], [0.6, 0.9], [0.7, 0.9]],
+		},
+		"non_derated_qdpy" : {
+			"name" : "non_derated_qdpy",
+			"type" : "QDPY",
+			"code" : "QD_",
+			"prefix" : "Non Derated ",
+			"categories" : ["QD1a", "QD1b", "QD1c"],
+			"ylim" : [[0.5, 0.61], [0.6, 0.9], [0.7, 0.88]],
+		},
+		"qdpy" : {
+			"name" : "qdpy",
+			"type" : "QDPY",
+			"code" : "QD_",
+			"prefix" : "",
+			"categories" : ["QD1a", "QD1b", "QD1c"],
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.7, 0.9]],
+		},
+		"qdpy_50" : {
+			"name" : "qdpy_50",
+			"type" : "QDPY",
+			"code" : "QD_",
+			"prefix" : "Derated 50 ",
+			"categories" : ["QD1a", "QD1b", "QD1c"],
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.7, 0.9]],
+		},
+		"qdpy_25" : {
+			"name" : "qdpy_25",
+			"type" : "QDPY",
+			"code" : "QD_",
+			"prefix" : "Derated 25 ",
+			"categories" : ["QD1a", "QD1b", "QD1c"],
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.7, 0.9]],
+		},
+		"mt" : {
+			"name" : "multi-task",
+			"type" : "MT",
+			"code" : "MT_",
+			"prefix" : "",
+			# "categories" : ["QD1a", "QD1b", "QD1c"],
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.7, 0.9]],
+		}
+	}
+
+	queries = {
+		"best" : {
+			"name" : "best",
+			"description" : "best individuals",
+			"ylabel" : "Best fitness",
+			"index" : 1,
+		},
+		"qd-score" : {
+			"name" : "qd-scores",
+			"description" : "QD scores",
+			"ylabel" : "QD score",
+			"index" : 2,
+		},
+		"coverage" : {
+			"name" : "coverage",
+			"description" : "coverage",
+			"ylabel" : "Coverage",
+			"index" : 3,
+		}
+	}
+
 	def __init__(self):
 		self.params = eaParams()
 		self.utilities = Utilities(self.params)
@@ -191,7 +324,7 @@ class Analysis():
 
 	def readQDpyFile(self, objective, seed, iteration): # load pkl file from qdpy run into grid
 		
-		inputFilename = "../../QDPY/NewDEAP/test/"+objective+"/batch-100-50/seed"+str(seed)+"-iteration"+str(iteration)+".p"
+		inputFilename = objective["qdpy_url"]+str(seed)+"/seed"+str(seed)+"-iteration"+str(iteration)+".p"
 		
 		with open(inputFilename, "rb") as f:
 			data = pickle.load(f)
@@ -209,10 +342,49 @@ class Analysis():
 		
 		return grid
 
+	def getBestData(self, deap_algorithms, qdpy_algorithms, objective, generation, features):
+
+		# hard coded for one or three features
+
+		deap = []
+		for algorithm in deap_algorithms:
+			features = 3 if algorithm["name"] == "mt" else 1
+			data = self.getBestFromCSV(generation, objective["name"], features, objective[algorithm["name"]+"_url"])
+			data = data[objective["index"]][generation] if algorithm["name"] == "mt" else data[0][generation]
+			deap.append(data)
+
+		features = 1
+		qdpy = []
+		for algorithm in qdpy_algorithms:
+			data = self.getBestFromPkl(features, objective, generation, 10, objective[algorithm["name"]+"_url"])
+			# data = data[int(generation)-1]
+			qdpy.append(data)
+
+		# quick hack so we can get 1000 gens for batch 50 and 2000 gens for batch 25
+		# qdpy = []
+		# algorithm = qdpy_algorithms[0]
+		# data = self.getBestFromQdpyCsvs(objective, generation, 10, objective[algorithm["name"]+"_url"])
+		# data = data[int(generation)-1]
+		# qdpy.append(data)
+		# algorithm = qdpy_algorithms[1]
+		# data = self.getBestFromQdpyCsvs(objective, generation*2, 10, objective[algorithm["name"]+"_url"])
+		# data = data[int(generation*2)-1]
+		# qdpy.append(data)
+
+		return deap + qdpy
 	
 	def getBestFromCSV(self, generations, objective, features, filename): 
 		
 		# returns every generation for each feature data[feature][gen][seed]
+
+		if features == 1:
+			objective_definition = objective
+		else:
+			objective_definition = ""
+			for i in range(features):
+				index = i + 1
+				objective_definition += self.objectives[i]+"-"
+			objective_definition = objective_definition[0:-1]
 
 		f = open(filename, "r")
 
@@ -223,7 +395,7 @@ class Analysis():
 			data = []
 			columns = line.split(",")
 			
-			if columns[0] == objective:
+			if columns[0] == objective_definition:
 				for i in range(generations+1):
 					fitnessList = columns[i+9]
 					fitness = fitnessList.split(" ")
@@ -234,10 +406,11 @@ class Analysis():
 				horizontal_data.append(data)
 		
 		# print ("")
-		# for d in horizontal_data:
-			# print(d)
+		# for data in horizontal_data:
+			# for d in data:
+				# print(d)
 		# print ("")
-		
+
 		vertical_data = []
 		for i in range(len(horizontal_data[0][0])):
 			featureData = []
@@ -249,14 +422,13 @@ class Analysis():
 			vertical_data.append(featureData)
 
 		# print ("")
-		# print (vertical_data)
 		# for d in vertical_data:
 			# print (d)
 		# print ("")
-		
+
 		return vertical_data
 
-	def getBestFromPkl(self, objective, iterations, runs):
+	def getBestFromQdpyCsvs(self, objective, iterations, runs, url):
 
 		# returns every generation data[gen][seed]
 		
@@ -267,10 +439,9 @@ class Analysis():
 			scores = []
 			index = i + 1
 			
-			file_name = "../../QDPY/NewDEAP/test/"+objective+"/batch-100-50/csvs/best-"+str(index)+".csv"
+			file_name = url+"/"+str(index)+"/csvs/best-"+str(index)+".csv"
 			# print(file_name)
-			# if carrying_food_bug: file_name = "./test-with-broken-carrying-food-node/"+objective+"/batch-100-50/csvs/best-"+str(index)+".csv"
-		
+
 			f = open(file_name, "r")
 
 			for line in f:
@@ -285,21 +456,27 @@ class Analysis():
 			# print (len(d))
 		# for d in horizontal_data:
 			# print(d)
+		# for d in horizontal_data:
+			# print (d[-1])
 		# print ("")
 		
-		vertical_data = []
-		for i in range(len(horizontal_data[0])):
-			data = []
-			for j in range(len(horizontal_data)):
-				data.append(horizontal_data[j][i])
-			vertical_data.append(data)
+		vertical_data = self.rotateData2D(horizontal_data)
 			
-		# print ("")
-		# for d in vertical_data:
-			# print (d)
-		# print ("")
-		
 		return vertical_data
+
+	def getBestFromPkl(self, features, objective, iterations, runs, url):
+
+		self.setupDeapToolbox()
+
+		best = []
+		for i in range(runs):
+
+			index = i + 1
+			filename = objective["qdpy_url"]+str(index)+"/seed"+str(index)+"-iteration"+str(iterations)+".p"
+			container = self.readQDpyFile(objective, index, iterations)
+			best.append(container.best.fitness.values[0])
+
+		return best
 
 	def checkHypothesis(self, data1, data2):
 		
@@ -316,18 +493,14 @@ class Analysis():
 		else:
 			ttest = mannwhitneyu(data1, data2)
 			print ("mwu "+str(ttest.pvalue))
-	
-	def drawOneGeneration(self, title, filename, labels, deap_scores, qdpy_scores, generation):
+
+	def drawBestOneGeneration(self, objective_name, deap_algorithms, qdpy_algorithms, generation, features):
 		
-		data = deap_scores + qdpy_scores
-		# data = getFitnessComparison(deap_scores, generation)
-		# data = getFitnessComparison([scores[0]], generation)
-		# data.append(scores[1])
-		# for score in qdpy_scores:
-			# data.append(score)
+		objective = self.objectives_info[objective_name]
+		data = self.getBestData(deap_algorithms, qdpy_algorithms, objective, generation, features)
 		
-		for d in data:
-			print(len(d))
+		# for d in data:
+			# print(len(d))
 		
 		if len(data) == 2: ttest = ttest_ind(data[0], data[1])
 		
@@ -336,23 +509,21 @@ class Analysis():
 			for i in range(1, len(data)):
 				self.checkHypothesis(data[0], data[i])
 				ttest = ttest_ind(data[0], data[i])
-				# print ("pvalue = " +str("%.4f" % ttest.pvalue))
 			print ("")
-			
-				
+
+		filename = ""
+		for algorithm in deap_algorithms + qdpy_algorithms:
+			filename += algorithm["name"]+"-vs-"
+		filename = filename[0:-4]
+		filename = "./best/"+objective["name"]+"-"+filename+"-gen"+str(generation)+".png"
 		
-		# if carrying_food_bug: filename = "./test-with-broken-carrying-food-node/charts/best/box-plots-"+filename +"-gen"+ str(generation)+".png"
-		# else: filename = "./test/charts/best/box-plots-"+filename +"-gen"+ str(generation)+".png"
-		
-		filename = "./best/box-plots-"+filename+".png"
-		# if carrying_food_bug: filename = "./test-with-broken-carrying-food-node/charts/best/box-plots-"+filename+".png"
-		# else: filename = "./test/charts/best/box-plots-"+filename+".png"
-		
-		# title += " - generation "+str(generation)+"\n\n"
-		title += " - " + str(generation * 25)+" evaluations per objective\n"
-		# title += "t-test result (statistic = "+str("%.4f" % ttest.statistic)+ ", pvalue = " +str("%.4f" % ttest.pvalue)+")\n\n"
+		title = objective["description"]+"\n" + str(generation * 25)+" evaluations per objective\n"
 		if len(data) == 2: title += "pvalue = " +str("%.4f" % ttest.pvalue)+"\n\n"
 		
+		labels = []
+		for algorithm in deap_algorithms + qdpy_algorithms:
+			labels.append(self.algorithmName(algorithm, objective))
+
 		num = -1
 		consistent = True
 		for d in data:
@@ -366,7 +537,7 @@ class Analysis():
 		plot_width = 4 + len(data)	
 		
 		fig, ax = plt.subplots(figsize=(plot_width, 6))
-		plt.subplots_adjust(wspace=.3, hspace=1.4, bottom=0.12, top=0.85, left=0.15)
+		plt.subplots_adjust(wspace=.3, hspace=0.4, bottom=0.12, top=0.8, left=0.15)
 		ax.boxplot(data, medianprops=dict(color='#000000'), labels=labels)
 		
 		ax.set_title(title,fontsize=13)
@@ -418,6 +589,7 @@ class Analysis():
 		print(filename)
 		# plt.savefig(filename)
 
+	"""
 	def bestIndividuals(self):
 
 		
@@ -439,9 +611,9 @@ class Analysis():
 		# deap_three = self.getBestFromCSV(generation, "density-nest-food", 3, "../../AutoDecomposition/checkpoints/test/density-nest-food/combined1000.csv")
 		# deap_six = self.getBestFromCSV(generation, "density-nest-food-idensity-inest-ifood", 6, "../Extended/test/density-nest-food-idensity-inest-ifood/combined1000.csv")
 		
-		# qdpy_density = self.getBestFromPkl("density", 500, 10)
-		# qdpy_nest = self.getBestFromPkl("nest", 500, 10)
-		# qdpy_food = self.getBestFromPkl("food", 500, 10)
+		# qdpy_density = self.getBestFromQdpyCsvs("density", 500, 10)
+		# qdpy_nest = self.getBestFromQdpyCsvs("nest", 500, 10)
+		# qdpy_food = self.getBestFromQdpyCsvs("food", 500, 10)
 		
 		derated_density = self.getBestFromCSV(generation, "density", 1, "../AutoDecomposition/test/density/checkpoint1000.csv")
 		derated_nest = self.getBestFromCSV(generation, "nest", 1, "../AutoDecomposition/test/nest/checkpoint1000.csv")
@@ -466,7 +638,7 @@ class Analysis():
 		return
 		
 		print("")
-
+	"""
 
 	def getCoverage(self, container): # ratio of filled vs empty bins
 		
@@ -653,3 +825,274 @@ class Analysis():
 		for i in range(10):
 			print(os.path.getsize("../AutoDecomposition/test/density/"+str(i+1)+"/archive.pkl"))
 
+
+	# from mpl.py for drawing box plots over time for one algorithm
+	"""
+	def drawPlotsOverTime(self, plots, objective_index, min_gen, max_gen, increment, x_axis_increment):
+
+		deap = []
+		if plots["type"] == "DEAP":
+			deap_data = plots["data"][objective_index]
+			for i in range(len(deap_data)):
+				deap.append([])
+				for j in range(min_gen, max_gen+1):
+					if (j % increment == 0):
+						deap[i].append(deap_data[i][j])
+
+		qdpy = []
+		if plots["type"] == "QDPY":
+			qdpy_data = plots["data"][objective_index]
+			for i in range(len(qdpy_data)):
+				qdpy.append([])
+				for j in range(len(qdpy_data[i])):
+					if (j % increment == 0):
+						qdpy[i].append(qdpy_data[i][j])
+
+		data = []
+		for d in deap: data.append(d)
+		for q in qdpy: data.append(q)
+
+		labels = []
+		for i in range(len(data[0])):
+			if (i + 1) % x_axis_increment == 0:
+				labels.append((i+1)*increment)
+			else:
+				labels.append("")
+
+		if plots["type"] == "QDPY": max_gen *= 2
+
+		c = "#222222"
+		filename = "./test/charts/best/evolution-"+plots["names"][objective_index]+"-"+str(min_gen)+"-"+str(max_gen)+"-"+str(increment)+"-"+plots["file_name"]+".png"
+		# if carrying_food_bug: filename = "./test-with-broken-carrying-food-node/charts/best/evolution-"+plots["names"][objective_index]+"-"+str(min_gen)+"-"+str(max_gen)+"-"+str(increment)+"-"+plots["file_name"]+".png"
+		print (filename)
+
+		plot_width = len(data[0]) / 5
+		fig, ax = plt.subplots(nrows=1, ncols=len(data), figsize=(plot_width, 6))
+		plt.subplots_adjust(wspace=.3, hspace=.4, bottom=0.1, top=0.8)
+		fig.suptitle(plots["descriptions"][objective_index], y=.925, fontsize=16, color='#333333')
+
+		bplot = []
+		for col in range(0,len(data)):
+			i = col
+			if (len(data) > 1):
+				bplot.append(ax[i].boxplot(data[i],
+									vert=True,  # vertical box alignment
+									patch_artist=False,  # fill with color
+									labels=labels,  # will be used to label x-ticks
+									boxprops=dict(color=c),
+									# boxprops=dict(facecolor=c, color=c),
+									capprops=dict(color=c),
+									whiskerprops=dict(color=c),
+									flierprops=dict(color=c, markeredgecolor=c),
+									medianprops=dict(color=c)))
+
+				ax[i].set_title(plots["algorithm_names"][objective_index], color='#222222', fontsize=13)
+				ax[i].title.set_position([0.5,1.05])
+				# ax[i].yaxis.grid(True)
+				ax[i].set_ylim(plots["ylim"][objective_index])
+				ax[i].set_ylabel('Fitness over 20 runs', color='#222222', fontsize=12)
+				ax[i].yaxis.set_label_coords(-0.14,0.5)
+				ax[i].xaxis.set_label_coords(0.5, -0.1)
+			else:
+				print (str(len(data[i])))
+				print (str(len(labels)))
+				bplot.append(ax.boxplot(data[i],
+							 vert=True,  # vertical box alignment
+							 patch_artist=False,  # fill with color
+							 labels=labels,  # will be used to label x-ticks
+							 boxprops=dict(color=c),
+							 # boxprops=dict(facecolor=c, color=c),
+							 capprops=dict(color=c),
+							 whiskerprops=dict(color=c),
+							 flierprops=dict(color=c, markeredgecolor=c),
+							 medianprops=dict(color=c)))
+
+				ax.set_title(plots["algorithm_names"][objective_index], color='#222222', fontsize=13)
+				ax.title.set_position([0.5,1.05])
+				# ax.yaxis.grid(True)
+				ax.set_ylim(plots["ylim"][objective_index])
+				ax.set_ylabel('Fitness over '+str(len(data[i][0]))+' runs', color='#222222', fontsize=12)
+				ax.yaxis.set_label_coords(-0.09,0.5)
+				ax.xaxis.set_label_coords(0.5, -0.1)
+
+		plt.show()
+	"""
+	def drawEvolution(self, algorithm, objective_name, runs, min_gen, max_gen, increment, x_axis_increment):
+
+		objective = self.objectives_info[objective_name]
+		url = objective[algorithm["name"]+"_url"]
+		algorithm_name = self.algorithmName(algorithm, objective)
+
+		raw_data = self.getBestFromQdpyCsvs(objective_name, max_gen, runs, url)
+
+		data = []
+		if algorithm["type"] == "DEAP": # update this to match qdpy
+			for i in range(len(raw_data)):
+				data.append([])
+				for j in range(min_gen, max_gen+1):
+					if (j % increment == 0):
+						data[i].append(raw_data[i][j])
+		if algorithm["type"] == "QDPY":
+			for i in range(len(raw_data)):
+				if (i < max_gen and i % increment == 0):
+					one_generation = []
+					for j in range(len(raw_data[i])):
+						one_generation.append(raw_data[i][j])
+					data.append(one_generation)
+
+		labels = []
+		for i in range(len(data)):
+			if (i + 1) % x_axis_increment == 0:
+				labels.append((i+1)*increment)
+			else:
+				labels.append("")
+
+		filename = "./evolution/"+algorithm["name"]+"-"+objective_name+"-"+str(min_gen)+"-"+str(max_gen)+"-"+str(increment)+".png"
+		print (filename)
+
+		fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15, 6))
+		plt.subplots_adjust(wspace=.3, hspace=.4, bottom=0.1, top=0.8)
+		fig.suptitle(objective["description"], y=.925, fontsize=16, color='#333333')
+
+		c = "#222222"
+		ax.boxplot(data,
+				   vert=True,
+				   patch_artist=False,
+				   labels=labels,
+				   boxprops=dict(color=c),
+				   # boxprops=dict(facecolor=c, color=c),
+				   capprops=dict(color=c),
+				   whiskerprops=dict(color=c),
+				   flierprops=dict(color=c, markeredgecolor=c),
+				   medianprops=dict(color=c))
+
+		ax.set_title(algorithm_name, color=c, fontsize=13)
+		ax.title.set_position([0.5,1.05])
+		# ax.yaxis.grid(True)
+		ax.set_ylim(algorithm["ylim"][objective["index"]])
+		ax.set_ylabel('Fitness over '+str(len(data[0]))+' runs', color=c, fontsize=12)
+		ax.yaxis.set_label_coords(-0.09,0.5)
+		ax.xaxis.set_label_coords(0.5, -0.1)
+
+		# plt.savefig(filename)
+		plt.show()
+
+
+
+	def rotateData2D(self, csv_data):
+		data = []
+		for i in range(len(csv_data[0])):
+			data.append([])
+			for j in range(len(csv_data)):
+				data[i].append(float(csv_data[j][i]))
+		return data
+
+	def getMinMaxMed(self, data):
+		vals = [[],[],[]]
+		for d in data:
+			vals[0].append(min(d))
+			vals[1].append(statistics.median(d))
+			vals[2].append(max(d))
+		return vals
+
+	def drawLineGraphFromDeap(self, objective, query, generations, runs, ylim):
+
+		csv_data = []
+
+		input_file = objective["baseline_url"]+"checkpoint"+str(generations)+".csv"
+		f = open(input_file, "r")
+		for line in f:
+			columns = line.split(",")
+			if columns[0] == objective["name"]:
+				csv_data.append(columns[9:generations+10])
+
+		xlabel = "Generations (population size 25)"
+
+		data = self.rotateData2D(csv_data)
+		vals = self.getMinMaxMed(data)
+
+		self.drawLineChart(vals, objective, query, self.algorithms["baseline"], runs, xlabel, ylim)
+
+	def drawLineGraphFromMT(self, objective, query, generations, runs, ylim):
+
+		csv_data = []
+
+		input_file = objective["mt_url"]+"checkpoint"+str(generations)+".csv"
+		f = open(input_file, "r")
+		for line in f:
+			columns = line.split(",")
+			if columns[0] == "density-nest-food":
+				data = []
+				for scores in columns[9:generations+10]:
+					score = scores.split(" ")
+					data.append(score[objective["index"]])
+				csv_data.append(data)
+
+		xlabel = "Generations (population size 25)"
+
+		data = self.rotateData2D(csv_data)
+		vals = self.getMinMaxMed(data)
+
+		self.drawLineChart(vals, objective, query, self.algorithms["mt"], runs, xlabel, ylim)
+
+	def drawLineGraphFromQdpy(self, objective, query, generations, runs, ylim):
+
+		csv_data = []
+
+		for i in range(runs):
+
+			index = i + 1
+			input_file = objective["qdpy_url"]+"/"+str(index)+"/csvs/"+query["name"]+"-"+str(index)+".csv"
+			f = open(input_file, "r")
+
+			csv_data.append([])
+			for line in f:
+				items = line.split(",")
+				if len(items) > 0 and int(items[0]) <= generations:
+					csv_data[i].append(float(items[1][0:5]))
+
+		data = self.rotateData2D(csv_data)
+		vals = self.getMinMaxMed(data)
+
+		algorithm = self.algorithms["qdpy"]
+		xlabel = "Iterations (batch size 25)"
+
+		self.drawLineChart(vals, objective, query, algorithm, runs, xlabel, ylim)
+
+	def drawLineChart(self, vals, objective, query, algorithm, runs, xlabel, ylim):
+
+		ylabel = query["ylabel"]
+		# ea_name = algorithm["identifier"]+objective["identifier"]
+		title = objective["description"]+" - "+algorithm["name"]+" algorithm over "+str(runs)+" runs\n"
+		title += "Minimum, median and maximum " + query["description"]+"\n"
+
+		labels = []
+		for i in range(len(vals[0])):
+			labels.append(i)
+
+		fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(9, 6.5))
+
+		plt.subplots_adjust(wspace=.3, hspace=1.4, bottom=0.12, top=0.85, left=0.12)
+
+		ax.plot(labels, vals[1], lw=2)
+		ax.fill_between(labels, vals[0], vals[2], alpha=0.3)
+
+		ax.set_title(title,fontsize=13)
+		ax.set_ylabel(ylabel,color='#222222', fontsize=12)
+		ax.set_xlabel(xlabel,color='#222222', fontsize=11)
+
+		ax.title.set_position([0.5,0.0])
+		ax.yaxis.set_label_coords(-0.09,0.5)
+		ax.xaxis.set_label_coords(0.5,-0.09)
+
+		ax.set_ylim(ylim)
+
+		output_file = "./"+query["name"]+"/line-charts/"+objective["name"]+"-"+algorithm["name"]+".png"
+		print("output_file")
+		print(output_file)
+		# plt.savefig(output_file)
+
+		plt.show()
+
+	def algorithmName(self, algorithm, objective):
+		return algorithm["prefix"]+"$"+algorithm["code"]+objective["identifier"]+"$"
