@@ -201,8 +201,8 @@ class EA():
 				archive_string = archive_string[0:-1]
 				archive_string += "\n"
 
-			with open(self.params.path()+"archive.txt", 'w') as f:
-				f.write(archive_string)
+			# with open(self.params.path()+"archive.txt", 'w') as f:
+				# f.write(archive_string)
 				
 			with open(self.params.path()+"archive.pkl", "wb") as archive_file:
 				 pickle.dump(archive_dict, archive_file)
