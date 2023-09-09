@@ -97,7 +97,7 @@ class CBlackBoard
 		float getFinalDistanceFromFood() {return m_finalDistanceFromFood;}
 		float getDifferenceInDistanceFromFood();
 		float getDifferenceInDistanceFromFoodInverse(int robotID);
-		float getAbsoluteDifferenceInDistanceFromFoodInverse(int robotID);
+		float getAbsoluteDifferenceInDistanceFromFoodInverse(float radius, int robotID);
 		void setFinalDistanceFromFood(int robotID);
 		void setFinalAbsoluteDistanceFromFood(double radius, double threshold, int robotID);
 		

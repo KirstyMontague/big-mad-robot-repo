@@ -244,14 +244,20 @@ float CBlackBoard::getDifferenceInDistanceFromFoodInverse(int robotID)
 	return (difference + 1) / 2;
 }
 
-float CBlackBoard::getAbsoluteDifferenceInDistanceFromFoodInverse(int robotID)
+float CBlackBoard::getAbsoluteDifferenceInDistanceFromFoodInverse(float radius, int robotID)
 {
 	if (robotID != -1) std::cout << "\t" << m_finalAbsoluteDistanceFromFood << " - " << m_initialAbsoluteDistanceFromFood << "\n";
 	float difference = m_finalAbsoluteDistanceFromFood - m_initialAbsoluteDistanceFromFood;
 	
-	float result = (difference + 1) / 2;
+	float max = radius;
+	float min = radius * -1;
+	difference = difference - min;
+	difference = difference / (max * 2);
+	float result = difference;
+
 	if (robotID != -1) std::cout << "\t" << result << "\n";
-	return (difference + 1) / 2;
+
+	return result;
 }
 
 void CBlackBoard::setFinalDistanceFromFood(int robotID)
