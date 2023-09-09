@@ -4,13 +4,10 @@ import numpy
 
 class eaParams():
 	
-	is_qdpy = True # QD2 # QD1
-	
 	init_batch_size = 25
 	batch_size = 25
 	characteristics = 3
 	saveHeatmap = False
-	objective = "density" # QD2 # QD1
 	start_point = "final"
 	fitness_grid = False # QD2
 	max_size = 1000000
@@ -28,9 +25,6 @@ class eaParams():
 	def final_filename(self): return self.path()+"seed"+str(self.deapSeed)+"-final.p"
 
 
-	
-	deapSeed = 4 # not used with ./run
-	runs = 1 # not used
 	sqrtRobots = 3
 	iterations = 5
 	
@@ -38,22 +32,24 @@ class eaParams():
 	tournamentSize = 3 # EA2
 	features = 1 # EA2
 
+	is_qdpy = True # QD2 # QD1
+	
 	# description = "density-nest-food-idensity-inest-ifood" # EA2 # EA1
-	description = "density" # EA2 # EA1
-	objective_index = 0
+	description = "ifood" # EA2 # EA1
+	indexes = [5]
 	
 	stop = False
 	
 	start_gen = 0
-	generations = 10
+	generations = 2000
 	
 	readCheckpoint = False
 	loadCheckpoint = False
 	saveOutput = True
 	saveCSV = True
 	
-	save_period = 1000
-	csv_save_period = 1000
+	save_period = 500
+	csv_save_period = 500
 		
 	def csvInputFilename(self, gen): return "test/"+self.description+"/checkpoint"+str(gen)+".csv"
 	def csvOutputFilename(self, gen): return "test/"+self.description+"/checkpoint"+str(gen)+".csv"

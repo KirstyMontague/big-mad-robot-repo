@@ -10,7 +10,6 @@ from containers import *
 from pathlib import Path
 
 import matplotlib as mpl
-mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 from qdpy.plots import *
@@ -185,13 +184,15 @@ class Utilities():
 					lines = line.split()
 					robotId = int(float(lines[1]))
 					robots[robotId] = []
-					for j in range(self.params.features):
+					for j in range(6): # all objectives are saved to the result file
 						for k in range(self.params.iterations):
-							index = (self.params.objective_index * self.params.iterations) + (j * self.params.iterations) + k + 2
-							robots[robotId].append(float(lines[index]))
+							if j in self.params.indexes:
+								index = (j * self.params.iterations) + k + 2
+								robots[robotId].append(float(lines[index]))
 					# qdpy optimisation
 					for j in range(3):
 						for k in range(self.params.iterations):
+							# hard coded 7 because foraging is included in footbot controller objectives
 							index = (j * self.params.iterations) + (7 * self.params.iterations) + k + 2
 							robots[robotId].append(float(lines[index]))
 					# end qdpy
@@ -727,12 +728,14 @@ class Utilities():
 		return filled_bins
 
 	def getQDScore(self, container):
-			
+		
+		# can only handle one objective
+		
 		shape = self.params.nb_bins
 				
 		grid = self.convertToNewGrid(container,
-								     self.params.objective,
-								     self.params.objective_index,
+								     self.params.description,
+								     self.params.indexes[0],
 								     self.params.features,
 								     shape,
 								     self.params.fitness_domain,

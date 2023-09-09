@@ -88,8 +88,9 @@ class EA():
 			self.add_results_infos(results_infos)
 		self.total_elapsed = 0.
 		random.seed(self.params.deapSeed)
-		Path(self.params.path()).mkdir(parents=False, exist_ok=True)
-		Path(self.params.path()+"/csvs").mkdir(parents=False, exist_ok=True)
+		if self.params.saveOutput:
+			Path(self.params.path()).mkdir(parents=False, exist_ok=True)
+			Path(self.params.path()+"/csvs").mkdir(parents=False, exist_ok=True)
 	
 	def setParams(self, params):
 		self.params = params
@@ -181,8 +182,8 @@ class EA():
 				f.write("tournamentSize: "+str(self.params.tournamentSize) + "\n")
 				f.write("features: "+str(self.params.features) + "\n")
 				f.write("characteristics: "+str(self.params.characteristics) + "\n")
-				f.write("objective: "+str(self.params.objective) + "\n")
-				f.write("objective_index: "+str(self.params.objective_index) + "\n")
+				f.write("objective: "+str(self.params.description) + "\n")
+				f.write("objective_index: "+str(self.params.indexes[0]) + "\n")
 				f.write("loadCheckpoint: "+("yes" if self.params.loadCheckpoint else "no") + "\n")
 				f.write("start_point: "+str(self.params.start_point) + "\n")
 				f.write("init_batch_size: "+str(self.params.init_batch_size) + "\n")
@@ -437,7 +438,7 @@ class EA():
 		best_length = str(len(best))
 		best_fitness = str("%.6f" % best.fitness.values[0])
 		
-		output_string = "\t"+str(self.params.deapSeed)+" - "+str(self.start_gen)+"\t| "
+		output_string = "\t"+str(self.params.deapSeed)+" - "+str(generation)+"\t| "
 		output_string += avg_string+" | "+best_fitness+" - "+best_length
 		output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
 		output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
