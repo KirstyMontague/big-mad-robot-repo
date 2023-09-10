@@ -33,42 +33,48 @@ class Analysis():
 			"description" : "Increase neighbourhood density",
 			"index" : 0,
 			"identifier" : "d",
-			# "baseline_url": "../../../Backups/AutoDecomposition/density/combined1000.csv",
-			"baseline_url": "../../../Extended/AutoDecomposition/test-before-skye/density/",
+			"baseline_url": "../gp/test/density/",
 			"non_derated_qdpy_url": "../../../QDPY/NewDEAP/test/density/batch-100-50/",
 			"qdpy_url": "../qdpy/test/batch-25-25/density/",
 			"conversions_url": "../../../QDPY/NewDEAP/conversions/density/",
 			"qdpy_50_url": "../qdpy/test/batch-100-50/density/",
 			"qdpy_25_url": "../qdpy/test/batch-25-25/density/",
-			"mt_url": "../gp/test/density-nest-food/",
+			"mt_url": "../gp/test/density-nest-ifood/",
 		},
 		"nest" : {
 			"name" : "nest",
 			"description" : "Go to nest",
 			"index" : 1,
 			"identifier" : "n",
-			# "baseline_url": "../../../Backups/AutoDecomposition/nest/combined1000.csv",
-			"baseline_url": "../../../Extended/AutoDecomposition/test-before-skye/nest/",
+			"baseline_url": "../gp/test/nest/",
 			"non_derated_qdpy_url": "../../../QDPY/NewDEAP/test/nest/batch-100-50/",
 			"qdpy_url": "../qdpy/test/batch-25-25/nest/",
 			"conversions_url": "../../../QDPY/NewDEAP/conversions/nest/",
 			"qdpy_50_url": "../qdpy/test/batch-100-50/nest/",
 			"qdpy_25_url": "../qdpy/test/batch-25-25/nest/",
-			"mt_url": "../gp/test/density-nest-food/",
+			"mt_url": "../gp/test/density-nest-ifood/",
 		},
 		"food" : {
 			"name" : "food",
 			"description" : "Go to food",
 			"index" : 2,
 			"identifier" : "f",
-			# "baseline_url": "../../../Backups/AutoDecomposition/food/combined1000.csv",
-			"baseline_url": "../../../Extended/AutoDecomposition/test-before-skye/food/",
+			"baseline_url": "../gp/test/food/",
 			"non_derated_qdpy_url": "../../../QDPY/NewDEAP/test/food/batch-100-50/",
 			"qdpy_url": "../qdpy/test/batch-25-25/food/",
 			"conversions_url": "../../../QDPY/NewDEAP/conversions/food/",
 			"qdpy_50_url": "../qdpy/test/batch-100-50/food/",
 			"qdpy_25_url": "../qdpy/test/batch-25-25/food/",
 			"mt_url": "../gp/test/density-nest-food/",
+		},
+		"ifood" : {
+			"name" : "ifood",
+			"description" : "Go away from food",
+			"index" : 5,
+			"identifier" : "f",
+			"baseline_url": "../gp/test/ifood/",
+			"qdpy_url": "../qdpy/test/batch-25-25/ifood/",
+			"mt_url": "../gp/test/density-nest-ifood/",
 		},
 		"density-nest-food" : {
 			"name" : "density-nest-food",
@@ -109,7 +115,7 @@ class Analysis():
 			"code" : "QD_",
 			"prefix" : "",
 			"categories" : ["QD1a", "QD1b", "QD1c"],
-			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.7, 0.9]],
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
 		},
 		"qdpy_50" : {
 			"name" : "qdpy_50",
@@ -128,12 +134,12 @@ class Analysis():
 			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.7, 0.9]],
 		},
 		"mt" : {
-			"name" : "multi-task",
+			"name" : "mt",
 			"type" : "MT",
 			"code" : "MT_",
 			"prefix" : "",
 			# "categories" : ["QD1a", "QD1b", "QD1c"],
-			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.7, 0.9]],
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
 		}
 	}
 
@@ -342,15 +348,15 @@ class Analysis():
 		
 		return grid
 
-	def getBestData(self, deap_algorithms, qdpy_algorithms, objective, generation, features):
+	def getBestData(self, deap_algorithms, qdpy_algorithms, objective, generation, feature, features, runs):
 
 		# hard coded for one or three features
 
 		deap = []
 		for algorithm in deap_algorithms:
 			features = 3 if algorithm["name"] == "mt" else 1
-			data = self.getBestFromCSV(generation, objective["name"], features, objective[algorithm["name"]+"_url"])
-			data = data[objective["index"]][generation] if algorithm["name"] == "mt" else data[0][generation]
+			data = self.getBestFromCSV(generation, objective, features, runs, objective[algorithm["name"]+"_url"])
+			data = data[feature][generation] if algorithm["name"] == "mt" else data[0][generation]
 			deap.append(data)
 
 		features = 1
@@ -373,19 +379,22 @@ class Analysis():
 
 		return deap + qdpy
 	
-	def getBestFromCSV(self, generations, objective, features, filename): 
+	def getBestFromCSV(self, generations, objective, features, runs, filename):
 		
+		# needs to be made dynamic - currently hard coded for density-nest-ifood
 		# returns every generation for each feature data[feature][gen][seed]
 
 		if features == 1:
-			objective_definition = objective
+			objective_definition = objective["name"]
 		else:
 			objective_definition = ""
 			for i in range(features):
 				index = i + 1
 				objective_definition += self.objectives[i]+"-"
 			objective_definition = objective_definition[0:-1]
+			objective_definition = "density-nest-ifood"
 
+		filename = filename + "checkpoint"+str(generations)+".csv"
 		f = open(filename, "r")
 
 		horizontal_data = []
@@ -394,7 +403,7 @@ class Analysis():
 			
 			data = []
 			columns = line.split(",")
-			
+
 			if columns[0] == objective_definition:
 				for i in range(generations+1):
 					fitnessList = columns[i+9]
@@ -403,7 +412,8 @@ class Analysis():
 						data.append(fitness[0:-1])
 					else:
 						data.append(fitness)
-				horizontal_data.append(data)
+				if len(horizontal_data) < runs:
+					horizontal_data.append(data)
 		
 		# print ("")
 		# for data in horizontal_data:
@@ -439,7 +449,7 @@ class Analysis():
 			scores = []
 			index = i + 1
 			
-			file_name = url+"/"+str(index)+"/csvs/best-"+str(index)+".csv"
+			file_name = url+str(index)+"/csvs/best-"+str(index)+".csv"
 			# print(file_name)
 
 			f = open(file_name, "r")
@@ -494,10 +504,10 @@ class Analysis():
 			ttest = mannwhitneyu(data1, data2)
 			print ("mwu "+str(ttest.pvalue))
 
-	def drawBestOneGeneration(self, objective_name, deap_algorithms, qdpy_algorithms, generation, features):
+	def drawBestOneGeneration(self, feature_index, objective_name, deap_algorithms, qdpy_algorithms, generation, features, runs):
 		
 		objective = self.objectives_info[objective_name]
-		data = self.getBestData(deap_algorithms, qdpy_algorithms, objective, generation, features)
+		data = self.getBestData(deap_algorithms, qdpy_algorithms, objective, generation, feature_index, features, runs)
 		
 		# for d in data:
 			# print(len(d))
