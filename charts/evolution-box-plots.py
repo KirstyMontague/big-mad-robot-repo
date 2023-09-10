@@ -31,13 +31,14 @@ algorithms = {
 }
 
 runs = 10
-min_gen = 10
+min_gen = 200
 max_gen = 2000
 increment = 20	
-x_axis_increment = 5
+x_axis_increment = 100
 objective_name = "food"
+algorithm = "mt"
 
-analyse.drawEvolution(analyse.algorithms["qdpy"], 
+analyse.drawEvolution(analyse.algorithms[algorithm],
 					  objective_name, 
 					  runs, 
 					  min_gen, 

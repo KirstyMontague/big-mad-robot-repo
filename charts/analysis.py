@@ -87,6 +87,7 @@ class Analysis():
 	algorithms = {
 		"baseline" : {
 			"name" : "baseline",
+			"display_name" : "Baseline",
 			"type" : "DEAP",
 			"code" : "GP_",
 			"prefix" : "",
@@ -95,6 +96,7 @@ class Analysis():
 		},
 		"derated" : {
 			"name" : "derated",
+			"display_name" : "Baseline",
 			"type" : "DEAP",
 			"code" : "GP_",
 			"prefix" : "Derated ",
@@ -111,6 +113,7 @@ class Analysis():
 		},
 		"qdpy" : {
 			"name" : "qdpy",
+			"display_name" : "QDpy",
 			"type" : "QDPY",
 			"code" : "QD_",
 			"prefix" : "",
@@ -119,6 +122,7 @@ class Analysis():
 		},
 		"qdpy_50" : {
 			"name" : "qdpy_50",
+			"display_name" : "QDpy 50",
 			"type" : "QDPY",
 			"code" : "QD_",
 			"prefix" : "Derated 50 ",
@@ -127,6 +131,7 @@ class Analysis():
 		},
 		"qdpy_25" : {
 			"name" : "qdpy_25",
+			"display_name" : "QDpy 25",
 			"type" : "QDPY",
 			"code" : "QD_",
 			"prefix" : "Derated 25 ",
@@ -135,6 +140,7 @@ class Analysis():
 		},
 		"mt" : {
 			"name" : "mt",
+			"display_name" : "Multi-Task",
 			"type" : "MT",
 			"code" : "MT_",
 			"prefix" : "",
@@ -149,6 +155,7 @@ class Analysis():
 			"description" : "best individuals",
 			"ylabel" : "Best fitness",
 			"index" : 1,
+			"ylim" : [[0.52, 0.61], [0.6, 0.9], [0.83, 0.88]],
 		},
 		"qd-score" : {
 			"name" : "qd-scores",
@@ -381,7 +388,7 @@ class Analysis():
 	
 	def getBestFromCSV(self, generations, objective, features, runs, filename):
 		
-		# needs to be made dynamic - currently hard coded for density-nest-ifood
+		# needs to be made dynamic - currently hard coded for density-nest-food
 		# returns every generation for each feature data[feature][gen][seed]
 
 		if features == 1:
@@ -392,7 +399,7 @@ class Analysis():
 				index = i + 1
 				objective_definition += self.objectives[i]+"-"
 			objective_definition = objective_definition[0:-1]
-			objective_definition = "density-nest-ifood"
+			objective_definition = "density-nest-food"
 
 		filename = filename + "checkpoint"+str(generations)+".csv"
 		f = open(filename, "r")
@@ -931,38 +938,41 @@ class Analysis():
 
 		objective = self.objectives_info[objective_name]
 		url = objective[algorithm["name"]+"_url"]
-		algorithm_name = self.algorithmName(algorithm, objective)
 
-		raw_data = self.getBestFromQdpyCsvs(objective_name, max_gen, runs, url)
+		raw_data = None
+
+		if algorithm["type"] == "QDPY":
+			raw_data = self.getBestFromQdpyCsvs(objective_name, max_gen, runs, url)
+		else:
+			features = 3 if algorithm["type"] == "MT" else 1
+			raw_data = self.getBestFromCSV(max_gen, objective, features, runs, url)
+			raw_data = raw_data[objective["index"]] if algorithm["type"] == "MT" else raw_data[0]
 
 		data = []
-		if algorithm["type"] == "DEAP": # update this to match qdpy
-			for i in range(len(raw_data)):
-				data.append([])
-				for j in range(min_gen, max_gen+1):
-					if (j % increment == 0):
-						data[i].append(raw_data[i][j])
-		if algorithm["type"] == "QDPY":
-			for i in range(len(raw_data)):
-				if (i < max_gen and i % increment == 0):
-					one_generation = []
-					for j in range(len(raw_data[i])):
-						one_generation.append(raw_data[i][j])
-					data.append(one_generation)
+		for i in range(len(raw_data)):
+			if (i >= min_gen and i <= max_gen and i % increment == 0):
+				one_generation = []
+				for j in range(len(raw_data[i])):
+					one_generation.append(raw_data[i][j])
+				data.append(one_generation)
 
 		labels = []
 		for i in range(len(data)):
-			if (i + 1) % x_axis_increment == 0:
-				labels.append((i+1)*increment)
+			gen = min_gen + (i * increment)
+			if gen % x_axis_increment == 0:
+				labels.append(gen)
 			else:
 				labels.append("")
 
-		filename = "./evolution/"+algorithm["name"]+"-"+objective_name+"-"+str(min_gen)+"-"+str(max_gen)+"-"+str(increment)+".png"
+		title = objective["description"]+" - "+algorithm["display_name"]+" algorithm"
+
+		settings = str(min_gen)+"-"+str(max_gen)+"-"+str(increment)
+		filename = "./evolution/"+settings+"/"+objective_name+"-"+algorithm["name"]+"-"+settings+".png"
 		print (filename)
 
 		fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15, 6))
 		plt.subplots_adjust(wspace=.3, hspace=.4, bottom=0.1, top=0.8)
-		fig.suptitle(objective["description"], y=.925, fontsize=16, color='#333333')
+		fig.suptitle(title, y=.925, fontsize=16, color='#333333')
 
 		c = "#222222"
 		ax.boxplot(data,
@@ -976,11 +986,11 @@ class Analysis():
 				   flierprops=dict(color=c, markeredgecolor=c),
 				   medianprops=dict(color=c))
 
-		ax.set_title(algorithm_name, color=c, fontsize=13)
 		ax.title.set_position([0.5,1.05])
 		# ax.yaxis.grid(True)
-		ax.set_ylim(algorithm["ylim"][objective["index"]])
+		ax.set_ylim(self.queries["best"]["ylim"][objective["index"]])
 		ax.set_ylabel('Fitness over '+str(len(data[0]))+' runs', color=c, fontsize=12)
+		ax.set_xlabel('Generations', color=c, fontsize=12)
 		ax.yaxis.set_label_coords(-0.09,0.5)
 		ax.xaxis.set_label_coords(0.5, -0.1)
 
