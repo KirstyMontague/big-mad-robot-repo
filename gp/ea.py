@@ -30,6 +30,10 @@ class EA():
 	successNodes = ["successl", "successd", "f", "fr", "fl", "r", "rr", "rl", "stop"]
 	failureNodes = ["failurel", "failured"]
 	
+	
+	subBehaviourNodes = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
+	subBehaviourSizes = {}
+	
 	output = ""
 	
 	
@@ -77,6 +81,8 @@ class EA():
 		toolbox.register("mutNodeReplace", gp.mutNodeReplacement, pset=pset)
 
 		self.toolbox = toolbox
+		
+		self.loadSubBehaviours()
 
 	def selTournament(self, individuals, k, tournsize, fit_attr="fitness"):		
 		chosen = []
@@ -375,9 +381,14 @@ class EA():
 					
 		scores = ""
 		for i in range(self.params.features):
-			scores += str("%.7f" % best[i].fitness.values[i]) + " \t"
+			# derated = best[i].fitness.values[i] * self.deratingFactor(best[i])
+			derated = best[i].fitness.values[i] * self.deratingFactorForForaging(best[i])
+			scores += str("%.7f" % derated) + " (" + str("%.7f" % best[i].fitness.values[i]) + ") \t"
 		
-		print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+str(len(best[0]))+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
+		length = str(len(best[0]))+" ("+str(self.unpackSubBehaviours(best[0]))+")"
+		print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
+		
+		# print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+str(len(best[0]))+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 
 		self.logFitness(best)
 			
@@ -401,7 +412,6 @@ class EA():
 			print ("")
 
 	def printScores(self, population, print_scores):
-		
 		if print_scores:
 			print ("")
 			for ind in population:
@@ -758,13 +768,52 @@ class EA():
 				factor = 0
 		
 		return factor
+	
+	def unpackSubBehaviours(self, individual):
 		
+		packed_size = len(individual)
+		unpacked_size = len(individual)
+		
+		for node in individual:
+			for sub_behaviour in self.subBehaviourNodes:
+				if node.name == sub_behaviour:
+					unpacked_size -= 1
+					unpacked_size += self.subBehaviourSizes[sub_behaviour]
+		
+		return unpacked_size
+	
+	def loadSubBehaviours(self):
+	
+		pset = gp.PrimitiveSet("MAIN", 0)
+		self.params.addUnpackedNodes(pset)
+
+		f = open("../txt/sub-behaviours.txt", "r")
+		
+		for line in f:
+			name = line[0:line.find(" ")]
+			chromosome = line[line.find(" ")+1:]
+			individual = [creator.Individual.from_string(chromosome, pset)]
+			sub_behaviour_size = len(individual[0])
+			self.subBehaviourSizes[name] = sub_behaviour_size
+			print (name)
+			print (sub_behaviour_size)
+
+	def deratingFactorForForaging(self, individual):
+		
+		length = float(self.unpackSubBehaviours(individual))
+		
+		usage = length - 100 if length > 100 else 0
+		usage = usage / 9900 if length <= 10000 else 1
+		usage = 1 - usage
+		
+		return usage
+	
 	def deratingFactor(self, individual):
 		
 		length = float(len(individual))
 		
-		usage = length - 10 if length > 10 else 0
-		usage = usage / 990 if length <= 1000 else 1		
+		usage = length - 100 if length > 100 else 0
+		usage = usage / 9900 if length <= 10000 else 1
 		usage = 1 - usage
 		
 		return usage
@@ -781,7 +830,8 @@ class EA():
 		for individual in population:		
 			
 			thisFitness = individual.fitness.getValues()[feature]
-			thisFitness *= self.deratingFactor(individual)
+			# thisFitness *= self.deratingFactor(individual)
+			thisFitness *= self.deratingFactorForForaging(individual)
 			
 			currentBest = False
 			
@@ -812,7 +862,8 @@ class EA():
 			for individual in population:		
 				
 				thisFitness = individual.fitness.getValues()[i]
-				thisFitness *= self.deratingFactor(individual)
+				# thisFitness *= self.deratingFactor(individual)
+				thisFitness *= self.deratingFactorForForaging(individual)
 				
 				currentBest = False
 				
