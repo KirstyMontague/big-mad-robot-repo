@@ -242,21 +242,20 @@ double CFootBotBT::position(bool tracking)
 	// update the blackboard to reflect whether the robot is in the food region
 	m_blackBoard->setDetectedFood(m_count, r >= .5 + m_params, (tracking ? std::stoi(GetId()) : -1));
 	m_blackBoard->setCarryingFood(m_blackBoard->getCarryingFood() || r >= .5 + m_params);
-	
 	// update the blackboard to reflect whether the robot is in the nest region
 	m_blackBoard->setInNest(m_count, r < 0.5, (tracking ? std::stoi(GetId()) : -1));
 	m_blackBoard->incrementTimeInNest(r < 0.5);
 	
 	if (r < .5 && m_blackBoard->getCarryingFood())
-	{		
+	{
 		m_food++;
 		m_blackBoard->setCarryingFood(false);
-		//m_pcLEDs->SetAllColors(CColor::BLACK);
+		m_pcLEDs->SetAllColors(tracking ? CColor::YELLOW : CColor::RED);
 	}
 	
 	if (r >= .5 + m_params)
 	{
-		//m_pcLEDs->SetAllColors(CColor::GREEN);
+		m_pcLEDs->SetAllColors(tracking ? CColor::ORANGE : CColor::GREEN);
 	}
 	
 	if (m_count == 1)
@@ -491,7 +490,7 @@ void CFootBotBT::ControlStep()
 	m_count++;
 	
 	//if (m_count == 1) // used for evostar etc, probably buggy
-	if ((m_count % 160) == 1)
+	if ((m_count % 800) == 1)
 	{
 		sendInitialSignal();
 		recordInitialPositions(tracking);
@@ -513,7 +512,7 @@ void CFootBotBT::ControlStep()
 			//if (inTrackingIDs()) std::cout << output << std::endl;
 		//}
 		
-		if (tracking) std::cout << output << std::endl;
+		//if (tracking) std::cout << output << std::endl;
 		//if (tracking) std::cout << m_blackBoard->getConditions() << std::endl;
 		//if (tracking) std::cout << m_blackBoard->getActions() << std::endl;
 		//if (tracking) std::cout << m_blackBoard->getConditionality() << std::endl;
@@ -536,7 +535,7 @@ void CFootBotBT::ControlStep()
 	}
 	// end qdpy
 	
-	if ((m_count - 16) % 160 == 0)
+	if ((m_count - 16) % 800 == 0)
 	{
 		//std::cout << "m_count - 16 % 160 == 0" << std::endl;
 		m_blackBoard->setInitialDensity(tracking ? std::stoi(GetId()) : -1);
@@ -544,12 +543,12 @@ void CFootBotBT::ControlStep()
 		m_blackBoard->setInitialDistanceFromFood(tracking ? std::stoi(GetId()) : -1);
 	}
 	
-	if ((m_count + 0) % 160 == 0) // evaluation time 160 for subbehaviours, 800 for foraging
+	if ((m_count + 0) % 800 == 0) // evaluation time 160 for subbehaviours, 800 for foraging
 	{
 		recordFinalPositions(tracking);
 	}
 	
-	if (m_count % 160 == 0) // evaluation time 160 for subbehaviours, 800 for foraging
+	if (m_count % 800 == 0) // evaluation time 160 for subbehaviours, 800 for foraging
 	{
 		//std::cout << "controlStep " << m_count << std::endl;
 		m_blackBoard->setFinalDensity(tracking ? std::stoi(GetId()) : -1);

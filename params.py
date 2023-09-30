@@ -32,24 +32,24 @@ class eaParams():
 	tournamentSize = 3 # EA2
 	features = 1 # EA2
 
-	is_qdpy = True # QD2 # QD1
+	is_qdpy = False # QD2 # QD1
 	
 	# description = "density-nest-food-idensity-inest-ifood" # EA2 # EA1
-	description = "ifood" # EA2 # EA1
-	indexes = [5]
+	description = "foraging" # EA2 # EA1
+	indexes = [6]
 	
 	stop = False
 	
 	start_gen = 0
-	generations = 2000
+	generations = 500
 	
 	readCheckpoint = False
 	loadCheckpoint = False
 	saveOutput = True
 	saveCSV = True
 	
-	save_period = 500
-	csv_save_period = 500
+	save_period = 50
+	csv_save_period = 50
 		
 	def csvInputFilename(self, gen): return "test/"+self.description+"/checkpoint"+str(gen)+".csv"
 	def csvOutputFilename(self, gen): return "test/"+self.description+"/checkpoint"+str(gen)+".csv"
@@ -103,6 +103,9 @@ class eaParams():
 				if data[0] == "printFitnessScores": self.printFitnessScores = False if data[1] == "False" else True
 				if data[0] == "printBestIndividuals": self.printBestIndividuals = False if data[1] == "False" else True
 				if data[0] == "saveOutput": self.saveOutput = False if data[1] == "False" else True
+				if data[0] == "saveCSV": self.saveCSV = False if data[1] == "False" else True
+				if data[0] == "save_period": self.save_period = int(data[1])
+				if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
 				if data[0] == "stop": self.stop = False if data[1] == "False" else True
 		
 
@@ -130,21 +133,21 @@ class eaParams():
 		self.nodes['ifRobotToLeft'] = True; pset.addTerminal(robot.ifRobotToLeft)
 		self.nodes['ifRobotToRight'] = True; pset.addTerminal(robot.ifRobotToRight)
 
-		self.nodes['stop'] = True; pset.addTerminal(robot.stop)
-		self.nodes['f'] = True; pset.addTerminal(robot.f)
-		self.nodes['fl'] = True; pset.addTerminal(robot.fl)
-		self.nodes['fr'] = True; pset.addTerminal(robot.fr)
-		self.nodes['r'] = True; pset.addTerminal(robot.r)
-		self.nodes['rl'] = True; pset.addTerminal(robot.rl)
-		self.nodes['rr'] = True; pset.addTerminal(robot.rr)
+		# self.nodes['stop'] = True; pset.addTerminal(robot.stop)
+		# self.nodes['f'] = True; pset.addTerminal(robot.f)
+		# self.nodes['fl'] = True; pset.addTerminal(robot.fl)
+		# self.nodes['fr'] = True; pset.addTerminal(robot.fr)
+		# self.nodes['r'] = True; pset.addTerminal(robot.r)
+		# self.nodes['rl'] = True; pset.addTerminal(robot.rl)
+		# self.nodes['rr'] = True; pset.addTerminal(robot.rr)
 		
-		# self.nodes['increaseDensity'] = True; pset.addTerminal(robot.increaseDensity)
-		# self.nodes['reduceDensity'] = True; pset.addTerminal(robot.reduceDensity)
-		# self.nodes['gotoNest'] = True; pset.addTerminal(robot.gotoNest)
-		# self.nodes['goAwayFromNest'] = True; pset.addTerminal(robot.goAwayFromNest)
-		# self.nodes['gotoFood'] = True; pset.addTerminal(robot.gotoFood)
-		# self.nodes['goAwayFromFood'] = True; pset.addTerminal(robot.goAwayFromFood)
-		
+		self.nodes['increaseDensity'] = True; pset.addTerminal(robot.increaseDensity)
+		self.nodes['reduceDensity'] = True; pset.addTerminal(robot.reduceDensity)
+		self.nodes['gotoNest'] = True; pset.addTerminal(robot.gotoNest)
+		self.nodes['goAwayFromNest'] = True; pset.addTerminal(robot.goAwayFromNest)
+		self.nodes['gotoFood'] = True; pset.addTerminal(robot.gotoFood)
+		self.nodes['goAwayFromFood'] = True; pset.addTerminal(robot.goAwayFromFood)
+
 	def getNodes(self):
 		return self.nodes
 

@@ -203,6 +203,11 @@ std::string CNode::evaluate(CBlackBoard* blackBoard, std::string& output)
 			return evaluateCompositionNode(blackBoard, output);
 		}
 		
+		case CNode::nodetype::successd:
+		{
+			return evaluateDecoratorNode(blackBoard, output);
+		}
+		
 		case CNode::nodetype::stop:
 		case CNode::nodetype::f:
 		case CNode::nodetype::fl:

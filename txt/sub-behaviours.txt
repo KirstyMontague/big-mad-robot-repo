@@ -1,0 +1,6 @@
+increaseDensity seqm3(selm2(ifNestToLeft, selm2(seqm2(ifInNest, r), rr)), ifNestToLeft, seqm3(seqm3(seqm3(rl, ifNestToRight, r), seqm3(r, r, r), r), ifRobotToRight, r))
+gotoNest selm2(seqm4(selm4(ifNestToRight, rl, ifGotFood, ifRobotToLeft), ifNestToRight, rr, selm4(ifNestToRight, seqm4(r, r, seqm4(r, r, r, ifOnFood), ifNestToRight), seqm4(r, r, r, ifNestToRight), seqm4(r, r, ifRobotToRight, r))), ifNestToRight)
+gotoFood selm4(ifGotFood, seqm4(r, probm2(ifInNest, seqm4(ifNestToLeft, ifFoodToRight, ifRobotToRight, rr)), probm3(fl, ifNestToLeft, ifOnFood), ifOnFood), ifNestToLeft, ifNestToLeft)
+reduceDensity seqm2(seqm3(fr, seqm3(ifRobotToRight, fl, f), seqm3(f, fl, fl)), fl)
+goAwayFromNest selm2(seqm2(seqm2(f, ifNestToRight), fl), seqm2(seqm2(probm3(fr, f, ifNestToLeft), ifNestToRight), probm2(seqm2(fl, probm2(f, seqm2(seqm2(fl, probm2(seqm2(ifOnFood, probm2(f, f)), seqm2(ifNestToRight, ifNestToLeft))), fl))), seqm2(seqm2(f, fl), fl))))
+goAwayFromFood selm2(seqm4(selm4(ifNestToRight, rl, ifGotFood, ifRobotToLeft), ifNestToRight, rr, selm4(ifNestToRight, seqm4(r, r, seqm4(r, r, r, ifOnFood), ifNestToLeft), seqm4(r, r, r, ifNestToRight), seqm4(r, r, r, r))), ifNestToRight)

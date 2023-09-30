@@ -184,7 +184,7 @@ class Utilities():
 					lines = line.split()
 					robotId = int(float(lines[1]))
 					robots[robotId] = []
-					for j in range(6): # all objectives are saved to the result file
+					for j in range(7): # all objectives are saved to the result file
 						for k in range(self.params.iterations):
 							if j in self.params.indexes:
 								index = (j * self.params.iterations) + k + 2
