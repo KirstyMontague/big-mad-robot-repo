@@ -34,6 +34,7 @@ class Analysis():
 			"index" : 0,
 			"identifier" : "d",
 			"baseline_url": "../gp/test/density/",
+			"non_derated_baseline_url": "../../../Backups/AutoDecomposition/csvs-with-combined-renamed-to-checkpoint/density/",
 			"non_derated_qdpy_url": "../../../QDPY/NewDEAP/test/density/batch-100-50/",
 			"qdpy_url": "../qdpy/test/batch-25-25/density/",
 			"conversions_url": "../../../QDPY/NewDEAP/conversions/density/",
@@ -47,6 +48,7 @@ class Analysis():
 			"index" : 1,
 			"identifier" : "n",
 			"baseline_url": "../gp/test/nest/",
+			"non_derated_baseline_url": "../../../Backups/AutoDecomposition/csvs-with-combined-renamed-to-checkpoint/nest/",
 			"non_derated_qdpy_url": "../../../QDPY/NewDEAP/test/nest/batch-100-50/",
 			"qdpy_url": "../qdpy/test/batch-25-25/nest/",
 			"conversions_url": "../../../QDPY/NewDEAP/conversions/nest/",
@@ -60,6 +62,7 @@ class Analysis():
 			"index" : 2,
 			"identifier" : "f",
 			"baseline_url": "../gp/test/food/",
+			"non_derated_baseline_url": "../../../Backups/AutoDecomposition/csvs-with-combined-renamed-to-checkpoint/food/",
 			"non_derated_qdpy_url": "../../../QDPY/NewDEAP/test/food/batch-100-50/",
 			"qdpy_url": "../qdpy/test/batch-25-25/food/",
 			"conversions_url": "../../../QDPY/NewDEAP/conversions/food/",
@@ -82,24 +85,35 @@ class Analysis():
 			"description" : ["Increase neighbourhood density", "Go to nest", "Go to food"],
 			"mt_url": "../gp/test/density-nest-food/",
 		},
+		"foraging" : {
+			"name" : "foraging",
+			"description" : "Foraging",
+			"identifier" : "",
+			# "foraging_baseline_url": "../gp/foraging/100 second trials/",
+			# "foraging_modular_url": "../gp/foraging/foraging-subbehaviours-old-derating/",
+			"foraging_old_derating_baseline_url": "../gp/results/foraging/derated-10-1000/baseline/100 second trials/",
+			"foraging_baseline_url": "../gp/results/foraging/derated-100-10000/baseline/",
+			"foraging_old_derating_modular_url": "../gp/results/foraging/derated-10-1000/modular/",
+			"foraging_modular_url": "../gp/results/foraging/derated-100-10000/modular/",
+		},
 	}
 
 	algorithms = {
 		"baseline" : {
 			"name" : "baseline",
-			"display_name" : "Baseline",
-			"type" : "DEAP",
-			"code" : "GP_",
-			"prefix" : "",
-			"categories" : ["EA1a", "EA1b", "EA1c"],
-			"ylim" : [[0.5, 0.61], [0.6, 0.9], [0.7, 0.9]], # box plots only
-		},
-		"derated" : {
-			"name" : "derated",
-			"display_name" : "Baseline",
+			"display_name" : "Derated",
 			"type" : "DEAP",
 			"code" : "GP_",
 			"prefix" : "Derated ",
+			"categories" : ["EA1a", "EA1b", "EA1c"],
+			"ylim" : [[0.5, 0.61], [0.6, 0.9], [0.7, 0.9]], # box plots only
+		},
+		"non_derated_baseline" : {
+			"name" : "non_derated_baseline",
+			"display_name" : "Baseline",
+			"type" : "DEAP",
+			"code" : "GP_",
+			"prefix" : "Baseline ",
 			"categories" : ["EA1a", "EA1b", "EA1c"],
 			"ylim" : [[0.5, 0.61], [0.6, 0.9], [0.7, 0.9]],
 		},
@@ -145,6 +159,38 @@ class Analysis():
 			"code" : "MT_",
 			"prefix" : "",
 			# "categories" : ["QD1a", "QD1b", "QD1c"],
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
+		},
+		"foraging_old_derating_baseline" : {
+			"name" : "foraging_old_derating_baseline",
+			"display_name" : "Baseline",
+			"type" : "GP",
+			"code" : "GP",
+			"prefix" : "",
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
+		},
+		"foraging_old_derating_modular" : {
+			"name" : "foraging_old_derating_modular",
+			"display_name" : "Modular",
+			"type" : "AM",
+			"code" : "AM",
+			"prefix" : "",
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
+		},
+		"foraging_baseline" : {
+			"name" : "foraging_baseline",
+			"display_name" : "Baseline",
+			"type" : "GP",
+			"code" : "GP",
+			"prefix" : "",
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
+		},
+		"foraging_modular" : {
+			"name" : "foraging_modular",
+			"display_name" : "Modular",
+			"type" : "AM",
+			"code" : "AM",
+			"prefix" : "",
 			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
 		}
 	}
@@ -399,7 +445,7 @@ class Analysis():
 				index = i + 1
 				objective_definition += self.objectives[i]+"-"
 			objective_definition = objective_definition[0:-1]
-			objective_definition = "density-nest-food"
+			objective_definition = "density-nest-ifood"
 
 		filename = filename + "checkpoint"+str(generations)+".csv"
 		f = open(filename, "r")
@@ -1116,3 +1162,51 @@ class Analysis():
 
 	def algorithmName(self, algorithm, objective):
 		return algorithm["prefix"]+"$"+algorithm["code"]+objective["identifier"]+"$"
+
+
+
+	def getBestFromBin(self, container, index):
+		
+		if len(container.solutions[index]) == 0:
+			return None
+		
+		best = container.solutions[index][0]
+		for ind in container.solutions[index]:
+			if ind.fitness > best.fitness:
+				best = ind
+		
+		return best
+
+	def getBestFromAxis(self, container, x, y, z):
+		
+		best = None
+		
+		for i in range(x, x+4):
+			for j in range(y, y+4):
+				for k in range(z, z+4):
+					ind = self.getBestFromBin(container, (i,j,k))
+					if best == None or (not ind == None and ind.fitness > best.fitness):
+						best = ind
+		
+		return best
+		
+	def getBestEverFromAxis(self, objective, x, y, z):
+		
+		best = None
+		
+		for seed in range(1,11):
+			
+			filename = "../qdpy/results/batch-25-25/"+objective+"/"+str(seed)+"/seed"+str(seed)+"-final.p"
+			
+			with open(filename, "rb") as f:
+				data = pickle.load(f)
+			
+			for i in data:
+				if str(i) == "container":
+					container = data[i]
+			
+			ind = self.getBestFromAxis(container, x, y, z)
+			if best == None or (not ind == None and ind.fitness > best.fitness):
+				best = ind
+		
+		return best
