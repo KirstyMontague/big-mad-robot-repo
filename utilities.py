@@ -317,13 +317,17 @@ class Utilities():
 			# print (self.formatChromosome(ind))
 		
 			
+		print ("")
+		print ("Print best individual(s)")
+		print ("")
 		for ind in best:			
 			performance = str("%.9f" % ind.fitness.values[0]) + "  \t"
 			for f in ind.features:
 				performance += str("%.4f" % f) + " \t"
 			print (performance)
+			print (ind)
 		
-		# print ("")
+		print ("")
 	
 	def getBestMax(self, container, qty = 1):
 		

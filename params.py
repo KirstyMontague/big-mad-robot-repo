@@ -19,7 +19,6 @@ class eaParams():
 	show_warnings = True
 	printOffspring = False
 	printContainer = False
-	printBestIndividuals = True
 	def input_filename(self): return self.path()+"seed"+str(self.deapSeed)+"-"+self.start_point+".p"
 	def iteration_filename(self): return self.path()+"seed"+str(self.deapSeed)+"-iteration%i.p"
 	def final_filename(self): return self.path()+"seed"+str(self.deapSeed)+"-final.p"
@@ -48,8 +47,8 @@ class eaParams():
 	saveOutput = True
 	saveCSV = True
 	
-	save_period = 50
-	csv_save_period = 50
+	save_period = 100
+	csv_save_period = 100
 		
 	def csvInputFilename(self, gen): return "test/"+self.description+"/checkpoint"+str(gen)+".csv"
 	def csvOutputFilename(self, gen): return "test/"+self.description+"/checkpoint"+str(gen)+".csv"
@@ -141,13 +140,47 @@ class eaParams():
 		# self.nodes['rl'] = True; pset.addTerminal(robot.rl)
 		# self.nodes['rr'] = True; pset.addTerminal(robot.rr)
 		
-		self.nodes['increaseDensity'] = True; pset.addTerminal(robot.increaseDensity)
-		self.nodes['reduceDensity'] = True; pset.addTerminal(robot.reduceDensity)
-		self.nodes['gotoNest'] = True; pset.addTerminal(robot.gotoNest)
-		self.nodes['goAwayFromNest'] = True; pset.addTerminal(robot.goAwayFromNest)
-		self.nodes['gotoFood'] = True; pset.addTerminal(robot.gotoFood)
-		self.nodes['goAwayFromFood'] = True; pset.addTerminal(robot.goAwayFromFood)
+		for i in range(8):
+			index = str(i+1)
+			self.nodes['increaseDensity'+index] = True; pset.addTerminal(robot.increaseDensity[i])
+			self.nodes['reduceDensity'+index] = True; pset.addTerminal(robot.reduceDensity[i])
+			self.nodes['gotoNest'+index] = True; pset.addTerminal(robot.gotoNest[i])
+			self.nodes['goAwayFromNest'+index] = True; pset.addTerminal(robot.goAwayFromNest[i])
+			self.nodes['gotoFood'+index] = True; pset.addTerminal(robot.gotoFood[i])
+			self.nodes['goAwayFromFood'+index] = True; pset.addTerminal(robot.goAwayFromFood[i])
 
+	def addUnpackedNodes(self, pset):
+		
+		robot = robotObject()
+
+		self.nodes['selm2'] = True; pset.addPrimitive(robot.selm2, 2)
+		self.nodes['seqm2'] = True; pset.addPrimitive(robot.seqm2, 2)
+		self.nodes['probm2'] = True; pset.addPrimitive(robot.probm2, 2)
+		self.nodes['selm3'] = True; pset.addPrimitive(robot.selm3, 3)
+		self.nodes['seqm3'] = True; pset.addPrimitive(robot.seqm3, 3)
+		self.nodes['probm3'] = True; pset.addPrimitive(robot.probm3, 3)
+		self.nodes['selm4'] = True; pset.addPrimitive(robot.selm4, 4)
+		self.nodes['seqm4'] = True; pset.addPrimitive(robot.seqm4, 4)
+		self.nodes['probm4'] = True; pset.addPrimitive(robot.probm4, 4)
+
+		self.nodes['ifOnFood'] = True; pset.addTerminal(robot.ifOnFood) # carrying food bug
+		self.nodes['ifGotFood'] = True; pset.addTerminal(robot.ifGotFood)
+		self.nodes['ifInNest'] = True; pset.addTerminal(robot.ifInNest)
+		self.nodes['ifNestToLeft'] = True; pset.addTerminal(robot.ifNestToLeft)
+		self.nodes['ifNestToRight'] = True; pset.addTerminal(robot.ifNestToRight)
+		self.nodes['ifFoodToLeft'] = True; pset.addTerminal(robot.ifFoodToLeft)
+		self.nodes['ifFoodToRight'] = True; pset.addTerminal(robot.ifFoodToRight)
+		self.nodes['ifRobotToLeft'] = True; pset.addTerminal(robot.ifRobotToLeft)
+		self.nodes['ifRobotToRight'] = True; pset.addTerminal(robot.ifRobotToRight)
+
+		self.nodes['stop'] = True; pset.addTerminal(robot.stop)
+		self.nodes['f'] = True; pset.addTerminal(robot.f)
+		self.nodes['fl'] = True; pset.addTerminal(robot.fl)
+		self.nodes['fr'] = True; pset.addTerminal(robot.fr)
+		self.nodes['r'] = True; pset.addTerminal(robot.r)
+		self.nodes['rl'] = True; pset.addTerminal(robot.rl)
+		self.nodes['rr'] = True; pset.addTerminal(robot.rr)
+		
 	def getNodes(self):
 		return self.nodes
 
@@ -186,12 +219,110 @@ class robotObject(object):
 	def rl(): print ("")
 	def rr(): print ("")
 	def dummy(): print ("")
-	def increaseDensity(): print ("")
-	def reduceDensity(): print ("")
-	def gotoNest(): print ("")
-	def goAwayFromNest(): print ("")
-	def gotoFood(): print ("")
-	def goAwayFromFood(): print ("")
+	
+	def increaseDensity1(): print ("")
+	def increaseDensity2(): print ("")
+	def increaseDensity3(): print ("")
+	def increaseDensity4(): print ("")
+	def increaseDensity5(): print ("")
+	def increaseDensity6(): print ("")
+	def increaseDensity7(): print ("")
+	def increaseDensity8(): print ("")
+	increaseDensity = [increaseDensity1,
+					   increaseDensity2,
+					   increaseDensity3,
+					   increaseDensity4,
+					   increaseDensity5,
+					   increaseDensity6,
+					   increaseDensity7,
+					   increaseDensity8]
+	
+	def reduceDensity1(): print ("")
+	def reduceDensity2(): print ("")
+	def reduceDensity3(): print ("")
+	def reduceDensity4(): print ("")
+	def reduceDensity5(): print ("")
+	def reduceDensity6(): print ("")
+	def reduceDensity7(): print ("")
+	def reduceDensity8(): print ("")
+	reduceDensity = [reduceDensity1,
+					 reduceDensity2,
+					 reduceDensity3,
+					 reduceDensity4,
+					 reduceDensity5,
+					 reduceDensity6,
+					 reduceDensity7,
+					 reduceDensity8]
+	
+	def gotoNest1(): print ("")
+	def gotoNest2(): print ("")
+	def gotoNest3(): print ("")
+	def gotoNest4(): print ("")
+	def gotoNest5(): print ("")
+	def gotoNest6(): print ("")
+	def gotoNest7(): print ("")
+	def gotoNest8(): print ("")
+	gotoNest = [gotoNest1,
+				gotoNest2,
+				gotoNest3,
+				gotoNest4,
+				gotoNest5,
+				gotoNest6,
+				gotoNest7,
+				gotoNest8]
+	
+	def goAwayFromNest1(): print ("")
+	def goAwayFromNest2(): print ("")
+	def goAwayFromNest3(): print ("")
+	def goAwayFromNest4(): print ("")
+	def goAwayFromNest5(): print ("")
+	def goAwayFromNest6(): print ("")
+	def goAwayFromNest7(): print ("")
+	def goAwayFromNest8(): print ("")
+	goAwayFromNest = [goAwayFromNest1,
+					  goAwayFromNest2,
+					  goAwayFromNest3,
+					  goAwayFromNest4,
+					  goAwayFromNest5,
+					  goAwayFromNest6,
+					  goAwayFromNest7,
+					  goAwayFromNest8]
+	
+	def gotoFood1(): print ("")
+	def gotoFood2(): print ("")
+	def gotoFood3(): print ("")
+	def gotoFood4(): print ("")
+	def gotoFood5(): print ("")
+	def gotoFood6(): print ("")
+	def gotoFood7(): print ("")
+	def gotoFood8(): print ("")
+	gotoFood = [gotoFood1,
+				gotoFood2,
+				gotoFood3,
+				gotoFood4,
+				gotoFood5,
+				gotoFood6,
+				gotoFood7,
+				gotoFood8]
+
+	def goAwayFromFood1(): print ("")
+	def goAwayFromFood2(): print ("")
+	def goAwayFromFood3(): print ("")
+	def goAwayFromFood4(): print ("")
+	def goAwayFromFood5(): print ("")
+	def goAwayFromFood6(): print ("")
+	def goAwayFromFood7(): print ("")
+	def goAwayFromFood8(): print ("")
+	goAwayFromFood = [goAwayFromFood1,
+					  goAwayFromFood2,
+					  goAwayFromFood3,
+					  goAwayFromFood4,
+					  goAwayFromFood5,
+					  goAwayFromFood6,
+					  goAwayFromFood7,
+					  goAwayFromFood8]
+	
+	
 
 class bbReadIndex(): x = 1
 class bbWriteIndex(): x = 1

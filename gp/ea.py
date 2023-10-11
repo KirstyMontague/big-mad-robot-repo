@@ -30,8 +30,16 @@ class EA():
 	successNodes = ["successl", "successd", "f", "fr", "fl", "r", "rr", "rl", "stop"]
 	failureNodes = ["failurel", "failured"]
 	
-	
-	subBehaviourNodes = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
+	def subBehaviours(self):
+		self.subBehaviourNodes = []
+		for i in range(8):
+			self.subBehaviourNodes.append("increaseDensity"+str(i+1))
+			self.subBehaviourNodes.append("gotoNest"+str(i+1))
+			self.subBehaviourNodes.append("gotoFood"+str(i+1))
+			self.subBehaviourNodes.append("reduceDensity"+str(i+1))
+			self.subBehaviourNodes.append("goAwayFromNest"+str(i+1))
+			self.subBehaviourNodes.append("goAwayFromFood"+str(i+1))
+
 	subBehaviourSizes = {}
 	
 	output = ""
@@ -39,6 +47,7 @@ class EA():
 	
 	def __init__(self):
 		self.redundancy = Redundancy()
+		self.subBehaviours()
 		# random.seed(self.params.deapSeed)
 	
 	def setParams(self, params):
@@ -285,6 +294,9 @@ class EA():
 		
 		matched = self.evaluateNewPopulation(True, self.params.start_gen, population)
 				
+		self.printScores(population, self.params.printFitnessScores)
+		self.printIndividuals(self.getBestHDAll(population), self.params.printBestIndividuals)
+		
 		# for ind in population:
 			# self.printIndividual(ind)
 		
@@ -373,6 +385,9 @@ class EA():
 		
 		self.evaluate(self.toolbox, invalid_ind)
 		
+		# if (generation % 100 == 0):
+			# self.checkDuplicatesAreCorrect(self.toolbox, invalid_ind)
+		
 		for ind in invalid_ind:
 			self.redundancy.addToLibrary(str(ind), ind.fitness.values)
 		
@@ -381,8 +396,8 @@ class EA():
 					
 		scores = ""
 		for i in range(self.params.features):
-			# derated = best[i].fitness.values[i] * self.deratingFactor(best[i])
-			derated = best[i].fitness.values[i] * self.deratingFactorForForaging(best[i])
+			derated = best[i].fitness.values[i] * self.deratingFactor(best[i])
+			# derated = best[i].fitness.values[i] * self.deratingFactorForForaging(best[i])
 			scores += str("%.7f" % derated) + " (" + str("%.7f" % best[i].fitness.values[i]) + ") \t"
 		
 		length = str(len(best[0]))+" ("+str(self.unpackSubBehaviours(best[0]))+")"
@@ -512,6 +527,42 @@ class EA():
 			self.saveCheckpoint(gen, population)
 			self.saveCSV(gen, population)
 
+
+	def checkDuplicatesAreCorrect(self, toolbox, population):
+		
+		pset = gp.PrimitiveSet("MAIN", 0)
+		self.params.addNodes(pset)
+		
+		expected = population
+		
+		trimmed = []
+		for ind in population:
+			trimmed_string = self.redundancy.removeRedundancy(str(ind))
+			trimmed_individual = [creator.Individual.from_string(trimmed_string, pset)][0]
+			trimmed.append(trimmed_individual)
+		
+		actual = []
+		actual_fitnesses = toolbox.map(toolbox.evaluate, trimmed)
+		for ind, fit in zip(trimmed, actual_fitnesses):
+			print(fit)
+			ind.fitness.values = fit
+			actual.append(ind)
+		
+		for i in range(len(population)):
+			
+			print(str(len(expected[i]))+" vs "+str(len(actual[i])))
+			expected_fitness = expected[i].fitness.values
+			actual_fitness = actual[i].fitness.values
+			
+			# fitness[3] doesn't need to match because trailing condition nodes affect conditionality in arbitrary ways
+			if expected_fitness[0] != actual_fitness[0] or expected_fitness[1] != actual_fitness[1] or expected_fitness[2] != actual_fitness[2]:
+				print ("ERROR")
+				print (str(expected[i]))
+				print ()
+				print (str(actual[i]))
+				print ()
+				print (str(expected[i].fitness))
+				print (str(actual[i].fitness))
 
 	def assignDuplicateFitness(self, offspring, matched):
 		
@@ -795,8 +846,6 @@ class EA():
 			individual = [creator.Individual.from_string(chromosome, pset)]
 			sub_behaviour_size = len(individual[0])
 			self.subBehaviourSizes[name] = sub_behaviour_size
-			print (name)
-			print (sub_behaviour_size)
 
 	def deratingFactorForForaging(self, individual):
 		
@@ -812,8 +861,8 @@ class EA():
 		
 		length = float(len(individual))
 		
-		usage = length - 100 if length > 100 else 0
-		usage = usage / 9900 if length <= 10000 else 1
+		usage = length - 10 if length > 10 else 0
+		usage = usage / 990 if length <= 1000 else 1
 		usage = 1 - usage
 		
 		return usage
@@ -830,8 +879,8 @@ class EA():
 		for individual in population:		
 			
 			thisFitness = individual.fitness.getValues()[feature]
-			# thisFitness *= self.deratingFactor(individual)
-			thisFitness *= self.deratingFactorForForaging(individual)
+			thisFitness *= self.deratingFactor(individual)
+			# thisFitness *= self.deratingFactorForForaging(individual)
 			
 			currentBest = False
 			
@@ -862,8 +911,8 @@ class EA():
 			for individual in population:		
 				
 				thisFitness = individual.fitness.getValues()[i]
-				# thisFitness *= self.deratingFactor(individual)
-				thisFitness *= self.deratingFactorForForaging(individual)
+				thisFitness *= self.deratingFactor(individual)
+				# thisFitness *= self.deratingFactorForForaging(individual)
 				
 				currentBest = False
 				
