@@ -122,15 +122,33 @@ class eaParams():
 		self.nodes['seqm4'] = True; pset.addPrimitive(robot.seqm4, 4)
 		self.nodes['probm4'] = True; pset.addPrimitive(robot.probm4, 4)
 
-		self.nodes['ifOnFood'] = True; pset.addTerminal(robot.ifOnFood) # carrying food bug
-		self.nodes['ifGotFood'] = True; pset.addTerminal(robot.ifGotFood)
-		self.nodes['ifInNest'] = True; pset.addTerminal(robot.ifInNest)
-		self.nodes['ifNestToLeft'] = True; pset.addTerminal(robot.ifNestToLeft)
-		self.nodes['ifNestToRight'] = True; pset.addTerminal(robot.ifNestToRight)
-		self.nodes['ifFoodToLeft'] = True; pset.addTerminal(robot.ifFoodToLeft)
-		self.nodes['ifFoodToRight'] = True; pset.addTerminal(robot.ifFoodToRight)
-		self.nodes['ifRobotToLeft'] = True; pset.addTerminal(robot.ifRobotToLeft)
-		self.nodes['ifRobotToRight'] = True; pset.addTerminal(robot.ifRobotToRight)
+		# original ratio 7:9
+		# one controller per fragment ratio 6:9
+		# eight controllers per fragment ratio 6:9
+		
+
+		# self.nodes['ifOnFood'] = True; pset.addTerminal(robot.ifOnFood) # carrying food bug
+		# self.nodes['ifGotFood'] = True; pset.addTerminal(robot.ifGotFood)
+		# self.nodes['ifInNest'] = True; pset.addTerminal(robot.ifInNest)
+		# self.nodes['ifNestToLeft'] = True; pset.addTerminal(robot.ifNestToLeft)
+		# self.nodes['ifNestToRight'] = True; pset.addTerminal(robot.ifNestToRight)
+		# self.nodes['ifFoodToLeft'] = True; pset.addTerminal(robot.ifFoodToLeft)
+		# self.nodes['ifFoodToRight'] = True; pset.addTerminal(robot.ifFoodToRight)
+		# self.nodes['ifRobotToLeft'] = True; pset.addTerminal(robot.ifRobotToLeft)
+		# self.nodes['ifRobotToRight'] = True; pset.addTerminal(robot.ifRobotToRight)
+
+		for i in range(8):
+			index = str(i+1)
+			self.nodes['ifOnFood'+index] = True; pset.addTerminal(robot.ifOnFoodExtended[i])
+			self.nodes['ifGotFood'+index] = True; pset.addTerminal(robot.ifGotFoodExtended[i])
+			self.nodes['ifInNest'+index] = True; pset.addTerminal(robot.ifInNestExtended[i])
+			self.nodes['ifNestToLeft'+index] = True; pset.addTerminal(robot.ifNestToLeftExtended[i])
+			self.nodes['ifNestToRight'+index] = True; pset.addTerminal(robot.ifNestToRightExtended[i])
+			self.nodes['ifFoodToLeft'+index] = True; pset.addTerminal(robot.ifFoodToLeftExtended[i])
+			self.nodes['ifFoodToRight'+index] = True; pset.addTerminal(robot.ifFoodToRightExtended[i])
+			self.nodes['ifRobotToLeft'+index] = True; pset.addTerminal(robot.ifRobotToLeftExtended[i])
+			self.nodes['ifRobotToRight'+index] = True; pset.addTerminal(robot.ifRobotToRightExtended[i])
+
 
 		# self.nodes['stop'] = True; pset.addTerminal(robot.stop)
 		# self.nodes['f'] = True; pset.addTerminal(robot.f)
@@ -173,6 +191,18 @@ class eaParams():
 		self.nodes['ifRobotToLeft'] = True; pset.addTerminal(robot.ifRobotToLeft)
 		self.nodes['ifRobotToRight'] = True; pset.addTerminal(robot.ifRobotToRight)
 
+		# for i in range(8):
+			# index = str(i+1)
+			# self.nodes['ifOnFood'+index] = True; pset.addTerminal(robot.ifOnFoodExtended[i])
+			# self.nodes['ifGotFood'+index] = True; pset.addTerminal(robot.ifGotFoodExtended[i])
+			# self.nodes['ifInNest'+index] = True; pset.addTerminal(robot.ifInNestExtended[i])
+			# self.nodes['ifNestToLeft'+index] = True; pset.addTerminal(robot.ifNestToLeftExtended[i])
+			# self.nodes['ifNestToRight'+index] = True; pset.addTerminal(robot.ifNestToRightExtended[i])
+			# self.nodes['ifFoodToLeft'+index] = True; pset.addTerminal(robot.ifFoodToLeftExtended[i])
+			# self.nodes['ifFoodToRight'+index] = True; pset.addTerminal(robot.ifFoodToRightExtended[i])
+			# self.nodes['ifRobotToLeft'+index] = True; pset.addTerminal(robot.ifRobotToLeftExtended[i])
+			# self.nodes['ifRobotToRight'+index] = True; pset.addTerminal(robot.ifRobotToRightExtended[i])
+
 		self.nodes['stop'] = True; pset.addTerminal(robot.stop)
 		self.nodes['f'] = True; pset.addTerminal(robot.f)
 		self.nodes['fl'] = True; pset.addTerminal(robot.fl)
@@ -201,6 +231,7 @@ class robotObject(object):
 	def repeat(): print ("")
 	def successd(): print ("")
 	def failured(): print ("")
+	
 	def ifGotFood(): print ("")
 	def ifOnFood(): print ("")
 	def ifInNest(): print ("")
@@ -210,6 +241,163 @@ class robotObject(object):
 	def ifFoodToRight(): print ("")
 	def ifRobotToLeft(): print ("")
 	def ifRobotToRight(): print ("")
+	
+	def ifGotFood1(): print ("")
+	def ifGotFood2(): print ("")
+	def ifGotFood3(): print ("")
+	def ifGotFood4(): print ("")
+	def ifGotFood5(): print ("")
+	def ifGotFood6(): print ("")
+	def ifGotFood7(): print ("")
+	def ifGotFood8(): print ("")
+	ifGotFoodExtended = [ifGotFood1,
+					   ifGotFood2,
+					   ifGotFood3,
+					   ifGotFood4,
+					   ifGotFood5,
+					   ifGotFood6,
+					   ifGotFood7,
+					   ifGotFood8]
+		
+	def ifOnFood1(): print ("")
+	def ifOnFood2(): print ("")
+	def ifOnFood3(): print ("")
+	def ifOnFood4(): print ("")
+	def ifOnFood5(): print ("")
+	def ifOnFood6(): print ("")
+	def ifOnFood7(): print ("")
+	def ifOnFood8(): print ("")
+	ifOnFoodExtended = [ifOnFood1,
+					   ifOnFood2,
+					   ifOnFood3,
+					   ifOnFood4,
+					   ifOnFood5,
+					   ifOnFood6,
+					   ifOnFood7,
+					   ifOnFood8]
+	
+	def ifInNest1(): print ("")
+	def ifInNest2(): print ("")
+	def ifInNest3(): print ("")
+	def ifInNest4(): print ("")
+	def ifInNest5(): print ("")
+	def ifInNest6(): print ("")
+	def ifInNest7(): print ("")
+	def ifInNest8(): print ("")
+	ifInNestExtended = [ifInNest1,
+					   ifInNest2,
+					   ifInNest3,
+					   ifInNest4,
+					   ifInNest5,
+					   ifInNest6,
+					   ifInNest7,
+					   ifInNest8]
+	
+	def ifNestToLeft1(): print ("")
+	def ifNestToLeft2(): print ("")
+	def ifNestToLeft3(): print ("")
+	def ifNestToLeft4(): print ("")
+	def ifNestToLeft5(): print ("")
+	def ifNestToLeft6(): print ("")
+	def ifNestToLeft7(): print ("")
+	def ifNestToLeft8(): print ("")
+	ifNestToLeftExtended = [ifNestToLeft1,
+					   ifNestToLeft2,
+					   ifNestToLeft3,
+					   ifNestToLeft4,
+					   ifNestToLeft5,
+					   ifNestToLeft6,
+					   ifNestToLeft7,
+					   ifNestToLeft8]
+	
+	def ifNestToRight1(): print ("")
+	def ifNestToRight2(): print ("")
+	def ifNestToRight3(): print ("")
+	def ifNestToRight4(): print ("")
+	def ifNestToRight5(): print ("")
+	def ifNestToRight6(): print ("")
+	def ifNestToRight7(): print ("")
+	def ifNestToRight8(): print ("")
+	ifNestToRightExtended = [ifNestToRight1,
+					   ifNestToRight2,
+					   ifNestToRight3,
+					   ifNestToRight4,
+					   ifNestToRight5,
+					   ifNestToRight6,
+					   ifNestToRight7,
+					   ifNestToRight8]
+	
+	def ifFoodToLeft1(): print ("")
+	def ifFoodToLeft2(): print ("")
+	def ifFoodToLeft3(): print ("")
+	def ifFoodToLeft4(): print ("")
+	def ifFoodToLeft5(): print ("")
+	def ifFoodToLeft6(): print ("")
+	def ifFoodToLeft7(): print ("")
+	def ifFoodToLeft8(): print ("")
+	ifFoodToLeftExtended = [ifFoodToLeft1,
+					   ifFoodToLeft2,
+					   ifFoodToLeft3,
+					   ifFoodToLeft4,
+					   ifFoodToLeft5,
+					   ifFoodToLeft6,
+					   ifFoodToLeft7,
+					   ifFoodToLeft8]
+	
+	def ifFoodToRight1(): print ("")
+	def ifFoodToRight2(): print ("")
+	def ifFoodToRight3(): print ("")
+	def ifFoodToRight4(): print ("")
+	def ifFoodToRight5(): print ("")
+	def ifFoodToRight6(): print ("")
+	def ifFoodToRight7(): print ("")
+	def ifFoodToRight8(): print ("")
+	ifFoodToRightExtended = [ifFoodToRight1,
+					   ifFoodToRight2,
+					   ifFoodToRight3,
+					   ifFoodToRight4,
+					   ifFoodToRight5,
+					   ifFoodToRight6,
+					   ifFoodToRight7,
+					   ifFoodToRight8]
+	
+	def ifRobotToLeft1(): print ("")
+	def ifRobotToLeft2(): print ("")
+	def ifRobotToLeft3(): print ("")
+	def ifRobotToLeft4(): print ("")
+	def ifRobotToLeft5(): print ("")
+	def ifRobotToLeft6(): print ("")
+	def ifRobotToLeft7(): print ("")
+	def ifRobotToLeft8(): print ("")
+	ifRobotToLeftExtended = [ifRobotToLeft1,
+					   ifRobotToLeft2,
+					   ifRobotToLeft3,
+					   ifRobotToLeft4,
+					   ifRobotToLeft5,
+					   ifRobotToLeft6,
+					   ifRobotToLeft7,
+					   ifRobotToLeft8]
+	
+	def ifRobotToRight1(): print ("")
+	def ifRobotToRight2(): print ("")
+	def ifRobotToRight3(): print ("")
+	def ifRobotToRight4(): print ("")
+	def ifRobotToRight5(): print ("")
+	def ifRobotToRight6(): print ("")
+	def ifRobotToRight7(): print ("")
+	def ifRobotToRight8(): print ("")
+	ifRobotToRightExtended = [ifRobotToRight1,
+					   ifRobotToRight2,
+					   ifRobotToRight3,
+					   ifRobotToRight4,
+					   ifRobotToRight5,
+					   ifRobotToRight6,
+					   ifRobotToRight7,
+					   ifRobotToRight8]
+	
+	
+	
+	
 	def set(): print ("")
 	def stop(): print ("")
 	def f(): print ("")

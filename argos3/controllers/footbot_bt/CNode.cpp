@@ -157,6 +157,78 @@ void CNode::conditionNode(std::vector<std::string>& chromosome)
 		case nodetype::ifRobotAhead:
 		case nodetype::ifRobotToLeft:
 		case nodetype::ifRobotToRight:
+		case nodetype::ifOnFood1:
+		case nodetype::ifOnFood2:
+		case nodetype::ifOnFood3:
+		case nodetype::ifOnFood4:
+		case nodetype::ifOnFood5:
+		case nodetype::ifOnFood6:
+		case nodetype::ifOnFood7:
+		case nodetype::ifOnFood8:
+		case nodetype::ifGotFood1:
+		case nodetype::ifGotFood2:
+		case nodetype::ifGotFood3:
+		case nodetype::ifGotFood4:
+		case nodetype::ifGotFood5:
+		case nodetype::ifGotFood6:
+		case nodetype::ifGotFood7:
+		case nodetype::ifGotFood8:
+		case nodetype::ifInNest1:
+		case nodetype::ifInNest2:
+		case nodetype::ifInNest3:
+		case nodetype::ifInNest4:
+		case nodetype::ifInNest5:
+		case nodetype::ifInNest6:
+		case nodetype::ifInNest7:
+		case nodetype::ifInNest8:
+		case nodetype::ifNestToLeft1:
+		case nodetype::ifNestToLeft2:
+		case nodetype::ifNestToLeft3:
+		case nodetype::ifNestToLeft4:
+		case nodetype::ifNestToLeft5:
+		case nodetype::ifNestToLeft6:
+		case nodetype::ifNestToLeft7:
+		case nodetype::ifNestToLeft8:
+		case nodetype::ifNestToRight1:
+		case nodetype::ifNestToRight2:
+		case nodetype::ifNestToRight3:
+		case nodetype::ifNestToRight4:
+		case nodetype::ifNestToRight5:
+		case nodetype::ifNestToRight6:
+		case nodetype::ifNestToRight7:
+		case nodetype::ifNestToRight8:
+		case nodetype::ifFoodToLeft1:
+		case nodetype::ifFoodToLeft2:
+		case nodetype::ifFoodToLeft3:
+		case nodetype::ifFoodToLeft4:
+		case nodetype::ifFoodToLeft5:
+		case nodetype::ifFoodToLeft6:
+		case nodetype::ifFoodToLeft7:
+		case nodetype::ifFoodToLeft8:
+		case nodetype::ifFoodToRight1:
+		case nodetype::ifFoodToRight2:
+		case nodetype::ifFoodToRight3:
+		case nodetype::ifFoodToRight4:
+		case nodetype::ifFoodToRight5:
+		case nodetype::ifFoodToRight6:
+		case nodetype::ifFoodToRight7:
+		case nodetype::ifFoodToRight8:
+		case nodetype::ifRobotToLeft1:
+		case nodetype::ifRobotToLeft2:
+		case nodetype::ifRobotToLeft3:
+		case nodetype::ifRobotToLeft4:
+		case nodetype::ifRobotToLeft5:
+		case nodetype::ifRobotToLeft6:
+		case nodetype::ifRobotToLeft7:
+		case nodetype::ifRobotToLeft8:
+		case nodetype::ifRobotToRight1:
+		case nodetype::ifRobotToRight2:
+		case nodetype::ifRobotToRight3:
+		case nodetype::ifRobotToRight4:
+		case nodetype::ifRobotToRight5:
+		case nodetype::ifRobotToRight6:
+		case nodetype::ifRobotToRight7:
+		case nodetype::ifRobotToRight8:
 		{
 			break;
 		}
@@ -229,6 +301,78 @@ std::string CNode::evaluate(CBlackBoard* blackBoard, std::string& output)
 		case CNode::nodetype::ifRobotAhead:
 		case CNode::nodetype::ifRobotToLeft:
 		case CNode::nodetype::ifRobotToRight:
+		case nodetype::ifOnFood1:
+		case nodetype::ifOnFood2:
+		case nodetype::ifOnFood3:
+		case nodetype::ifOnFood4:
+		case nodetype::ifOnFood5:
+		case nodetype::ifOnFood6:
+		case nodetype::ifOnFood7:
+		case nodetype::ifOnFood8:
+		case nodetype::ifGotFood1:
+		case nodetype::ifGotFood2:
+		case nodetype::ifGotFood3:
+		case nodetype::ifGotFood4:
+		case nodetype::ifGotFood5:
+		case nodetype::ifGotFood6:
+		case nodetype::ifGotFood7:
+		case nodetype::ifGotFood8:
+		case nodetype::ifInNest1:
+		case nodetype::ifInNest2:
+		case nodetype::ifInNest3:
+		case nodetype::ifInNest4:
+		case nodetype::ifInNest5:
+		case nodetype::ifInNest6:
+		case nodetype::ifInNest7:
+		case nodetype::ifInNest8:
+		case nodetype::ifNestToLeft1:
+		case nodetype::ifNestToLeft2:
+		case nodetype::ifNestToLeft3:
+		case nodetype::ifNestToLeft4:
+		case nodetype::ifNestToLeft5:
+		case nodetype::ifNestToLeft6:
+		case nodetype::ifNestToLeft7:
+		case nodetype::ifNestToLeft8:
+		case nodetype::ifNestToRight1:
+		case nodetype::ifNestToRight2:
+		case nodetype::ifNestToRight3:
+		case nodetype::ifNestToRight4:
+		case nodetype::ifNestToRight5:
+		case nodetype::ifNestToRight6:
+		case nodetype::ifNestToRight7:
+		case nodetype::ifNestToRight8:
+		case nodetype::ifFoodToLeft1:
+		case nodetype::ifFoodToLeft2:
+		case nodetype::ifFoodToLeft3:
+		case nodetype::ifFoodToLeft4:
+		case nodetype::ifFoodToLeft5:
+		case nodetype::ifFoodToLeft6:
+		case nodetype::ifFoodToLeft7:
+		case nodetype::ifFoodToLeft8:
+		case nodetype::ifFoodToRight1:
+		case nodetype::ifFoodToRight2:
+		case nodetype::ifFoodToRight3:
+		case nodetype::ifFoodToRight4:
+		case nodetype::ifFoodToRight5:
+		case nodetype::ifFoodToRight6:
+		case nodetype::ifFoodToRight7:
+		case nodetype::ifFoodToRight8:
+		case nodetype::ifRobotToLeft1:
+		case nodetype::ifRobotToLeft2:
+		case nodetype::ifRobotToLeft3:
+		case nodetype::ifRobotToLeft4:
+		case nodetype::ifRobotToLeft5:
+		case nodetype::ifRobotToLeft6:
+		case nodetype::ifRobotToLeft7:
+		case nodetype::ifRobotToLeft8:
+		case nodetype::ifRobotToRight1:
+		case nodetype::ifRobotToRight2:
+		case nodetype::ifRobotToRight3:
+		case nodetype::ifRobotToRight4:
+		case nodetype::ifRobotToRight5:
+		case nodetype::ifRobotToRight6:
+		case nodetype::ifRobotToRight7:
+		case nodetype::ifRobotToRight8:
 		{
 			return evaluateConditionNode(blackBoard, output);
 		}
@@ -388,6 +532,14 @@ std::string CNode::evaluateConditionNode(CBlackBoard* blackBoard, std::string& o
 	switch (m_type)
 	{	
 		case CNode::nodetype::ifOnFood: // carrying food bug
+		case CNode::nodetype::ifOnFood1:
+		case CNode::nodetype::ifOnFood2:
+		case CNode::nodetype::ifOnFood3:
+		case CNode::nodetype::ifOnFood4:
+		case CNode::nodetype::ifOnFood5:
+		case CNode::nodetype::ifOnFood6:
+		case CNode::nodetype::ifOnFood7:
+		case CNode::nodetype::ifOnFood8:
 		{
 			std::string result = (blackBoard->getDetectedFood()) ? "success" : "failure";
 			output += "ifOnFood(" + result + ") ";
@@ -395,6 +547,14 @@ std::string CNode::evaluateConditionNode(CBlackBoard* blackBoard, std::string& o
 		}
 		
 		case CNode::nodetype::ifGotFood:
+		case CNode::nodetype::ifGotFood1:
+		case CNode::nodetype::ifGotFood2:
+		case CNode::nodetype::ifGotFood3:
+		case CNode::nodetype::ifGotFood4:
+		case CNode::nodetype::ifGotFood5:
+		case CNode::nodetype::ifGotFood6:
+		case CNode::nodetype::ifGotFood7:
+		case CNode::nodetype::ifGotFood8:
 		{
 			std::string result = (blackBoard->getCarryingFood()) ? "success" : "failure";
 			output += "ifGotFood(" + result + ") ";
@@ -402,6 +562,14 @@ std::string CNode::evaluateConditionNode(CBlackBoard* blackBoard, std::string& o
 		}
 		
 		case CNode::nodetype::ifInNest:
+		case CNode::nodetype::ifInNest1:
+		case CNode::nodetype::ifInNest2:
+		case CNode::nodetype::ifInNest3:
+		case CNode::nodetype::ifInNest4:
+		case CNode::nodetype::ifInNest5:
+		case CNode::nodetype::ifInNest6:
+		case CNode::nodetype::ifInNest7:
+		case CNode::nodetype::ifInNest8:
 		{
 			std::string result = (blackBoard->getInNest()) ? "success" : "failure";
 			output += "ifInNest(" + result + ") ";
@@ -409,6 +577,14 @@ std::string CNode::evaluateConditionNode(CBlackBoard* blackBoard, std::string& o
 		}
 		
 		case CNode::nodetype::ifNestToLeft:
+		case CNode::nodetype::ifNestToLeft1:
+		case CNode::nodetype::ifNestToLeft2:
+		case CNode::nodetype::ifNestToLeft3:
+		case CNode::nodetype::ifNestToLeft4:
+		case CNode::nodetype::ifNestToLeft5:
+		case CNode::nodetype::ifNestToLeft6:
+		case CNode::nodetype::ifNestToLeft7:
+		case CNode::nodetype::ifNestToLeft8:
 		{
 			std::string result = (blackBoard->getNestToLeft()) ? "success" : "failure";
 			output += "ifNestToLeft(" + result + ") ";
@@ -416,6 +592,14 @@ std::string CNode::evaluateConditionNode(CBlackBoard* blackBoard, std::string& o
 		}
 		
 		case CNode::nodetype::ifNestToRight:
+		case CNode::nodetype::ifNestToRight1:
+		case CNode::nodetype::ifNestToRight2:
+		case CNode::nodetype::ifNestToRight3:
+		case CNode::nodetype::ifNestToRight4:
+		case CNode::nodetype::ifNestToRight5:
+		case CNode::nodetype::ifNestToRight6:
+		case CNode::nodetype::ifNestToRight7:
+		case CNode::nodetype::ifNestToRight8:
 		{
 			std::string result = (blackBoard->getNestToRight()) ? "success" : "failure";
 			output += "ifNestToRight(" + result + ") ";
@@ -423,6 +607,14 @@ std::string CNode::evaluateConditionNode(CBlackBoard* blackBoard, std::string& o
 		}
 		
 		case CNode::nodetype::ifFoodToLeft:
+		case CNode::nodetype::ifFoodToLeft1:
+		case CNode::nodetype::ifFoodToLeft2:
+		case CNode::nodetype::ifFoodToLeft3:
+		case CNode::nodetype::ifFoodToLeft4:
+		case CNode::nodetype::ifFoodToLeft5:
+		case CNode::nodetype::ifFoodToLeft6:
+		case CNode::nodetype::ifFoodToLeft7:
+		case CNode::nodetype::ifFoodToLeft8:
 		{
 			std::string result = (blackBoard->getFoodToLeft()) ? "success" : "failure";
 			output += "ifFoodToLeft(" + result + ") ";
@@ -430,6 +622,14 @@ std::string CNode::evaluateConditionNode(CBlackBoard* blackBoard, std::string& o
 		}
 		
 		case CNode::nodetype::ifFoodToRight:
+		case CNode::nodetype::ifFoodToRight1:
+		case CNode::nodetype::ifFoodToRight2:
+		case CNode::nodetype::ifFoodToRight3:
+		case CNode::nodetype::ifFoodToRight4:
+		case CNode::nodetype::ifFoodToRight5:
+		case CNode::nodetype::ifFoodToRight6:
+		case CNode::nodetype::ifFoodToRight7:
+		case CNode::nodetype::ifFoodToRight8:
 		{
 			std::string result = (blackBoard->getFoodToRight()) ? "success" : "failure";
 			output += "ifFoodToRight(" + result + ") ";
@@ -437,6 +637,14 @@ std::string CNode::evaluateConditionNode(CBlackBoard* blackBoard, std::string& o
 		}
 		
 		case CNode::nodetype::ifRobotToLeft:
+		case CNode::nodetype::ifRobotToLeft1:
+		case CNode::nodetype::ifRobotToLeft2:
+		case CNode::nodetype::ifRobotToLeft3:
+		case CNode::nodetype::ifRobotToLeft4:
+		case CNode::nodetype::ifRobotToLeft5:
+		case CNode::nodetype::ifRobotToLeft6:
+		case CNode::nodetype::ifRobotToLeft7:
+		case CNode::nodetype::ifRobotToLeft8:
 		{
 			std::string result = (blackBoard->getNearestNeighbourToLeft()) ? "success" : "failure";
 			output += "ifRobotToLeft(" + result + ") ";
@@ -444,6 +652,14 @@ std::string CNode::evaluateConditionNode(CBlackBoard* blackBoard, std::string& o
 		}
 		
 		case CNode::nodetype::ifRobotToRight:
+		case CNode::nodetype::ifRobotToRight1:
+		case CNode::nodetype::ifRobotToRight2:
+		case CNode::nodetype::ifRobotToRight3:
+		case CNode::nodetype::ifRobotToRight4:
+		case CNode::nodetype::ifRobotToRight5:
+		case CNode::nodetype::ifRobotToRight6:
+		case CNode::nodetype::ifRobotToRight7:
+		case CNode::nodetype::ifRobotToRight8:
 		{
 			std::string result = (blackBoard->getNearestNeighbourToRight()) ? "success" : "failure";
 			output += "ifRobotToRight(" + result + ") ";
@@ -627,7 +843,79 @@ CNode::nodetypes CNode::getNodeType(nodetype node)
 		 node == nodetype::ifFoodToRight ||
 		 node == nodetype::ifRobotAhead ||
 		 node == nodetype::ifRobotToLeft ||
-		 node == nodetype::ifRobotToRight)
+		 node == nodetype::ifRobotToRight ||
+		 node == nodetype::ifOnFood1 ||
+		 node == nodetype::ifOnFood2 ||
+		 node == nodetype::ifOnFood3 ||
+		 node == nodetype::ifOnFood4 ||
+		 node == nodetype::ifOnFood5 ||
+		 node == nodetype::ifOnFood6 ||
+		 node == nodetype::ifOnFood7 ||
+		 node == nodetype::ifOnFood8 ||
+		 node == nodetype::ifGotFood1 ||
+		 node == nodetype::ifGotFood2 ||
+		 node == nodetype::ifGotFood3 ||
+		 node == nodetype::ifGotFood4 ||
+		 node == nodetype::ifGotFood5 ||
+		 node == nodetype::ifGotFood6 ||
+		 node == nodetype::ifGotFood7 ||
+		 node == nodetype::ifGotFood8 ||
+		 node == nodetype::ifInNest1 ||
+		 node == nodetype::ifInNest2 ||
+		 node == nodetype::ifInNest3 ||
+		 node == nodetype::ifInNest4 ||
+		 node == nodetype::ifInNest5 ||
+		 node == nodetype::ifInNest6 ||
+		 node == nodetype::ifInNest7 ||
+		 node == nodetype::ifInNest8 ||
+		 node == nodetype::ifNestToLeft1 ||
+		 node == nodetype::ifNestToLeft2 ||
+		 node == nodetype::ifNestToLeft3 ||
+		 node == nodetype::ifNestToLeft4 ||
+		 node == nodetype::ifNestToLeft5 ||
+		 node == nodetype::ifNestToLeft6 ||
+		 node == nodetype::ifNestToLeft7 ||
+		 node == nodetype::ifNestToLeft8 ||
+		 node == nodetype::ifNestToRight1 ||
+		 node == nodetype::ifNestToRight2 ||
+		 node == nodetype::ifNestToRight3 ||
+		 node == nodetype::ifNestToRight4 ||
+		 node == nodetype::ifNestToRight5 ||
+		 node == nodetype::ifNestToRight6 ||
+		 node == nodetype::ifNestToRight7 ||
+		 node == nodetype::ifNestToRight8 ||
+		 node == nodetype::ifFoodToLeft1 ||
+		 node == nodetype::ifFoodToLeft2 ||
+		 node == nodetype::ifFoodToLeft3 ||
+		 node == nodetype::ifFoodToLeft4 ||
+		 node == nodetype::ifFoodToLeft5 ||
+		 node == nodetype::ifFoodToLeft6 ||
+		 node == nodetype::ifFoodToLeft7 ||
+		 node == nodetype::ifFoodToLeft8 ||
+		 node == nodetype::ifFoodToRight1 ||
+		 node == nodetype::ifFoodToRight2 ||
+		 node == nodetype::ifFoodToRight3 ||
+		 node == nodetype::ifFoodToRight4 ||
+		 node == nodetype::ifFoodToRight5 ||
+		 node == nodetype::ifFoodToRight6 ||
+		 node == nodetype::ifFoodToRight7 ||
+		 node == nodetype::ifFoodToRight8 ||
+		 node == nodetype::ifRobotToLeft1 ||
+		 node == nodetype::ifRobotToLeft2 ||
+		 node == nodetype::ifRobotToLeft3 ||
+		 node == nodetype::ifRobotToLeft4 ||
+		 node == nodetype::ifRobotToLeft5 ||
+		 node == nodetype::ifRobotToLeft6 ||
+		 node == nodetype::ifRobotToLeft7 ||
+		 node == nodetype::ifRobotToLeft8 ||
+		 node == nodetype::ifRobotToRight1 ||
+		 node == nodetype::ifRobotToRight2 ||
+		 node == nodetype::ifRobotToRight3 ||
+		 node == nodetype::ifRobotToRight4 ||
+		 node == nodetype::ifRobotToRight5 ||
+		 node == nodetype::ifRobotToRight6 ||
+		 node == nodetype::ifRobotToRight7 ||
+		 node == nodetype::ifRobotToRight8)
 	{
 		return nodetypes::condition;
 	}
@@ -671,6 +959,78 @@ std::map<std::string, CNode::nodetype> CNode::getNodeSet()
 	nodes.insert({"ifRobotAhead", CNode::nodetype::ifRobotAhead});
 	nodes.insert({"ifRobotToLeft", CNode::nodetype::ifRobotToLeft});
 	nodes.insert({"ifRobotToRight", CNode::nodetype::ifRobotToRight});
+    nodes.insert({"ifOnFood1", CNode::nodetype::ifOnFood1});
+    nodes.insert({"ifOnFood2", CNode::nodetype::ifOnFood2});
+    nodes.insert({"ifOnFood3", CNode::nodetype::ifOnFood3});
+    nodes.insert({"ifOnFood4", CNode::nodetype::ifOnFood4});
+    nodes.insert({"ifOnFood5", CNode::nodetype::ifOnFood5});
+    nodes.insert({"ifOnFood6", CNode::nodetype::ifOnFood6});
+    nodes.insert({"ifOnFood7", CNode::nodetype::ifOnFood7});
+    nodes.insert({"ifOnFood8", CNode::nodetype::ifOnFood8});
+    nodes.insert({"ifGotFood1", CNode::nodetype::ifGotFood1});
+    nodes.insert({"ifGotFood2", CNode::nodetype::ifGotFood2});
+    nodes.insert({"ifGotFood3", CNode::nodetype::ifGotFood3});
+    nodes.insert({"ifGotFood4", CNode::nodetype::ifGotFood4});
+    nodes.insert({"ifGotFood5", CNode::nodetype::ifGotFood5});
+    nodes.insert({"ifGotFood6", CNode::nodetype::ifGotFood6});
+    nodes.insert({"ifGotFood7", CNode::nodetype::ifGotFood7});
+    nodes.insert({"ifGotFood8", CNode::nodetype::ifGotFood8});
+    nodes.insert({"ifInNest1", CNode::nodetype::ifInNest1});
+    nodes.insert({"ifInNest2", CNode::nodetype::ifInNest2});
+    nodes.insert({"ifInNest3", CNode::nodetype::ifInNest3});
+    nodes.insert({"ifInNest4", CNode::nodetype::ifInNest4});
+    nodes.insert({"ifInNest5", CNode::nodetype::ifInNest5});
+    nodes.insert({"ifInNest6", CNode::nodetype::ifInNest6});
+    nodes.insert({"ifInNest7", CNode::nodetype::ifInNest7});
+    nodes.insert({"ifInNest8", CNode::nodetype::ifInNest8});
+    nodes.insert({"ifNestToLeft1", CNode::nodetype::ifNestToLeft1});
+    nodes.insert({"ifNestToLeft2", CNode::nodetype::ifNestToLeft2});
+    nodes.insert({"ifNestToLeft3", CNode::nodetype::ifNestToLeft3});
+    nodes.insert({"ifNestToLeft4", CNode::nodetype::ifNestToLeft4});
+    nodes.insert({"ifNestToLeft5", CNode::nodetype::ifNestToLeft5});
+    nodes.insert({"ifNestToLeft6", CNode::nodetype::ifNestToLeft6});
+    nodes.insert({"ifNestToLeft7", CNode::nodetype::ifNestToLeft7});
+    nodes.insert({"ifNestToLeft8", CNode::nodetype::ifNestToLeft8});
+    nodes.insert({"ifNestToRight1", CNode::nodetype::ifNestToRight1});
+    nodes.insert({"ifNestToRight2", CNode::nodetype::ifNestToRight2});
+    nodes.insert({"ifNestToRight3", CNode::nodetype::ifNestToRight3});
+    nodes.insert({"ifNestToRight4", CNode::nodetype::ifNestToRight4});
+    nodes.insert({"ifNestToRight5", CNode::nodetype::ifNestToRight5});
+    nodes.insert({"ifNestToRight6", CNode::nodetype::ifNestToRight6});
+    nodes.insert({"ifNestToRight7", CNode::nodetype::ifNestToRight7});
+    nodes.insert({"ifNestToRight8", CNode::nodetype::ifNestToRight8});
+    nodes.insert({"ifFoodToLeft1", CNode::nodetype::ifFoodToLeft1});
+    nodes.insert({"ifFoodToLeft2", CNode::nodetype::ifFoodToLeft2});
+    nodes.insert({"ifFoodToLeft3", CNode::nodetype::ifFoodToLeft3});
+    nodes.insert({"ifFoodToLeft4", CNode::nodetype::ifFoodToLeft4});
+    nodes.insert({"ifFoodToLeft5", CNode::nodetype::ifFoodToLeft5});
+    nodes.insert({"ifFoodToLeft6", CNode::nodetype::ifFoodToLeft6});
+    nodes.insert({"ifFoodToLeft7", CNode::nodetype::ifFoodToLeft7});
+    nodes.insert({"ifFoodToLeft8", CNode::nodetype::ifFoodToLeft8});
+    nodes.insert({"ifFoodToRight1", CNode::nodetype::ifFoodToRight1});
+    nodes.insert({"ifFoodToRight2", CNode::nodetype::ifFoodToRight2});
+    nodes.insert({"ifFoodToRight3", CNode::nodetype::ifFoodToRight3});
+    nodes.insert({"ifFoodToRight4", CNode::nodetype::ifFoodToRight4});
+    nodes.insert({"ifFoodToRight5", CNode::nodetype::ifFoodToRight5});
+    nodes.insert({"ifFoodToRight6", CNode::nodetype::ifFoodToRight6});
+    nodes.insert({"ifFoodToRight7", CNode::nodetype::ifFoodToRight7});
+    nodes.insert({"ifFoodToRight8", CNode::nodetype::ifFoodToRight8});
+    nodes.insert({"ifRobotToLeft1", CNode::nodetype::ifRobotToLeft1});
+    nodes.insert({"ifRobotToLeft2", CNode::nodetype::ifRobotToLeft2});
+    nodes.insert({"ifRobotToLeft3", CNode::nodetype::ifRobotToLeft3});
+    nodes.insert({"ifRobotToLeft4", CNode::nodetype::ifRobotToLeft4});
+    nodes.insert({"ifRobotToLeft5", CNode::nodetype::ifRobotToLeft5});
+    nodes.insert({"ifRobotToLeft6", CNode::nodetype::ifRobotToLeft6});
+    nodes.insert({"ifRobotToLeft7", CNode::nodetype::ifRobotToLeft7});
+    nodes.insert({"ifRobotToLeft8", CNode::nodetype::ifRobotToLeft8});
+    nodes.insert({"ifRobotToRight1", CNode::nodetype::ifRobotToRight1});
+    nodes.insert({"ifRobotToRight2", CNode::nodetype::ifRobotToRight2});
+    nodes.insert({"ifRobotToRight3", CNode::nodetype::ifRobotToRight3});
+    nodes.insert({"ifRobotToRight4", CNode::nodetype::ifRobotToRight4});
+    nodes.insert({"ifRobotToRight5", CNode::nodetype::ifRobotToRight5});
+    nodes.insert({"ifRobotToRight6", CNode::nodetype::ifRobotToRight6});
+    nodes.insert({"ifRobotToRight7", CNode::nodetype::ifRobotToRight7});
+    nodes.insert({"ifRobotToRight8", CNode::nodetype::ifRobotToRight8});
 	
 	nodes.insert({"stop", CNode::nodetype::stop});
 	nodes.insert({"f", CNode::nodetype::f});

@@ -27,12 +27,28 @@ class Redundancy():
 	fallbackNodes = ["selm2", "selm3", "selm4"]
 	probabilityNodes = ["probm2", "probm3", "probm4"]
 	compositionNodes = sequenceNodes + fallbackNodes + probabilityNodes
-	conditionNodes = ["ifOnFood", "ifGotFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
+	conditionBaseNodes = ["ifOnFood", "ifGotFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
 	successNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl"]
 	actionNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl"]
 	nonEffectiveNodes = ["stop", "ifOnFood", "ifGotFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
-	effectiveNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl", "increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
-	subBehaviourNodes = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
+	effectiveNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl"]
+	subBehaviourBaseNodes = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
+	
+	subBehaviourNodes = []
+	conditionNodes = []
+	
+	def addSubBehaviours(self):
+		for i in range(8):
+			for node in self.subBehaviourBaseNodes:
+				self.subBehaviourNodes.append(node+str(i+1))
+				self.effectiveNodes.append(node+str(i+1))
+	
+	def addExtraConditions(self):
+		for node in self.conditionBaseNodes:
+			self.conditionNodes.append(node)
+			for i in range(8):
+				self.conditionNodes.append(node+str(i+1))
+				self.nonEffectiveNodes.append(node+str(i+1))
 
 	active = [True]
 	trailingList = [] # booleans to mark whether the node at the same index is redundant
@@ -45,6 +61,8 @@ class Redundancy():
 		self.primitivetree = gp.PrimitiveTree([])
 		self.pset = gp.PrimitiveSet("MAIN", 0)
 		self.params.addNodes(self.pset)
+		self.addSubBehaviours()
+		self.addExtraConditions()
 		self.probm_chromosomes = []
 		self.chromosomes = []
 		self.tests = []
@@ -75,6 +93,20 @@ class Redundancy():
 		# self.probm_chromosomes.append("selm3(f, probm4(probm3(ifFoodToLeft, ifFoodToRight, rr), probm2(f, rr), seqm3(ifRobotToLeft, ifFoodToLeft, fl), probm4(ifRobotToRight, f, ifRobotToLeft, stop)), selm4(seqm3(rr, ifNestToRight, fl), seqm3(stop, ifNestToLeft, ifFoodToLeft), probm4(ifFoodToLeft, ifNestToLeft, ifNestToRight, ifNestToRight), selm4(ifFoodToLeft, stop, ifFoodToLeft, ifFoodToLeft)))")
 
 	def addTests(self):
+		
+		self.tests.append({
+			"bt" : "probm2(seqm3(increaseDensity2, increaseDensity3, ifFoodToRight), goAwayFromNest7)",
+			"trimmed" : "probm2(seqm2(increaseDensity2, increaseDensity3), goAwayFromNest7)",
+			"fitness" : []
+		})
+
+		# self.tests.append({
+			# "bt" : "probm3(seqm2(selm3(probm3(ifInNest, ifGotFood, ifOnFood), seqm3(reduceDensity7, goAwayFromFood5, goAwayFromFood2), seqm4(gotoFood3, goAwayFromFood2, gotoFood3, ifNestToRight)), seqm2(probm3(goAwayFromFood5, gotoNest4, ifRobotToLeft), seqm3(gotoFood1, goAwayFromFood7, increaseDensity6))), probm4(seqm4(probm3(reduceDensity2, gotoNest1, reduceDensity5), selm3(gotoFood2, goAwayFromNest1, increaseDensity2), probm3(ifFoodToLeft, reduceDensity8, gotoNest2), seqm2(goAwayFromNest7, reduceDensity4)), seqm2(probm3(goAwayFromFood1, goAwayFromNest3, gotoFood2), selm2(goAwayFromFood2, gotoNest1)), probm3(seqm3(increaseDensity2, increaseDensity3, ifFoodToRight), probm4(increaseDensity6, gotoFood5, increaseDensity8, goAwayFromFood5), seqm2(increaseDensity2, goAwayFromFood1)), selm2(selm3(gotoFood3, ifNestToRight, gotoNest2), probm4(gotoFood8, ifNestToRight, reduceDensity7, ifNestToRight))), selm2(selm2(seqm3(goAwayFromNest7, goAwayFromFood7, reduceDensity3), seqm4(goAwayFromNest4, gotoFood8, goAwayFromNest8, increaseDensity1)), seqm2(probm4(gotoFood7, goAwayFromFood7, goAwayFromFood2, ifNestToRight), probm4(goAwayFromNest6, gotoNest1, gotoNest1, gotoFood7))))",
+			# "trimmed" : "",
+			# "fitness" : []
+		# })
+
+		return
 		
 		self.tests.append({
 			"bt" : "seqm3(rr, seqm2(ifNestToLeft, seqm2(selm2(seqm2(seqm2(ifNestToLeft, selm2(selm2(seqm2(seqm2(seqm2(selm2(seqm2(seqm2(seqm2(seqm2(ifNestToLeft, rl), seqm2(seqm2(r, selm2(selm2(seqm2(seqm2(ifOnFood, rl), seqm2(r, r)), ifOnFood), r)), selm2(seqm2(seqm2(seqm2(seqm2(ifNestToLeft, rl), r), rl), seqm2(probm2(ifFoodToRight, seqm2(seqm2(seqm2(seqm2(ifNestToLeft, rl), ifNestToLeft), rl), seqm2(ifNestToLeft, rl))), ifNestToLeft)), ifOnFood))), r), seqm2(probm2(ifInNest, seqm2(seqm2(seqm2(seqm2(ifNestToLeft, ifNestToLeft), ifNestToLeft), rl), seqm2(ifNestToLeft, ifRobotToRight))), ifRobotToRight)), ifOnFood), seqm2(seqm2(ifNestToLeft, rl), r)), ifOnFood), seqm2(r, r)), ifOnFood), r)), seqm2(seqm2(r, seqm2(seqm2(ifNestToLeft, seqm2(seqm2(selm2(seqm2(seqm2(seqm2(seqm2(ifNestToLeft, rl), r), rl), seqm2(probm2(ifFoodToRight, seqm2(seqm2(seqm2(seqm2(ifNestToLeft, rl), ifNestToLeft), rl), seqm2(ifNestToLeft, rl))), ifNestToLeft)), ifOnFood), seqm2(r, ifNestToLeft)), ifOnFood)), ifOnFood)), ifNestToLeft)), ifOnFood), seqm2(seqm2(ifNestToLeft, r), seqm2(seqm2(seqm2(ifNestToLeft, seqm2(r, ifNestToLeft)), r), selm2(ifNestToLeft, ifOnFood))))), rl)",
@@ -1085,8 +1117,10 @@ class Redundancy():
 
 	def getChromosomes(self):
 		
-		self.chromosomes.append("seqm2(seqm3(seqm4(selm2(gotoFood, ifGotFood), selm2(gotoNest, ifFoodToLeft), gotoFood, probm2(seqm4(ifInNest, ifGotFood, ifNestToRight, selm4(ifNestToRight, ifNestToRight, gotoNest, ifGotFood)), ifRobotToRight)), probm3(seqm2(seqm3(ifFoodToRight, gotoNest, ifInNest), ifFoodToRight), probm2(gotoNest, ifInNest), seqm2(seqm2(seqm3(ifGotFood, gotoFood, ifInNest), gotoNest), ifNestToRight)), probm2(probm4(increaseDensity, ifNestToRight, selm4(increaseDensity, ifGotFood, ifRobotToRight, ifRobotToRight), gotoFood), probm2(selm2(gotoNest, ifRobotToLeft), selm3(seqm3(ifFoodToRight, ifRobotToRight, ifGotFood), probm2(gotoFood, ifInNest), selm4(ifFoodToRight, ifNestToRight, ifRobotToRight, ifGotFood))))), ifNestToRight)")
-		self.chromosomes.append("seqm2(seqm3(seqm4(selm2(gotoFood, ifGotFood), selm2(gotoNest, ifFoodToLeft), gotoFood, probm2(seqm4(ifInNest, ifGotFood, ifNestToRight, selm4(ifNestToRight, ifNestToRight, gotoNest, ifGotFood)), ifRobotToRight)), probm3(seqm2(seqm3(ifFoodToRight, gotoNest, ifInNest), ifFoodToRight), probm2(gotoNest, ifInNest), seqm2(seqm2(seqm3(ifGotFood, gotoFood, ifInNest), gotoNest), ifNestToRight)), probm2(probm4(increaseDensity, ifNestToRight, ifFoodToRight, gotoFood), probm2(selm2(gotoNest, ifRobotToLeft), selm3(seqm3(ifFoodToRight, ifRobotToRight, ifGotFood), probm2(gotoFood, ifInNest), selm4(ifFoodToRight, ifNestToRight, ifRobotToRight, ifGotFood))))), ifInNest)")
+		self.chromosomes.append("probm3(seqm2(selm3(probm3(ifInNest, ifGotFood, ifOnFood), seqm3(reduceDensity7, goAwayFromFood5, goAwayFromFood2), seqm4(gotoFood3, goAwayFromFood2, gotoFood3, ifNestToRight)), seqm2(probm3(goAwayFromFood5, gotoNest4, ifRobotToLeft), seqm3(gotoFood1, goAwayFromFood7, increaseDensity6))), probm4(seqm4(probm3(reduceDensity2, gotoNest1, reduceDensity5), selm3(gotoFood2, goAwayFromNest1, increaseDensity2), probm3(ifFoodToLeft, reduceDensity8, gotoNest2), seqm2(goAwayFromNest7, reduceDensity4)), seqm2(probm3(goAwayFromFood1, goAwayFromNest3, gotoFood2), selm2(goAwayFromFood2, gotoNest1)), probm3(seqm3(increaseDensity2, increaseDensity3, ifFoodToRight), probm4(increaseDensity6, gotoFood5, increaseDensity8, goAwayFromFood5), seqm2(increaseDensity2, goAwayFromFood1)), selm2(selm3(gotoFood3, ifNestToRight, gotoNest2), probm4(gotoFood8, ifNestToRight, reduceDensity7, ifNestToRight))), selm2(selm2(seqm3(goAwayFromNest7, goAwayFromFood7, reduceDensity3), seqm4(goAwayFromNest4, gotoFood8, goAwayFromNest8, increaseDensity1)), seqm2(probm4(gotoFood7, goAwayFromFood7, goAwayFromFood2, ifNestToRight), probm4(goAwayFromNest6, gotoNest1, gotoNest1, gotoFood7))))")
+		
+		# self.chromosomes.append("seqm2(seqm3(seqm4(selm2(gotoFood, ifGotFood), selm2(gotoNest, ifFoodToLeft), gotoFood, probm2(seqm4(ifInNest, ifGotFood, ifNestToRight, selm4(ifNestToRight, ifNestToRight, gotoNest, ifGotFood)), ifRobotToRight)), probm3(seqm2(seqm3(ifFoodToRight, gotoNest, ifInNest), ifFoodToRight), probm2(gotoNest, ifInNest), seqm2(seqm2(seqm3(ifGotFood, gotoFood, ifInNest), gotoNest), ifNestToRight)), probm2(probm4(increaseDensity, ifNestToRight, selm4(increaseDensity, ifGotFood, ifRobotToRight, ifRobotToRight), gotoFood), probm2(selm2(gotoNest, ifRobotToLeft), selm3(seqm3(ifFoodToRight, ifRobotToRight, ifGotFood), probm2(gotoFood, ifInNest), selm4(ifFoodToRight, ifNestToRight, ifRobotToRight, ifGotFood))))), ifNestToRight)")
+		# self.chromosomes.append("seqm2(seqm3(seqm4(selm2(gotoFood, ifGotFood), selm2(gotoNest, ifFoodToLeft), gotoFood, probm2(seqm4(ifInNest, ifGotFood, ifNestToRight, selm4(ifNestToRight, ifNestToRight, gotoNest, ifGotFood)), ifRobotToRight)), probm3(seqm2(seqm3(ifFoodToRight, gotoNest, ifInNest), ifFoodToRight), probm2(gotoNest, ifInNest), seqm2(seqm2(seqm3(ifGotFood, gotoFood, ifInNest), gotoNest), ifNestToRight)), probm2(probm4(increaseDensity, ifNestToRight, ifFoodToRight, gotoFood), probm2(selm2(gotoNest, ifRobotToLeft), selm3(seqm3(ifFoodToRight, ifRobotToRight, ifGotFood), probm2(gotoFood, ifInNest), selm4(ifFoodToRight, ifNestToRight, ifRobotToRight, ifGotFood))))), ifInNest)")
 		
 		# self.chromosomes.append("selm2(r, probm4(rl, ifRobotToLeft, ifNestToLeft, ifNestToRight))")
 		# self.chromosomes.append("probm3(ifNestToLeft, ifNestToRight, probm3(ifRobotToLeft, ifNestToLeft, probm2(ifFoodToRight, ifFoodToRight)))")
@@ -1674,14 +1708,86 @@ class Redundancy():
 			"probm3" : "h",
 			"probm4" : "i",
 			"ifInNest" : "j",
+			"ifInNest1" : "j",
+			"ifInNest2" : "j",
+			"ifInNest3" : "j",
+			"ifInNest4" : "j",
+			"ifInNest5" : "j",
+			"ifInNest6" : "j",
+			"ifInNest7" : "j",
+			"ifInNest8" : "j",
 			"ifOnFood" : "k",
+			"ifOnFood1" : "k",
+			"ifOnFood2" : "k",
+			"ifOnFood3" : "k",
+			"ifOnFood4" : "k",
+			"ifOnFood5" : "k",
+			"ifOnFood6" : "k",
+			"ifOnFood7" : "k",
+			"ifOnFood8" : "k",
 			"ifGotFood" : "l",
+			"ifGotFood1" : "l",
+			"ifGotFood2" : "l",
+			"ifGotFood3" : "l",
+			"ifGotFood4" : "l",
+			"ifGotFood5" : "l",
+			"ifGotFood6" : "l",
+			"ifGotFood7" : "l",
+			"ifGotFood8" : "l",
 			"ifNestToLeft" : "m",
+			"ifNestToLeft1" : "m",
+			"ifNestToLeft2" : "m",
+			"ifNestToLeft3" : "m",
+			"ifNestToLeft4" : "m",
+			"ifNestToLeft5" : "m",
+			"ifNestToLeft6" : "m",
+			"ifNestToLeft7" : "m",
+			"ifNestToLeft8" : "m",
 			"ifNestToRight" : "n",
+			"ifNestToRight1" : "n",
+			"ifNestToRight2" : "n",
+			"ifNestToRight3" : "n",
+			"ifNestToRight4" : "n",
+			"ifNestToRight5" : "n",
+			"ifNestToRight6" : "n",
+			"ifNestToRight7" : "n",
+			"ifNestToRight8" : "n",
 			"ifFoodToLeft" : "o",
+			"ifFoodToLeft1" : "o",
+			"ifFoodToLeft2" : "o",
+			"ifFoodToLeft3" : "o",
+			"ifFoodToLeft4" : "o",
+			"ifFoodToLeft5" : "o",
+			"ifFoodToLeft6" : "o",
+			"ifFoodToLeft7" : "o",
+			"ifFoodToLeft8" : "o",
 			"ifFoodToRight" : "p",
+			"ifFoodToRight1" : "p",
+			"ifFoodToRight2" : "p",
+			"ifFoodToRight3" : "p",
+			"ifFoodToRight4" : "p",
+			"ifFoodToRight5" : "p",
+			"ifFoodToRight6" : "p",
+			"ifFoodToRight7" : "p",
+			"ifFoodToRight8" : "p",
 			"ifRobotToLeft" : "q",
+			"ifRobotToLeft1" : "q",
+			"ifRobotToLeft2" : "q",
+			"ifRobotToLeft3" : "q",
+			"ifRobotToLeft4" : "q",
+			"ifRobotToLeft5" : "q",
+			"ifRobotToLeft6" : "q",
+			"ifRobotToLeft7" : "q",
+			"ifRobotToLeft8" : "q",
 			"ifRobotToRight" : "r",
+			"ifRobotToRight1" : "r",
+			"ifRobotToRight2" : "r",
+			"ifRobotToRight3" : "r",
+			"ifRobotToRight4" : "r",
+			"ifRobotToRight5" : "r",
+			"ifRobotToRight6" : "r",
+			"ifRobotToRight7" : "r",
+			"ifRobotToRight8" : "r",
 			"stop" : "s",
 			"f" : "t",
 			"fl" : "u",
@@ -1689,12 +1795,54 @@ class Redundancy():
 			"r" : "w",
 			"rl" : "x",
 			"rr" : "y",
-			"increaseDensity" : "0",
-			"reduceDensity" : "1",
-			"gotoNest" : "2",
-			"goAwayFromNest" : "3",
-			"gotoFood" : "4",
-			"goAwayFromFood" : "5",
+			"increaseDensity1" : "01",
+			"increaseDensity2" : "02",
+			"increaseDensity3" : "03",
+			"increaseDensity4" : "04",
+			"increaseDensity5" : "05",
+			"increaseDensity6" : "06",
+			"increaseDensity7" : "07",
+			"increaseDensity8" : "08",
+			"reduceDensity1" : "11",
+			"reduceDensity2" : "12",
+			"reduceDensity3" : "13",
+			"reduceDensity4" : "14",
+			"reduceDensity5" : "15",
+			"reduceDensity6" : "16",
+			"reduceDensity7" : "17",
+			"reduceDensity8" : "18",
+			"gotoNest1" : "21",
+			"gotoNest2" : "22",
+			"gotoNest3" : "23",
+			"gotoNest4" : "24",
+			"gotoNest5" : "25",
+			"gotoNest6" : "26",
+			"gotoNest7" : "27",
+			"gotoNest8" : "28",
+			"goAwayFromNest1" : "31",
+			"goAwayFromNest2" : "32",
+			"goAwayFromNest3" : "33",
+			"goAwayFromNest4" : "34",
+			"goAwayFromNest5" : "35",
+			"goAwayFromNest6" : "36",
+			"goAwayFromNest7" : "37",
+			"goAwayFromNest8" : "38",
+			"gotoFood1" : "41",
+			"gotoFood2" : "42",
+			"gotoFood3" : "43",
+			"gotoFood4" : "44",
+			"gotoFood5" : "45",
+			"gotoFood6" : "46",
+			"gotoFood7" : "47",
+			"gotoFood8" : "48",
+			"goAwayFromFood1" : "51",
+			"goAwayFromFood2" : "52",
+			"goAwayFromFood3" : "53",
+			"goAwayFromFood4" : "54",
+			"goAwayFromFood5" : "55",
+			"goAwayFromFood6" : "56",
+			"goAwayFromFood7" : "57",
+			"goAwayFromFood8" : "58",
 		}
 		chromosome = chromosome.replace(" ", "")
 		tokens = re.split("[ (),]", chromosome)
@@ -1948,15 +2096,15 @@ class Redundancy():
 	
 	def checkRedundancy(self):
 		
-		self.makeTests()
-		return
+		# self.makeTests()
+		# return
 		
 		errors = ""
-		# self.getChromosomes()
+		self.getChromosomes()
 		
 		for i in range(len(self.tests)):
 			
-			print(i)
+			# print(i)
 			
 			chromosome = self.tests[i]["bt"]
 			tree = self.primitivetree.from_string(chromosome, self.pset)
@@ -2013,34 +2161,42 @@ class Redundancy():
 				# print ("evaluating "+str(tree))
 				# print ("evaluating "+str(new_tree))
 				
-				expected_fitness = self.tests[i]["fitness"]
-				# expected_fitness = self.evaluateRobot(tree, 1)	
-				# print(expected_fitness)
-				# actual_fitness = self.evaluateRobot(new_tree, 2)	
+				print ("difference: "+str(len(tree) - len(new_tree)))
 				
-				# if expected_fitness[0] != actual_fitness[0] or expected_fitness[1] != actual_fitness[1] or expected_fitness[2] != actual_fitness[2]:
-					# print("FITNESS ERROR on "+str(i))
+				expected_fitness = self.tests[i]["fitness"]
+				expected_fitness = self.utilities.evaluateRobot(tree, 1)
+				# print(expected_fitness)
+				actual_fitness = self.utilities.evaluateRobot(new_tree, 2)
+				
+				print(expected_fitness)
+				print(actual_fitness)
+				
+				# fitness[3] doesn't need to match because trailing condition
+				# nodes affect conditionality in arbitrary ways
+				if expected_fitness[0] != actual_fitness[0] or expected_fitness[1] != actual_fitness[1] or expected_fitness[2] != actual_fitness[2]:
+					print("FITNESS ERROR on "+str(i))
 				
 				if str(new_tree) != self.tests[i]["trimmed"]:
-					mismatched_tree = self.primitivetree.from_string(self.tests[i]["trimmed"], self.pset)
 					errors += "TREE ERROR on "+str(i)+"\n"
 					print("")
 					print("TREE ERROR on "+str(i))
+					print("")
 					print(new_tree)
-					# print(self.formatChromosome(new_tree))
-					# print(self.formatChromosome(mismatched_tree))
+					print(self.formatChromosome(tree))
+					print("")
+					print(self.formatChromosome(new_tree))
 					print("")
 				
-				chromosome = self.rebuildChromosome(output)
+				# chromosome = self.rebuildChromosome(output)
 				
 				# lazy
-				output = []
-				composites = []
-				for j in range(len(self.trailingList) - 1, -1, -1):
-					self.trailingList.pop()
+				# output = []
+				# composites = []
+				# for j in range(len(self.trailingList) - 1, -1, -1):
+					# self.trailingList.pop()
 					
-				self.parseSubtreeLazy(rType, tree, "  ", output, composites)				
-				self.trailingNodesLazy(tree, output)
+				# self.parseSubtreeLazy(rType, tree, "  ", output, composites)
+				# self.trailingNodesLazy(tree, output)
 				
 		print (errors)
 		
@@ -2589,7 +2745,7 @@ class Redundancy():
 		return False
 
 	def changeConditionNode(self , name):
-		return "ifInNest"
+		return "ifInNest1"
 		return "ifOnFood" if name == "ifInNest" else "ifInNest"
 
 	def buildNewTreeFromList(self, trailing, new_list, indent):
