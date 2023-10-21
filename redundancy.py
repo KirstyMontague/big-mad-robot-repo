@@ -19,6 +19,8 @@ from deap import gp
 from params import eaParams
 from utilities import Utilities
 
+import local
+
 
 
 class Redundancy():
@@ -42,12 +44,13 @@ class Redundancy():
 			for node in self.subBehaviourBaseNodes:
 				self.subBehaviourNodes.append(node+str(i+1))
 				self.effectiveNodes.append(node+str(i+1))
+				self.successNodes.append(node+str(i+1))
+				self.actionNodes.append(node+str(i+1))
 	
 	def addExtraConditions(self):
 		for node in self.conditionBaseNodes:
 			self.conditionNodes.append(node)
 			for i in range(8):
-				self.conditionNodes.append(node+str(i+1))
 				self.nonEffectiveNodes.append(node+str(i+1))
 
 	active = [True]
@@ -59,7 +62,7 @@ class Redundancy():
 		self.utilities = Utilities(self.params)
 		self.toolbox = base.Toolbox()
 		self.primitivetree = gp.PrimitiveTree([])
-		self.pset = gp.PrimitiveSet("MAIN", 0)
+		self.pset = local.PrimitiveSetExtended("MAIN", 0)
 		self.params.addNodes(self.pset)
 		self.addSubBehaviours()
 		self.addExtraConditions()
@@ -1708,86 +1711,14 @@ class Redundancy():
 			"probm3" : "h",
 			"probm4" : "i",
 			"ifInNest" : "j",
-			"ifInNest1" : "j",
-			"ifInNest2" : "j",
-			"ifInNest3" : "j",
-			"ifInNest4" : "j",
-			"ifInNest5" : "j",
-			"ifInNest6" : "j",
-			"ifInNest7" : "j",
-			"ifInNest8" : "j",
 			"ifOnFood" : "k",
-			"ifOnFood1" : "k",
-			"ifOnFood2" : "k",
-			"ifOnFood3" : "k",
-			"ifOnFood4" : "k",
-			"ifOnFood5" : "k",
-			"ifOnFood6" : "k",
-			"ifOnFood7" : "k",
-			"ifOnFood8" : "k",
 			"ifGotFood" : "l",
-			"ifGotFood1" : "l",
-			"ifGotFood2" : "l",
-			"ifGotFood3" : "l",
-			"ifGotFood4" : "l",
-			"ifGotFood5" : "l",
-			"ifGotFood6" : "l",
-			"ifGotFood7" : "l",
-			"ifGotFood8" : "l",
 			"ifNestToLeft" : "m",
-			"ifNestToLeft1" : "m",
-			"ifNestToLeft2" : "m",
-			"ifNestToLeft3" : "m",
-			"ifNestToLeft4" : "m",
-			"ifNestToLeft5" : "m",
-			"ifNestToLeft6" : "m",
-			"ifNestToLeft7" : "m",
-			"ifNestToLeft8" : "m",
 			"ifNestToRight" : "n",
-			"ifNestToRight1" : "n",
-			"ifNestToRight2" : "n",
-			"ifNestToRight3" : "n",
-			"ifNestToRight4" : "n",
-			"ifNestToRight5" : "n",
-			"ifNestToRight6" : "n",
-			"ifNestToRight7" : "n",
-			"ifNestToRight8" : "n",
 			"ifFoodToLeft" : "o",
-			"ifFoodToLeft1" : "o",
-			"ifFoodToLeft2" : "o",
-			"ifFoodToLeft3" : "o",
-			"ifFoodToLeft4" : "o",
-			"ifFoodToLeft5" : "o",
-			"ifFoodToLeft6" : "o",
-			"ifFoodToLeft7" : "o",
-			"ifFoodToLeft8" : "o",
 			"ifFoodToRight" : "p",
-			"ifFoodToRight1" : "p",
-			"ifFoodToRight2" : "p",
-			"ifFoodToRight3" : "p",
-			"ifFoodToRight4" : "p",
-			"ifFoodToRight5" : "p",
-			"ifFoodToRight6" : "p",
-			"ifFoodToRight7" : "p",
-			"ifFoodToRight8" : "p",
 			"ifRobotToLeft" : "q",
-			"ifRobotToLeft1" : "q",
-			"ifRobotToLeft2" : "q",
-			"ifRobotToLeft3" : "q",
-			"ifRobotToLeft4" : "q",
-			"ifRobotToLeft5" : "q",
-			"ifRobotToLeft6" : "q",
-			"ifRobotToLeft7" : "q",
-			"ifRobotToLeft8" : "q",
 			"ifRobotToRight" : "r",
-			"ifRobotToRight1" : "r",
-			"ifRobotToRight2" : "r",
-			"ifRobotToRight3" : "r",
-			"ifRobotToRight4" : "r",
-			"ifRobotToRight5" : "r",
-			"ifRobotToRight6" : "r",
-			"ifRobotToRight7" : "r",
-			"ifRobotToRight8" : "r",
 			"stop" : "s",
 			"f" : "t",
 			"fl" : "u",
@@ -1795,55 +1726,16 @@ class Redundancy():
 			"r" : "w",
 			"rl" : "x",
 			"rr" : "y",
-			"increaseDensity1" : "01",
-			"increaseDensity2" : "02",
-			"increaseDensity3" : "03",
-			"increaseDensity4" : "04",
-			"increaseDensity5" : "05",
-			"increaseDensity6" : "06",
-			"increaseDensity7" : "07",
-			"increaseDensity8" : "08",
-			"reduceDensity1" : "11",
-			"reduceDensity2" : "12",
-			"reduceDensity3" : "13",
-			"reduceDensity4" : "14",
-			"reduceDensity5" : "15",
-			"reduceDensity6" : "16",
-			"reduceDensity7" : "17",
-			"reduceDensity8" : "18",
-			"gotoNest1" : "21",
-			"gotoNest2" : "22",
-			"gotoNest3" : "23",
-			"gotoNest4" : "24",
-			"gotoNest5" : "25",
-			"gotoNest6" : "26",
-			"gotoNest7" : "27",
-			"gotoNest8" : "28",
-			"goAwayFromNest1" : "31",
-			"goAwayFromNest2" : "32",
-			"goAwayFromNest3" : "33",
-			"goAwayFromNest4" : "34",
-			"goAwayFromNest5" : "35",
-			"goAwayFromNest6" : "36",
-			"goAwayFromNest7" : "37",
-			"goAwayFromNest8" : "38",
-			"gotoFood1" : "41",
-			"gotoFood2" : "42",
-			"gotoFood3" : "43",
-			"gotoFood4" : "44",
-			"gotoFood5" : "45",
-			"gotoFood6" : "46",
-			"gotoFood7" : "47",
-			"gotoFood8" : "48",
-			"goAwayFromFood1" : "51",
-			"goAwayFromFood2" : "52",
-			"goAwayFromFood3" : "53",
-			"goAwayFromFood4" : "54",
-			"goAwayFromFood5" : "55",
-			"goAwayFromFood6" : "56",
-			"goAwayFromFood7" : "57",
-			"goAwayFromFood8" : "58",
 		}
+		
+		for i in range(1,9):
+			mapping["increaseDensity"+str(i)] = "0"+str(i)
+			mapping["reduceDensity"+str(i)] = "1"+str(i)
+			mapping["gotoNest"+str(i)] = "2"+str(i)
+			mapping["goAwayFromNest"+str(i)] = "3"+str(i)
+			mapping["gotoFood"+str(i)] = "4"+str(i)
+			mapping["goAwayFromFood"+str(i)] = "5"+str(i)
+		
 		chromosome = chromosome.replace(" ", "")
 		tokens = re.split("[ (),]", chromosome)
 		
@@ -2745,7 +2637,7 @@ class Redundancy():
 		return False
 
 	def changeConditionNode(self , name):
-		return "ifInNest1"
+		return "ifInNest"
 		return "ifOnFood" if name == "ifInNest" else "ifInNest"
 
 	def buildNewTreeFromList(self, trailing, new_list, indent):

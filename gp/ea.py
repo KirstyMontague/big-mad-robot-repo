@@ -16,6 +16,7 @@ from deap import creator
 from redundancy import Redundancy
 from utilities import Utilities
 
+import local
 
 class EA():
 	
@@ -57,7 +58,7 @@ class EA():
 
 		toolbox = base.Toolbox()
 
-		pset = gp.PrimitiveSet("MAIN", 0)
+		pset = local.PrimitiveSetExtended("MAIN", 0)
 		self.params.addNodes(pset)
 
 		weights = []
@@ -71,7 +72,7 @@ class EA():
 		creator.create("Fitness", base.Fitness, weights=weights2)
 		creator.create("Individual", gp.PrimitiveTree, fitness=creator.Fitness)
 
-		toolbox.register("expr_init", gp.genFull, pset=pset, min_=1, max_=4)
+		toolbox.register("expr_init", local.genFull, pset=pset, min_=1, max_=4)
 
 		toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr_init)
 		toolbox.register("population", tools.initRepeat, list, toolbox.individual)
@@ -84,10 +85,10 @@ class EA():
 		toolbox.register("select", self.selTournament, tournsize=self.params.tournamentSize)
 
 		toolbox.register("mate", gp.cxOnePoint)
-		toolbox.register("expr_mut", gp.genFull, min_=0, max_=2)
-		toolbox.register("mutSubtreeReplace", gp.mutUniform, expr=toolbox.expr_mut, pset=pset)
-		toolbox.register("mutSubtreeShrink", gp.mutShrink)
-		toolbox.register("mutNodeReplace", gp.mutNodeReplacement, pset=pset)
+		toolbox.register("expr_mut", local.genFull, min_=0, max_=2)
+		toolbox.register("mutSubtreeReplace", local.mutUniform, expr=toolbox.expr_mut, pset=pset)
+		toolbox.register("mutSubtreeShrink", local.mutShrink)
+		toolbox.register("mutNodeReplace", local.mutNodeReplacement, pset=pset)
 
 		self.toolbox = toolbox
 		
@@ -296,6 +297,7 @@ class EA():
 				
 		self.printScores(population, self.params.printFitnessScores)
 		self.printIndividuals(self.getBestHDAll(population), self.params.printBestIndividuals)
+		self.printIndividuals(population, self.params.printAllIndividuals)
 		
 		# for ind in population:
 			# self.printIndividual(ind)
@@ -385,15 +387,15 @@ class EA():
 		
 		self.evaluate(self.toolbox, invalid_ind)
 		
-		# if (generation % 100 == 0):
-			# self.checkDuplicatesAreCorrect(self.toolbox, invalid_ind)
+		if generation > 0 and generation % self.params.save_period == 0:
+			self.checkDuplicatesAreCorrect(self.toolbox, invalid_ind)
 		
 		for ind in invalid_ind:
 			self.redundancy.addToLibrary(str(ind), ind.fitness.values)
 		
 		best = self.getBestHDAll(population)
 		# self.printIndividuals(best, True)
-					
+		
 		scores = ""
 		for i in range(self.params.features):
 			derated = best[i].fitness.values[i] * self.deratingFactor(best[i])
@@ -421,10 +423,28 @@ class EA():
 		if print_individuals:
 			print ("")
 			for b in population:
-				print (b.fitness)
-				print (b)
+				# print (b.fitness)
 				print (self.formatChromosome(b))
+				print ("")
 			print ("")
+
+	def saveBestIndividuals(self, population):
+
+		if self.params.saveBestIndividuals or self.params.saveAllIndividuals:
+
+			if not self.params.saveAllIndividuals:
+				population = self.getBestHDAll(population)
+
+			with open('../txt/current.txt', 'w') as f:
+				f.write("\n")
+
+			for b in population:
+
+				with open('../txt/current.txt', 'a') as f:
+					f.write(str(b.fitness))
+					f.write("\n\n")
+					f.write(self.formatChromosome(b))
+					f.write("\n============================================\n")
 
 	def printScores(self, population, print_scores):
 		if print_scores:
@@ -467,8 +487,7 @@ class EA():
 
 		# get the best individual at the end of the evolutionary run
 		best = self.getBestHDAll(population)
-		for ind in best:
-			self.printIndividual(ind)
+		self.printIndividuals(best, True)
 		
 		# log chromosome and test performance in different environments
 		self.logChromosomes(best)
@@ -526,11 +545,13 @@ class EA():
 			
 			self.saveCheckpoint(gen, population)
 			self.saveCSV(gen, population)
+			if gen % self.params.csv_save_period == 0: self.saveArchive()
+			if gen % self.params.best_save_period == 0: self.saveBestIndividuals(population)
 
 
 	def checkDuplicatesAreCorrect(self, toolbox, population):
 		
-		pset = gp.PrimitiveSet("MAIN", 0)
+		pset = local.PrimitiveSetExtended("MAIN", 0)
 		self.params.addNodes(pset)
 		
 		expected = population
@@ -835,7 +856,7 @@ class EA():
 	
 	def loadSubBehaviours(self):
 	
-		pset = gp.PrimitiveSet("MAIN", 0)
+		pset = local.PrimitiveSetExtended("MAIN", 0)
 		self.params.addUnpackedNodes(pset)
 
 		f = open("../txt/sub-behaviours.txt", "r")
