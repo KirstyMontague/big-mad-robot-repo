@@ -34,51 +34,60 @@ class Analysis():
 			"description" : "Increase neighbourhood density",
 			"index" : 0,
 			"identifier" : "d",
-			"baseline_url": "../gp/test/density/",
-			"non_derated_baseline_url": "../../../Backups/AutoDecomposition/csvs-with-combined-renamed-to-checkpoint/density/",
-			"non_derated_qdpy_url": "../../../QDPY/NewDEAP/test/density/batch-100-50/",
-			"qdpy_url": "../qdpy/test/batch-25-25/density/",
-			"conversions_url": "../../../QDPY/NewDEAP/conversions/density/",
-			"qdpy_50_url": "../qdpy/test/batch-100-50/density/",
-			"qdpy_25_url": "../qdpy/test/batch-25-25/density/",
-			"mt_url": "../gp/test/density-nest-ifood/",
+			"gp_url" : "../gp/results/density/",
+			"qdpy_url": "../qdpy/test/density/",
+			"mtc_url" : "../gp/results/density-nest-ifood/",
+			"mti_url" : "../gp/results/density-nest-food/",
 		},
 		"nest" : {
 			"name" : "nest",
 			"description" : "Go to nest",
 			"index" : 1,
 			"identifier" : "n",
-			"baseline_url": "../gp/test/nest/",
-			"non_derated_baseline_url": "../../../Backups/AutoDecomposition/csvs-with-combined-renamed-to-checkpoint/nest/",
-			"non_derated_qdpy_url": "../../../QDPY/NewDEAP/test/nest/batch-100-50/",
-			"qdpy_url": "../qdpy/test/batch-25-25/nest/",
-			"conversions_url": "../../../QDPY/NewDEAP/conversions/nest/",
-			"qdpy_50_url": "../qdpy/test/batch-100-50/nest/",
-			"qdpy_25_url": "../qdpy/test/batch-25-25/nest/",
-			"mt_url": "../gp/test/density-nest-ifood/",
+			"gp_url" : "../gp/results/nest/",
+			"qdpy_url": "../qdpy/test/nest/",
+			"mtc_url" : "../gp/results/density-nest-ifood/",
+			"mti_url" : "../gp/results/density-nest-food/",
 		},
 		"food" : {
 			"name" : "food",
 			"description" : "Go to food",
 			"index" : 2,
 			"identifier" : "f",
-			"baseline_url": "../gp/test/food/",
-			"non_derated_baseline_url": "../../../Backups/AutoDecomposition/csvs-with-combined-renamed-to-checkpoint/food/",
-			"non_derated_qdpy_url": "../../../QDPY/NewDEAP/test/food/batch-100-50/",
-			"qdpy_url": "../qdpy/test/batch-25-25/food/",
-			"conversions_url": "../../../QDPY/NewDEAP/conversions/food/",
-			"qdpy_50_url": "../qdpy/test/batch-100-50/food/",
-			"qdpy_25_url": "../qdpy/test/batch-25-25/food/",
-			"mt_url": "../gp/test/density-nest-food/",
+			"gp_url" : "../gp/results/food/",
+			"qdpy_url": "../qdpy/test/food/",
+			"mtc_url" : "../gp/results/food-idensity-inest/",
+			"mti_url" : "../gp/results/density-nest-food/",
+		},
+		"idensity" : {
+			"name" : "idensity",
+			"description" : "Reduce density",
+			"index" : 3,
+			"identifier" : "id",
+			"gp_url" : "../gp/results/idensity/",
+			"qdpy_url": "../qdpy/test/idensity/",
+			"mtc_url": "../gp/results/food-idensity-inest/",
+			"mti_url" : "../gp/results/idensity-inest-ifood/",
+		},
+		"inest" : {
+			"name" : "inest",
+			"description" : "Go away from nest",
+			"index" : 4,
+			"identifier" : "in",
+			"gp_url" : "../gp/results/inest/",
+			"qdpy_url": "../qdpy/test/inest/",
+			"mtc_url": "../gp/results/food-idensity-inest/",
+			"mti_url" : "../gp/results/idensity-inest-ifood/",
 		},
 		"ifood" : {
 			"name" : "ifood",
 			"description" : "Go away from food",
 			"index" : 5,
-			"identifier" : "f",
-			"baseline_url": "../gp/test/ifood/",
-			"qdpy_url": "../qdpy/test/batch-25-25/ifood/",
-			"mt_url": "../gp/test/density-nest-ifood/",
+			"identifier" : "if",
+			"gp_url": "../gp/results/ifood/",
+			"qdpy_url": "../qdpy/test/ifood/",
+			"mtc_url": "../gp/results/density-nest-ifood/",
+			"mti_url": "../gp/results/idensity-inest-ifood/",
 		},
 		"density-nest-food" : {
 			"name" : "density-nest-food",
@@ -90,22 +99,21 @@ class Analysis():
 			"name" : "foraging",
 			"description" : "Foraging",
 			"identifier" : "",
-			# "foraging_baseline_url": "../gp/foraging/100 second trials/",
-			# "foraging_modular_url": "../gp/foraging/foraging-subbehaviours-old-derating/",
-			"foraging_old_derating_baseline_url": "../gp/results/foraging/derated-10-1000/baseline/100 second trials/",
-			"foraging_baseline_url": "../gp/results/foraging/derated-100-10000/baseline/",
-			"foraging_old_derating_modular_url": "../gp/results/foraging/derated-10-1000/modular/",
-			"foraging_modular_url": "../gp/results/foraging/derated-100-10000/modular/",
+			"foraging_baseline_url": "../gp/results/foraging/baseline/",
+			"foraging_qd1_url": "../gp/results/foraging/repertoire-qd1-1000gen/",
+			"foraging_qd8_url": "../gp/results/foraging/repertoire-qd8-1000gen/",
+			"foraging_mt1_url": "../gp/results/foraging/repertoire-mt1-1000gen/",
+			"foraging_mt8_url": "../gp/results/foraging/repertoire-mt8-1000gen/",
 		},
 	}
 
 	algorithms = {
-		"baseline" : {
-			"name" : "baseline",
-			"display_name" : "Derated",
+		"gp" : {
+			"name" : "gp",
+			"display_name" : "GP",
 			"type" : "DEAP",
-			"code" : "GP_",
-			"prefix" : "Derated ",
+			"code" : "GP",
+			"prefix" : "",
 			"categories" : ["EA1a", "EA1b", "EA1c"],
 			"ylim" : [[0.5, 0.61], [0.6, 0.9], [0.7, 0.9]], # box plots only
 		},
@@ -130,7 +138,7 @@ class Analysis():
 			"name" : "qdpy",
 			"display_name" : "QDpy",
 			"type" : "QDPY",
-			"code" : "QD_",
+			"code" : "QD",
 			"prefix" : "",
 			"categories" : ["QD1a", "QD1b", "QD1c"],
 			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
@@ -154,10 +162,28 @@ class Analysis():
 			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.7, 0.9]],
 		},
 		"mt" : {
-			"name" : "mt",
+			"name" : "mtc",
 			"display_name" : "Multi-Task",
-			"type" : "MT",
-			"code" : "MT_",
+			"type" : "MTC",
+			"code" : "MTC_",
+			"prefix" : "",
+			# "categories" : ["QD1a", "QD1b", "QD1c"],
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
+		},
+		"mtc" : {
+			"name" : "mtc",
+			"display_name" : "Multi-Task Compatible",
+			"type" : "MTC",
+			"code" : "MTC",
+			"prefix" : "",
+			# "categories" : ["QD1a", "QD1b", "QD1c"],
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
+		},
+		"mti" : {
+			"name" : "mti",
+			"display_name" : "Multi-Task Incompatible",
+			"type" : "MTI",
+			"code" : "MTI",
 			"prefix" : "",
 			# "categories" : ["QD1a", "QD1b", "QD1c"],
 			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
@@ -181,19 +207,53 @@ class Analysis():
 		"foraging_baseline" : {
 			"name" : "foraging_baseline",
 			"display_name" : "Baseline",
-			"type" : "GP",
-			"code" : "GP",
+			"type" : "Baseline",
+			"code" : "Baseline",
 			"prefix" : "",
 			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
+			"generations" : 2200,
+			"file_index" : 2500,
 		},
-		"foraging_modular" : {
-			"name" : "foraging_modular",
-			"display_name" : "Modular",
-			"type" : "AM",
-			"code" : "AM",
+		"foraging_qd1" : {
+			"name" : "foraging_qd1",
+			"display_name" : "QD Repertoire 1",
+			"type" : "QD Repertoire 1",
+			"code" : "QD1",
 			"prefix" : "",
 			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
-		}
+			"generations" : 1000,
+			"file_index" : 1000,
+		},
+		"foraging_qd8" : {
+			"name" : "foraging_qd8",
+			"display_name" : "QD Repertoire 8",
+			"type" : "QD Repertoire 8",
+			"code" : "QD8",
+			"prefix" : "",
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
+			"generations" : 1000,
+			"file_index" : 1000,
+		},
+		"foraging_mt1" : {
+			"name" : "foraging_mt1",
+			"display_name" : "MT Repertoire 1",
+			"type" : "MT Repertoire 1",
+			"code" : "MT1",
+			"prefix" : "",
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
+			"generations" : 1000,
+			"file_index" : 1000,
+		},
+		"foraging_mt8" : {
+			"name" : "foraging_mt8",
+			"display_name" : "MT Repertoire 8",
+			"type" : "MT Repertoire 8",
+			"code" : "MT8",
+			"prefix" : "",
+			"ylim" : [[0.5, 0.6], [0.6, 0.9], [0.825, 0.88]],
+			"generations" : 1000,
+			"file_index" : 1000,
+		},
 	}
 
 	queries = {
@@ -402,15 +462,27 @@ class Analysis():
 		
 		return grid
 
-	def getBestData(self, deap_algorithms, qdpy_algorithms, objective, generation, feature, features, runs):
+	def getBestData(self, deap_algorithms, qdpy_algorithms, objective, generation, feature, features, runs, mtc_index, mti_index):
 
 		# hard coded for one or three features
 
 		deap = []
 		for algorithm in deap_algorithms:
-			features = 3 if algorithm["name"] == "mt" else 1
-			data = self.getBestFromCSV(generation, objective, features, runs, objective[algorithm["name"]+"_url"])
-			data = data[feature][generation] if algorithm["name"] == "mt" else data[0][generation]
+
+			features = 3 if "mt" in algorithm["name"] else 1
+
+			if "foraging" in algorithm["name"]: generation = algorithm["generations"]
+
+			if "foraging" in algorithm["name"]:
+				file_index = algorithm["file_index"]
+			else:
+				file_index = generation
+
+			if "mti" in algorithm["name"]: feature = mti_index
+			if "mtc" in algorithm["name"]: feature = mtc_index
+
+			data = self.getBestFromCSV(file_index, generation, objective, features, runs, objective[algorithm["name"]+"_url"])
+			data = data[feature][generation] if "mt" in algorithm["name"]  else data[0][generation]
 			deap.append(data)
 
 		features = 1
@@ -433,7 +505,7 @@ class Analysis():
 
 		return deap + qdpy
 	
-	def getBestFromCSV(self, generations, objective, features, runs, filename):
+	def getBestFromCSV(self, file_index, generations, objective, features, runs, filename):
 		
 		# needs to be made dynamic - currently hard coded for density-nest-food
 		# returns every generation for each feature data[feature][gen][seed]
@@ -448,7 +520,7 @@ class Analysis():
 			objective_definition = objective_definition[0:-1]
 			objective_definition = "density-nest-ifood"
 
-		filename = filename + "checkpoint"+str(generations)+".csv"
+		filename = filename + "checkpoint"+str(file_index)+".csv"
 		f = open(filename, "r")
 
 		horizontal_data = []
@@ -458,7 +530,7 @@ class Analysis():
 			data = []
 			columns = line.split(",")
 
-			if columns[0] == objective_definition:
+			if columns[0] != "Type":
 				for i in range(generations+1):
 					fitnessList = columns[i+9]
 					fitness = fitnessList.split(" ")
@@ -470,9 +542,12 @@ class Analysis():
 					horizontal_data.append(data)
 		
 		# print ("")
+		# print(len(horizontal_data))
+		# print(len(horizontal_data[0]))
+		# print(len(horizontal_data[0][0]))
 		# for data in horizontal_data:
 			# for d in data:
-				# print(d)
+				# print(data[-1])
 		# print ("")
 
 		vertical_data = []
@@ -487,7 +562,7 @@ class Analysis():
 
 		# print ("")
 		# for d in vertical_data:
-			# print (d)
+			# print (d[-1])
 		# print ("")
 
 		return vertical_data
@@ -539,6 +614,7 @@ class Analysis():
 			filename = objective["qdpy_url"]+str(index)+"/seed"+str(index)+"-iteration"+str(iterations)+".p"
 			container = self.readQDpyFile(objective, index, iterations)
 			best.append(container.best.fitness.values[0])
+			# print(container.best.fitness.values[0])
 
 		return best
 
@@ -558,15 +634,17 @@ class Analysis():
 			ttest = mannwhitneyu(data1, data2)
 			print ("mwu "+str(ttest.pvalue))
 
-	def drawBestOneGeneration(self, feature_index, objective_name, deap_algorithms, qdpy_algorithms, generation, features, runs):
+		return ttest
+
+	def drawBestOneGeneration(self, feature_index, objective_name, deap_algorithms, qdpy_algorithms, generation, features, runs, mtc_index, mti_index):
 		
 		objective = self.objectives_info[objective_name]
-		data = self.getBestData(deap_algorithms, qdpy_algorithms, objective, generation, feature_index, features, runs)
+		data = self.getBestData(deap_algorithms, qdpy_algorithms, objective, generation, feature_index, features, runs, mtc_index, mti_index)
 		
 		# for d in data:
 			# print(len(d))
 		
-		if len(data) == 2: ttest = ttest_ind(data[0], data[1])
+		if len(data) == 2: ttest = self.checkHypothesis(data[0], data[1])
 		
 		if len(data) > 2:
 			print ("")
@@ -579,14 +657,21 @@ class Analysis():
 		for algorithm in deap_algorithms + qdpy_algorithms:
 			filename += algorithm["name"]+"-vs-"
 		filename = filename[0:-4]
-		filename = "./best/"+objective["name"]+"-"+filename+"-gen"+str(generation)+".png"
+		if "foraging" not in algorithm["name"]: filename = "./best/gen"+str(generation)+"/"+objective["name"]+"-"+filename+".png"
+		else: filename = "./best/foraging/"+filename+".png"
 		
-		title = objective["description"]+"\n" + str(generation * 25)+" evaluations per objective\n"
-		if len(data) == 2: title += "pvalue = " +str("%.4f" % ttest.pvalue)+"\n\n"
+		title = objective["description"]+"\n"
+		if "foraging" not in algorithm["name"]: title += str(generation * 25)+" evaluations per objective\n"
+		# if len(data) == 2: title += "pvalue = " +str("%.4f" % ttest.pvalue)+"\n\n"
+		# if len(data) == 2: print("pvalue = " +str("%.4f" % ttest.pvalue))
 		
 		labels = []
 		for algorithm in deap_algorithms + qdpy_algorithms:
-			labels.append(self.algorithmName(algorithm, objective))
+			label = self.algorithmName(algorithm, objective)
+			if "foraging" in algorithm["name"]:
+				generation = algorithm["generations"]
+				label += "\n("+str(generation)+" generations)\n"
+			labels.append(label)
 
 		num = -1
 		consistent = True
@@ -598,22 +683,63 @@ class Analysis():
 		if consistent: ylabel = 'Fitness over '+str(len(data[0]))+' runs'
 		else: ylabel = 'Mixed number of runs'
 		
+		self.drawPlotsBigLabels(data, title, labels, ylabel, "foraging" in algorithm["name"], len(deap_algorithms) == 3, filename)
+
+	def drawPlotsForaging(self, data, title, labels, ylabel, foraging, mt, filename):
+
+		plot_width = 8 + len(data)
+
+		fig, ax = plt.subplots(figsize=(plot_width, 6))
+		plt.subplots_adjust(wspace=.3, hspace=0.4, bottom=0.1, top=0.98, left=0.1)
+
+		plots = ax.boxplot(data, medianprops=dict(color='#000000'), patch_artist=True, labels=labels)
+
+		for patch in plots['boxes']:
+			patch.set_facecolor('#eef6ff')
+
+		ax.set_ylabel(ylabel, color='#222222', fontsize=17)
+
+		ax.xaxis.set_label_coords(0.5,-.125)
+		ax.yaxis.set_label_coords(-0.08,0.5)
+
+		ax.tick_params(axis='x', labelsize=14)
+		ax.tick_params(axis='y', labelsize=14)
+
+		# plt.savefig(filename)
+		print(filename)
+		plt.show()
+
+	def drawPlotsBigLabels(self, data, title, labels, ylabel, foraging, mt, filename):
+
 		plot_width = 4 + len(data)	
 		
 		fig, ax = plt.subplots(figsize=(plot_width, 6))
-		plt.subplots_adjust(wspace=.3, hspace=0.4, bottom=0.12, top=0.8, left=0.15)
-		ax.boxplot(data, medianprops=dict(color='#000000'), labels=labels)
+		plt.subplots_adjust(wspace=.3, hspace=0.4, bottom=0.1, top=0.98, left=0.15)
 		
-		ax.set_title(title,fontsize=13)
-		ax.title.set_position([0.5,-1.5])
+		plots = ax.boxplot(data, medianprops=dict(color='#000000'), patch_artist=True, labels=labels)
 		
-		ax.set_xlabel("Algorithm", color='#222222', fontsize=12)
-		ax.set_ylabel(ylabel, color='#222222', fontsize=12)
+		if len(data) == 4: colors = ['white', 'pink', 'lightblue', 'white']
+		if len(data) == 3: colors = ['white', 'pink', 'white']
+		if len(data) == 3 or len(data) == 4:
+			for patch, color in zip(plots['boxes'], colors):
+				patch.set_facecolor(color)
+		else:
+			for patch in plots['boxes']:
+				patch.set_facecolor('white')
+
+		ax.set_ylabel(ylabel, color='#222222', fontsize=15)
 		
-		ax.xaxis.set_label_coords(0.5,-0.09)
-		ax.yaxis.set_label_coords(-0.12,0.5)
+		if foraging:
+			ax.xaxis.set_label_coords(0.5,-.125)
+		else:
+			ax.xaxis.set_label_coords(0.5,-0.09)
 		
-		# plt.savefig(filename)
+		ax.yaxis.set_label_coords(-0.15,0.5)
+
+		ax.tick_params(axis='x', labelsize=15)
+		ax.tick_params(axis='y', labelsize=14)
+
+		plt.savefig(filename)
 		print(filename)
 		plt.show()
 
@@ -992,7 +1118,7 @@ class Analysis():
 			raw_data = self.getBestFromQdpyCsvs(objective_name, max_gen, runs, url)
 		else:
 			features = 3 if algorithm["type"] == "MT" else 1
-			raw_data = self.getBestFromCSV(max_gen, objective, features, runs, url)
+			raw_data = self.getBestFromCSV(max_gen, max_gen, objective, features, runs, url)
 			raw_data = raw_data[objective["index"]] if algorithm["type"] == "MT" else raw_data[0]
 
 		data = []
@@ -1162,7 +1288,10 @@ class Analysis():
 		plt.show()
 
 	def algorithmName(self, algorithm, objective):
-		return algorithm["prefix"]+"$"+algorithm["code"]+objective["identifier"]+"$"
+		# return algorithm["prefix"]+"$"+algorithm["code"]+objective["identifier"]+"$"
+		return algorithm["code"]
+
+
 
 	def deratingFactor(self, individual):
 
