@@ -169,9 +169,16 @@ class EA():
 		cumulative_archive = self.redundancy.getCumulativeArchive()
 		# archive_filename = "./test/"+self.params.description+"/archive.txt"
 		
-		for i in range(self.params.deapSeed - 1):
+		for i in range(10):
 			archive_path = "./test/"+self.params.description+"/"+str(i+1)+"/archive.pkl"
+			if i + 1 != self.params.deapSeed and os.path.exists(archive_path):
+				with open(archive_path, "rb") as archive_file:
+					cumulative_archive.update(pickle.load(archive_file))
+
+		for i in range(10):
+			archive_path = "../qdpy/test/"+self.params.description+"/"+str(i+1)+"/archive.pkl"
 			if os.path.exists(archive_path):
+				print("reading from "+archive_path)
 				with open(archive_path, "rb") as archive_file:
 					cumulative_archive.update(pickle.load(archive_file))
 		
@@ -207,19 +214,19 @@ class EA():
 		
 		if self.params.saveOutput:
 			archive = self.redundancy.getArchive()
-			verbose_archive = self.redundancy.getVerboseArchive()
+			# verbose_archive = self.redundancy.getVerboseArchive()
 			archive_string = ""
 			archive_dict = {}
 			
 			for chromosome, fitness in archive.items():
 				archive_dict.update({str(chromosome) : fitness})
 
-			for chromosome, fitness in verbose_archive.items():
-				archive_string += str(chromosome)+"+"
-				for f in fitness:
-					archive_string += str(f)+","
-				archive_string = archive_string[0:-1]
-				archive_string += "\n"
+			# for chromosome, fitness in verbose_archive.items():
+				# archive_string += str(chromosome)+"+"
+				# for f in fitness:
+					# archive_string += str(f)+","
+				# archive_string = archive_string[0:-1]
+				# archive_string += "\n"
 
 			# with open(self.params.path()+"archive.txt", 'w') as f:
 				# f.write(archive_string)
