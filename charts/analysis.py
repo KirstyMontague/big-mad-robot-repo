@@ -20,6 +20,7 @@ from deap import base, creator, tools, gp
 
 from params import eaParams
 from utilities import Utilities
+import local
 
 
 class Analysis():
@@ -224,8 +225,8 @@ class Analysis():
 
 	def setupDeapToolbox(self):
 		
-		self.pset = gp.PrimitiveSet("MAIN", 0)
-		self.params.addNodes(self.pset)
+		self.pset = local.PrimitiveSetExtended("MAIN", 0)
+		self.params.addUnpackedNodes(self.pset)
 		self.toolbox = base.Toolbox()
 
 		weights_algorithm = (1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, )
@@ -1163,8 +1164,6 @@ class Analysis():
 	def algorithmName(self, algorithm, objective):
 		return algorithm["prefix"]+"$"+algorithm["code"]+objective["identifier"]+"$"
 
-
-
 	def getBestFromBin(self, container, index):
 		
 		if len(container.solutions[index]) == 0:
@@ -1177,26 +1176,27 @@ class Analysis():
 		
 		return best
 
-	def getBestFromAxis(self, container, x, y, z):
+	def getBestFromAxis(self, container, x, y, z, bins):
 		
 		best = None
+		limit = int(8/bins)
 		
-		for i in range(x, x+4):
-			for j in range(y, y+4):
-				for k in range(z, z+4):
+		for i in range(x, x+limit):
+			for j in range(y, y+limit):
+				for k in range(z, z+limit):
 					ind = self.getBestFromBin(container, (i,j,k))
 					if best == None or (not ind == None and ind.fitness > best.fitness):
 						best = ind
 		
 		return best
 		
-	def getBestEverFromAxis(self, objective, x, y, z):
+	def getBestEverFromAxis(self, objective, x, y, z, bins):
 		
 		best = None
 		
 		for seed in range(1,11):
 			
-			filename = "../qdpy/results/batch-25-25/"+objective+"/"+str(seed)+"/seed"+str(seed)+"-final.p"
+			filename = "../qdpy/test/"+objective+"/"+str(seed)+"/seed"+str(seed)+"-iteration1000.p"
 			
 			with open(filename, "rb") as f:
 				data = pickle.load(f)
@@ -1205,8 +1205,9 @@ class Analysis():
 				if str(i) == "container":
 					container = data[i]
 			
-			ind = self.getBestFromAxis(container, x, y, z)
+			ind = self.getBestFromAxis(container, x, y, z, bins)
 			if best == None or (not ind == None and ind.fitness > best.fitness):
 				best = ind
 		
+		print (best.fitness)
 		return best
