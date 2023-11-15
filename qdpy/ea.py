@@ -509,28 +509,68 @@ class EA():
 
 	def split(self, toolbox, population):
 
-		pop1 = []
-		pop2 = []
-		for i in range(len(population)):
-			if i % 2 == 0: pop1.append(population[i])
-			else: pop2.append(population[i])
+		num_threads = 8
 
-		trd1 = threading.Thread(target=self.evaluate1, args=(toolbox, [pop1]))
-		trd2 = threading.Thread(target=self.evaluate2, args=(toolbox, [pop2]))
-		trd1.start()
-		trd2.start()
-		trd1.join()
-		trd2.join()
+		pop = []
+		for i in range(num_threads):
+			pop.append([])
+
+		for i in range(len(population)):
+			for j in range(num_threads):
+				if i % num_threads == j:
+					pop[j].append(population[i])
+					continue
+
+		threads = []
+		threads.append(threading.Thread(target=self.evaluate1, args=(toolbox, [pop[0]])))
+		threads.append(threading.Thread(target=self.evaluate2, args=(toolbox, [pop[1]])))
+		threads.append(threading.Thread(target=self.evaluate3, args=(toolbox, [pop[2]])))
+		threads.append(threading.Thread(target=self.evaluate4, args=(toolbox, [pop[3]])))
+		threads.append(threading.Thread(target=self.evaluate5, args=(toolbox, [pop[4]])))
+		threads.append(threading.Thread(target=self.evaluate6, args=(toolbox, [pop[5]])))
+		threads.append(threading.Thread(target=self.evaluate7, args=(toolbox, [pop[6]])))
+		threads.append(threading.Thread(target=self.evaluate8, args=(toolbox, [pop[7]])))
+
+		for thread in threads:
+			thread.start()
+
+		for thread in threads:
+			thread.join()
 
 	def evaluate1(self, toolbox, population):
 		fitnesses = toolbox.map(toolbox.evaluate1, population[0])
-		for ind, fit in zip(population[0], fitnesses):
-			ind.fitness.values = fit[0]
-			ind.features = fit[1]
+		self.assignFitness(population[0], fitnesses)
 
 	def evaluate2(self, toolbox, population):
 		fitnesses = toolbox.map(toolbox.evaluate2, population[0])
-		for ind, fit in zip(population[0], fitnesses):
+		self.assignFitness(population[0], fitnesses)
+
+	def evaluate3(self, toolbox, population):
+		fitnesses = toolbox.map(toolbox.evaluate3, population[0])
+		self.assignFitness(population[0], fitnesses)
+
+	def evaluate4(self, toolbox, population):
+		fitnesses = toolbox.map(toolbox.evaluate4, population[0])
+		self.assignFitness(population[0], fitnesses)
+
+	def evaluate5(self, toolbox, population):
+		fitnesses = toolbox.map(toolbox.evaluate5, population[0])
+		self.assignFitness(population[0], fitnesses)
+
+	def evaluate6(self, toolbox, population):
+		fitnesses = toolbox.map(toolbox.evaluate6, population[0])
+		self.assignFitness(population[0], fitnesses)
+
+	def evaluate7(self, toolbox, population):
+		fitnesses = toolbox.map(toolbox.evaluate7, population[0])
+		self.assignFitness(population[0], fitnesses)
+
+	def evaluate8(self, toolbox, population):
+		fitnesses = toolbox.map(toolbox.evaluate8, population[0])
+		self.assignFitness(population[0], fitnesses)
+
+	def assignFitness(self, population, fitnesses):
+		for ind, fit in zip(population, fitnesses):
 			ind.fitness.values = fit[0]
 			ind.features = fit[1]
 

@@ -82,6 +82,10 @@ class EA():
 		toolbox.register("evaluate2", self.utilities.evaluateRobot, thread_index=2)
 		toolbox.register("evaluate3", self.utilities.evaluateRobot, thread_index=3)
 		toolbox.register("evaluate4", self.utilities.evaluateRobot, thread_index=4)
+		toolbox.register("evaluate5", self.utilities.evaluateRobot, thread_index=5)
+		toolbox.register("evaluate6", self.utilities.evaluateRobot, thread_index=6)
+		toolbox.register("evaluate7", self.utilities.evaluateRobot, thread_index=7)
+		toolbox.register("evaluate8", self.utilities.evaluateRobot, thread_index=8)
 		toolbox.register("select", self.selTournament, tournsize=self.params.tournamentSize)
 
 		toolbox.register("mate", gp.cxOnePoint)
@@ -653,34 +657,55 @@ class EA():
 
 		pop1 = []
 		pop2 = []
-		# ~ pop3 = []
-		# ~ pop4 = []
+		pop3 = []
+		pop4 = []
+		pop5 = []
+		pop6 = []
+		pop7 = []
+		pop8 = []
 		fitnesses1 = []
 		fitnesses2 = []
-		# ~ fitnesses3 = []
-		# ~ fitnesses4 = []
+		fitnesses3 = []
+		fitnesses4 = []
+		fitnesses5 = []
+		fitnesses6 = []
+		fitnesses7 = []
+		fitnesses8 = []
 		for i in range(len(population)):
-			if i % 2 == 0: pop1.append(population[i])
-			else: pop2.append(population[i])
-			# ~ if i % 4 == 0: pop1.append(population[i])
-			# ~ elif i % 4 == 1: pop2.append(population[i])
-			# ~ elif i % 4 == 2: pop3.append(population[i])
-			# ~ else: pop4.append(population[i])
+			if i % 8 == 0: pop1.append(population[i])
+			elif i % 8 == 1: pop2.append(population[i])
+			elif i % 8 == 2: pop3.append(population[i])
+			elif i % 8 == 3: pop4.append(population[i])
+			elif i % 8 == 4: pop5.append(population[i])
+			elif i % 8 == 5: pop6.append(population[i])
+			elif i % 8 == 6: pop7.append(population[i])
+			else: pop8.append(population[i])
 
 		trd1 = threading.Thread(target=self.evaluate1, args=(toolbox, [pop1]))
 		trd2 = threading.Thread(target=self.evaluate2, args=(toolbox, [pop2]))
-		# ~ trd3 = threading.Thread(target=self.evaluate3, args=(toolbox, [pop3]))
-		# ~ trd4 = threading.Thread(target=self.evaluate4, args=(toolbox, [pop4]))
+		trd3 = threading.Thread(target=self.evaluate3, args=(toolbox, [pop3]))
+		trd4 = threading.Thread(target=self.evaluate4, args=(toolbox, [pop4]))
+		trd5 = threading.Thread(target=self.evaluate5, args=(toolbox, [pop5]))
+		trd6 = threading.Thread(target=self.evaluate6, args=(toolbox, [pop6]))
+		trd7 = threading.Thread(target=self.evaluate7, args=(toolbox, [pop7]))
+		trd8 = threading.Thread(target=self.evaluate8, args=(toolbox, [pop8]))
 		trd1.start()
 		trd2.start()
-		# ~ trd3.start()
-		# ~ trd4.start()
+		trd3.start()
+		trd4.start()
+		trd5.start()
+		trd6.start()
+		trd7.start()
+		trd8.start()
 		trd1.join()
 		trd2.join()
-		# ~ trd3.join()
-		# ~ trd4.join()
-		# ~ return fitnesses1 + fitnesses2 + fitnesses3 + fitnesses4
-		return fitnesses1 + fitnesses2
+		trd3.join()
+		trd4.join()
+		trd5.join()
+		trd6.join()
+		trd7.join()
+		trd8.join()
+		return fitnesses1 + fitnesses2 + fitnesses3 + fitnesses4 + fitnesses5 + fitnesses6 + fitnesses7 + fitnesses8
 
 	def evaluate1(self, toolbox, population):
 		fitnesses = toolbox.map(toolbox.evaluate1, population[0])
@@ -689,6 +714,36 @@ class EA():
 
 	def evaluate2(self, toolbox, population):
 		fitnesses = toolbox.map(toolbox.evaluate2, population[0])
+		for ind, fit in zip(population[0], fitnesses):
+			ind.fitness.values = fit
+
+	def evaluate3(self, toolbox, population):
+		fitnesses = toolbox.map(toolbox.evaluate3, population[0])
+		for ind, fit in zip(population[0], fitnesses):
+			ind.fitness.values = fit
+
+	def evaluate4(self, toolbox, population):
+		fitnesses = toolbox.map(toolbox.evaluate4, population[0])
+		for ind, fit in zip(population[0], fitnesses):
+			ind.fitness.values = fit
+
+	def evaluate5(self, toolbox, population):
+		fitnesses = toolbox.map(toolbox.evaluate5, population[0])
+		for ind, fit in zip(population[0], fitnesses):
+			ind.fitness.values = fit
+
+	def evaluate6(self, toolbox, population):
+		fitnesses = toolbox.map(toolbox.evaluate6, population[0])
+		for ind, fit in zip(population[0], fitnesses):
+			ind.fitness.values = fit
+
+	def evaluate7(self, toolbox, population):
+		fitnesses = toolbox.map(toolbox.evaluate7, population[0])
+		for ind, fit in zip(population[0], fitnesses):
+			ind.fitness.values = fit
+
+	def evaluate8(self, toolbox, population):
+		fitnesses = toolbox.map(toolbox.evaluate8, population[0])
 		for ind, fit in zip(population[0], fitnesses):
 			ind.fitness.values = fit
 

@@ -153,11 +153,10 @@ if not params.stop:
 		toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
 		toolbox.register("evaluate", ea.utilities.evaluateRobot, thread_index=1)
-		toolbox.register("evaluate1", ea.utilities.evaluateRobot, thread_index=1)
-		toolbox.register("evaluate2", ea.utilities.evaluateRobot, thread_index=2)
-		toolbox.register("evaluate3", ea.utilities.evaluateRobot, thread_index=3)
-		toolbox.register("evaluate4", ea.utilities.evaluateRobot, thread_index=4)
 		toolbox.register("select", ea.selTournament, tournsize=params.tournamentSize)
+
+		for i in range(1,9):
+			toolbox.register("evaluate"+str(i), ea.utilities.evaluateRobot, thread_index=i)
 
 		toolbox.register("mate", gp.cxOnePoint)
 		toolbox.register("expr_mut", gp.genFull, min_=0, max_=2)
