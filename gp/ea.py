@@ -944,6 +944,8 @@ class EA():
 		
 		length = float(len(individual))
 		
+		# usage = length - 64 if length > 64 else 0
+		# usage = usage / 6930 if length <= 6994 else 1
 		usage = length - 10 if length > 10 else 0
 		usage = usage / 990 if length <= 1000 else 1
 		usage = 1 - usage
