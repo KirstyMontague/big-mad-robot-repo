@@ -13,6 +13,8 @@ from deap import tools
 from deap import base
 from deap import creator
 
+from containers import *
+
 from redundancy import Redundancy
 from utilities import Utilities
 
@@ -97,6 +99,7 @@ class EA():
 		self.toolbox = toolbox
 		
 		self.loadSubBehaviours()
+		# self.setUpGrid()
 
 	def selTournament(self, individuals, k, tournsize, fit_attr="fitness"):		
 		chosen = []
@@ -382,8 +385,6 @@ class EA():
 				f.write(self.output)
 				f.write(chromosomes)
 				f.write(nodes)
-	
-	
 
 	def evaluateNewPopulation(self, starting, generation, population):
 		
@@ -400,6 +401,8 @@ class EA():
 		
 		if generation > 0 and generation % self.params.save_period == 0:
 			self.checkDuplicatesAreCorrect(self.toolbox, invalid_ind)
+
+		# self.convertDEAPtoGrid(population)
 		
 		for ind in invalid_ind:
 			self.redundancy.addToLibrary(str(ind), ind.fitness.values)
@@ -513,6 +516,8 @@ class EA():
 		minutes_str = str("%.2f" % minutes)		
 		print("duration " +minutes_str)
 		
+		# self.printGrid()
+
 		self.saveDuration(duration, minutes_str)
 		
 		return population
@@ -562,6 +567,7 @@ class EA():
 
 	def checkDuplicatesAreCorrect(self, toolbox, population):
 		
+		# use self.params.pset instead
 		pset = local.PrimitiveSetExtended("MAIN", 0)
 		self.params.addNodes(pset)
 		
@@ -1086,7 +1092,7 @@ class EA():
 			f.write(str(self.params.sqrtRobots))
 			f.write("\n")
 			f.write(str(best))
-			
+
 	def formatChromosome(self, chromosome):
 		
 		tree = ""
@@ -1187,3 +1193,73 @@ class EA():
 
 		return string
 
+	def setUpGrid(self):
+
+		def genEmpty():
+			return []
+
+		self.grids = []
+
+		toolbox = base.Toolbox()
+
+		pset = local.PrimitiveSetExtended("MAIN", 0)
+		self.params.addNodes(pset)
+
+		creator.create("Single_Objective_Fitness", base.Fitness, weights=(1.0,))
+		creator.create("Single_Objective_Individual", gp.PrimitiveTree, fitness=creator.Single_Objective_Fitness, features=list)
+		toolbox.register("expr_init", genEmpty)
+		toolbox.register("Single_Objective_Individual", tools.initIterate, creator.Individual, toolbox.expr_init)
+		toolbox.register("Single_Objective_Population", tools.initRepeat, list, toolbox.Single_Objective_Individual)
+
+		self.qdpy_toolbox = toolbox
+
+		self.grids = []
+
+		for objective in self.params.indexes:
+
+			fitness_domain = [(0.,1.0),]
+
+			self.grids.append(Grid(shape = [8,8,8],
+							  max_items_per_bin = 1,
+							  fitness_domain = fitness_domain,
+							  features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)],
+							  storage_type=list))
+
+	def convertDEAPtoGrid(self, population):
+
+		for i in range(self.params.features):
+
+			pop = self.qdpy_toolbox.Single_Objective_Population(n=len(population))
+
+			for j in range(len(population)):
+
+				pop[j] = creator.Single_Objective_Individual(population[j])
+
+				fitness = [population[j].fitness.values[i]]
+
+				features = []
+				features.append(population[j].fitness.values[-3])
+				features.append(population[j].fitness.values[-2])
+				features.append(population[j].fitness.values[-1])
+
+				pop[j].fitness.values = tuple(fitness)
+				# print(pop[j].fitness.values)
+				pop[j].features = tuple(features)
+
+			grid = self.grids[i]
+			self.utilities.removeDuplicates(pop, grid)
+			nb_updated = grid.update(pop, issue_warning = True)
+
+
+	def printGrid(self):
+
+		for i in range(len(self.grids)):
+
+			grid = self.grids[i]
+
+			filename = "./test/"+self.params.description+"/"+str(self.params.deapSeed)+"/"
+			filename += self.params.objectives[self.params.indexes[i]]+".pkl"
+			print(filename)
+
+			with open(filename, "wb") as f:
+				pickle.dump(grid, f)
