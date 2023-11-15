@@ -1164,6 +1164,15 @@ class Analysis():
 	def algorithmName(self, algorithm, objective):
 		return algorithm["prefix"]+"$"+algorithm["code"]+objective["identifier"]+"$"
 
+	def deratingFactor(self, individual):
+
+		length = float(len(individual))
+		usage = length - 10 if length > 10 else 0
+		usage = usage / 990 if length <= 1000 else 1
+		usage = 1 - usage
+
+		return usage
+
 	def getBestFromBin(self, container, index):
 		
 		if len(container.solutions[index]) == 0:
@@ -1171,9 +1180,11 @@ class Analysis():
 		
 		best = container.solutions[index][0]
 		for ind in container.solutions[index]:
-			if ind.fitness > best.fitness:
+			ind_fitness = ind.fitness.values[0] * self.deratingFactor(ind)
+			best_fitness = best.fitness.values[0] * self.deratingFactor(best)
+			if ind_fitness > best_fitness:
 				best = ind
-		
+
 		return best
 
 	def getBestFromAxis(self, container, x, y, z, bins):
@@ -1185,8 +1196,15 @@ class Analysis():
 			for j in range(y, y+limit):
 				for k in range(z, z+limit):
 					ind = self.getBestFromBin(container, (i,j,k))
-					if best == None or (not ind == None and ind.fitness > best.fitness):
+					# if best == None or (not ind == None and ind.fitness > best.fitness):
+						# best = ind
+					if best == None:
 						best = ind
+					elif not ind == None:
+						ind_fitness = ind.fitness.values[0] * self.deratingFactor(ind)
+						best_fitness = best.fitness.values[0] * self.deratingFactor(best)
+						if ind_fitness > best_fitness:
+							best = ind
 		
 		return best
 		
@@ -1210,4 +1228,29 @@ class Analysis():
 				best = ind
 		
 		print (best.fitness)
+		return best
+
+	def getBestEverFromAxisMT(self, subset, objective, x, y, z, bins):
+
+		best = None
+
+		for seed in range(1,11):
+
+			filename = "../gp/test/"+subset+"-duplicate/"+str(seed)+"/"+objective+".pkl"
+
+			with open(filename, "rb") as f:
+				data = pickle.load(f)
+
+			container = data
+
+			ind = self.getBestFromAxis(container, x, y, z, bins)
+
+			if best == None:
+				best = ind
+			elif not ind == None:
+				ind_fitness = ind.fitness.values[0] * self.deratingFactor(ind)
+				best_fitness = best.fitness.values[0] * self.deratingFactor(best)
+				if ind_fitness > best_fitness:
+					best = ind
+
 		return best
