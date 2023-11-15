@@ -7,6 +7,8 @@ params.configure()
 
 if not params.stop:
 
+	import local
+
 	from ea import EA
 	ea = EA(params)
 
@@ -147,7 +149,7 @@ if not params.stop:
 		print("")
 
 	def setupToolbox(toolbox):
-		toolbox.register("expr_init", gp.genFull, pset=pset, min_=1, max_=4)
+		toolbox.register("expr_init", local.genFull, pset=pset, min_=1, max_=4)
 
 		toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr_init)
 		toolbox.register("population", tools.initRepeat, list, toolbox.individual)
@@ -159,10 +161,10 @@ if not params.stop:
 			toolbox.register("evaluate"+str(i), ea.utilities.evaluateRobot, thread_index=i)
 
 		toolbox.register("mate", gp.cxOnePoint)
-		toolbox.register("expr_mut", gp.genFull, min_=0, max_=2)
-		toolbox.register("mutSubtreeReplace", gp.mutUniform, expr=toolbox.expr_mut, pset=pset)
-		toolbox.register("mutSubtreeShrink", gp.mutShrink)
-		toolbox.register("mutNodeReplace", gp.mutNodeReplacement, pset=pset)
+		toolbox.register("expr_mut", local.genFull, min_=0, max_=2)
+		toolbox.register("mutSubtreeReplace", local.mutUniform, expr=toolbox.expr_mut, pset=pset)
+		toolbox.register("mutSubtreeShrink", local.mutShrink)
+		toolbox.register("mutNodeReplace", local.mutNodeReplacement, pset=pset)
 		toolbox.register("mutConstantReplace", gp.mutEphemeral, mode="one")
 
 	def parseArguments():
@@ -210,7 +212,7 @@ if not params.stop:
 		import pickle
 		creator.create("Fitness", base.Fitness, weights=fitness_weight)
 		creator.create("Individual", gp.PrimitiveTree, fitness=creator.Fitness, features=list)
-		pset = gp.PrimitiveSet("MAIN", 0)
+		pset = local.PrimitiveSetExtended("MAIN", 0)
 		with open(params.input_filename(), "rb") as f:
 			data = pickle.load(f)
 		
@@ -270,7 +272,7 @@ if not params.stop:
 		import pickle
 		creator.create("Fitness", base.Fitness, weights=fitness_weight)
 		creator.create("Individual", gp.PrimitiveTree, fitness=creator.Fitness, features=list)
-		pset = gp.PrimitiveSet("MAIN", 0)
+		pset = local.PrimitiveSetExtended("MAIN", 0)
 		print(params.input_filename())
 		with open(params.input_filename(), "rb") as f:
 			data = pickle.load(f)
@@ -295,7 +297,7 @@ if not params.stop:
 	else:
 		creator.create("Fitness", base.Fitness, weights=fitness_weight)
 		creator.create("Individual", gp.PrimitiveTree, fitness=creator.Fitness, features=list)
-		pset = gp.PrimitiveSet("MAIN", 0)
+		pset = local.PrimitiveSetExtended("MAIN", 0)
 		start_gen = 0
 
 	params.addNodes(pset)
