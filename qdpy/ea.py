@@ -421,7 +421,9 @@ class EA():
 			self.utilities.saveCoverage(container, i)
 			if not self.params.fitness_grid: self.utilities.saveBestIndividuals(container, i)
 			else: self.utilities.saveExtrema(container, i)
-		
+
+		if i % self.params.best_save_period == 0: self.saveBestIndividuals(container)
+
 		if iteration_callback != None:
 			iteration_callback(i, offspring, container)
 
@@ -437,13 +439,33 @@ class EA():
 		best = self.getBestHDRandom(self.container)
 		best_length = str(len(best))
 		best_fitness = str("%.6f" % best.fitness.values[0])
+		derated = best.fitness.values[0] * self.deratingFactor(best)
+		fitness = str("%.6f" % derated)+" ("+best_fitness+")"
 		
 		output_string = "\t"+str(self.params.deapSeed)+" - "+str(generation)+"\t| "
-		output_string += avg_string+" | "+best_fitness+" - "+best_length
+		output_string += avg_string+" | "+fitness+" - "+best_length
 		output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
 		output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
 		
 		print (output_string)
+
+	def saveBestIndividuals(self, container):
+
+		if self.params.saveBestIndividuals:
+
+			with open('../txt/current.txt', 'w') as f:
+				f.write("\n")
+
+			best = self.utilities.getBestMax(container, 10)
+
+			for b in best:
+
+				with open('../txt/current.txt', 'a') as f:
+					f.write("\n")
+					f.write(str(b.fitness.values[0]))
+					f.write("\n\n")
+					f.write(self.utilities.formatChromosome(b))
+					f.write("\n============================================\n")
 
 	def assignDuplicateFitness(self, population, offspring, matched):
 		
