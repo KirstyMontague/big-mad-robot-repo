@@ -1325,8 +1325,6 @@ class Analysis():
 			for j in range(y, y+limit):
 				for k in range(z, z+limit):
 					ind = self.getBestFromBin(container, (i,j,k))
-					# if best == None or (not ind == None and ind.fitness > best.fitness):
-						# best = ind
 					if best == None:
 						best = ind
 					elif not ind == None:
