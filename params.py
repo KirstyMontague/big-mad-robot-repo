@@ -1,6 +1,19 @@
 import numpy
 # import random
 
+"""
+
+to switch between foraging and sub-behaviours:
+
+footbot_bt.cpp 800 vs 160
+bt_loop_functions 800 vs 160
+all bt experiments 500 vs 100
+update sub-behaviours.txt
+gp/ea.py derating factor (baseline only)
+params.py - population, tournament, features, generations, save_period, description, indexes
+addNodes - actions & conditions, makeRepertoireNodes vs makeTerminalNodes, addActions closed loop vs open loop
+
+"""
 
 class eaParams():
 	
@@ -33,14 +46,18 @@ class eaParams():
 
 	is_qdpy = False # QD2 # QD1
 	
-	# description = "density-nest-food-idensity-inest-ifood" # EA2 # EA1
+	objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
+	
+	# description = "density-nest-ifood" # EA2 # EA1
+	# indexes = [0,1,5]
+	
 	description = "foraging" # EA2 # EA1
 	indexes = [6]
 	
 	stop = False
 	
 	start_gen = 0
-	generations = 500
+	generations = 1000
 	
 	readCheckpoint = False
 	loadCheckpoint = False
@@ -117,13 +134,16 @@ class eaParams():
 	def addNodes(self, pset):
 		
 		primitives = ["seqm", "selm", "probm"]
-		conditions = ["ifGotFood", "ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
+		conditions = ["ifGotFood", "ifOnFood", "ifInNest"]
+		# conditions = ["ifGotFood", "ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
 		actions = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
+		# actions = ["stop", "f", "fl", "fr", "r", "rl", "rr"]
 		
 		robot = robotObject()
 		robot.makeCompositionNodes(primitives)
 		robot.makeTerminalNodes("conditions", conditions)
 		robot.makeRepertoireNodes(actions)
+		# robot.makeTerminalNodes("actions", actions)
 		
 		for i in range(3):
 			self.nodes['selm'+str(i+2)] = True; pset.addPrimitive(robot.selm[i], i+2)
@@ -133,7 +153,7 @@ class eaParams():
 		for node in conditions:
 			self.nodes[node] = True; pset.addCondition(robot.conditions[node])
 
-		for i in range(1):
+		for i in range(8):
 			index = str(i+1)
 			self.nodes['increaseDensity'+index] = True; pset.addAction(robot.increaseDensity[i])
 			self.nodes['reduceDensity'+index] = True; pset.addAction(robot.reduceDensity[i])
@@ -141,6 +161,9 @@ class eaParams():
 			self.nodes['goAwayFromNest'+index] = True; pset.addAction(robot.goAwayFromNest[i])
 			self.nodes['gotoFood'+index] = True; pset.addAction(robot.gotoFood[i])
 			self.nodes['goAwayFromFood'+index] = True; pset.addAction(robot.goAwayFromFood[i])
+
+		# for node in actions:
+			# pset.addAction(robot.actions[node])
 
 	def addUnpackedNodes(self, pset):
 		
