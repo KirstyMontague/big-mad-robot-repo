@@ -1,6 +1,8 @@
 
 import subprocess
 import time
+import pickle
+
 # QD2
 from containers import *
 # from extended_containers import *
@@ -267,6 +269,18 @@ class Utilities():
 		fitness /= deratingFactor
 		return fitness
 
+	def deratingFactor(self, individual):
+
+		length = float(len(individual))
+
+		# usage = length - 64 if length > 64 else 0
+		# usage = usage / 6930 if length <= 6994 else 1
+		usage = length - 10 if length > 10 else 0
+		usage = usage / 990 if length <= 1000 else 1
+		usage = 1 - usage
+
+		return usage
+
 	def printContainer(self, container):
 		
 		for idx, inds in container.solutions.items():
@@ -281,15 +295,6 @@ class Utilities():
 				print (performance)
 				# print (self.printTree(ind))
 			print ("---")
-
-	def printIndividual(self, ind):
-		performance = ""
-		for fitness in ind.fitness.values:
-			performance += str("%.9f" % fitness) + "  \t"
-		for f in ind.features:
-			performance += str("%.4f" % f) + " \t"
-		print (performance)
-		# print ("---")
 
 	def printBestMax(self, container, qty = 1):
 		
@@ -417,6 +422,35 @@ class Utilities():
 			vals += str("%.5f" % i)+"\t\t"
 		print (vals)
 
+	def getBestHDRandom(self, population, feature = -1):
+
+		if (feature == -1):
+			feature = random.randint(0, self.params.features - 1)
+
+		# get the best member of the population
+
+		for individual in population:
+
+			thisFitness = individual.fitness.getValues()[feature]
+			thisFitness *= self.deratingFactor(individual)
+
+			currentBest = False
+
+			if ('best' not in locals()):
+				currentBest = True
+
+			elif (thisFitness > bestFitness):
+				currentBest = True
+
+			elif (thisFitness == bestFitness and bestHeight > 3 and individual.height < bestHeight):
+				currentBest = True
+
+			if (currentBest):
+				best = individual
+				bestFitness = thisFitness
+				bestHeight = individual.height
+
+		return best
 
 
 	def removeDuplicates(self, offspring, container):
@@ -538,33 +572,6 @@ class Utilities():
 			f.write("\n")
 			f.write(str(best))
 
-	def printIndividuals(self, population):
-		for ind in population:
-			performance = ""
-			for f in ind.fitness.values:
-				performance += str("%.9f" % f) + " \t"
-			for f in ind.features:
-				performance += str("%.9f" % f) + " \t"
-			print (performance)
-			# print (ind)
-		print ("=================================")
-
-	def printTree(self, tree):
-		
-		string = ""
-		stack = []
-		for node in tree:
-			stack.append((node, []))
-			while len(stack[-1][1]) == stack[-1][0].arity:
-				prim, args = stack.pop()
-				string = prim.format(*args)
-				if (string[1:4].find(".") >= 0): string = string[0:5]
-				if len(stack) == 0:
-					break  # If stack is empty, all nodes should have been seen
-				stack[-1][1].append(string)
-
-		return string
-
 	def formatChromosome(self, chromosome):
 		
 		tree = ""
@@ -652,57 +659,6 @@ class Utilities():
 
 
 
-
-
-
-	def logFirst(self):
-		
-		# save parameters to the output
-		
-		self.output = self.params.description+","
-		self.output += str(time.time())[0:10]+","
-		self.output += str(self.params.deapSeed)+","
-		self.output += str(self.params.sqrtRobots)+","
-		self.output += str(self.params.populationSize)+","
-		self.output += str(self.params.tournamentSize)+","
-		
-		self.output += str(self.params.iterations)+","
-
-		for param in self.params.arenaParams:
-			self.output += str(param)+" "
-		self.output += ","
-		
-		# self.output += str(self.params.unseenIterations)+", "
-
-		# for param in self.params.unseenParams:
-			# self.output += str(param)+" "
-		# self.output += ","
-		
-		# self.output += "\""
-		# for node in sorted(self.params.nodes):
-			# if (self.params.nodes[node]):
-				# self.output += node+", "
-		# self.output += "\","
-		
-		self.output += ","
-
-	def logFitness(self, best):
-		for i in range(self.params.features):
-			self.output += str("%.6f" % best[i].fitness.values[i])+" "
-		self.output += ","
-
-	def logChromosomes(self, allBest):
-		chromosomes = ",\""
-		for best in allBest:
-			chromosomes += ""+self.printTree(best)+" + "
-		chromosomes = chromosomes[0:-3]
-		chromosomes += "\","
-		self.output += chromosomes
-
-	def logNodes(self):
-		for node in self.params.nodes:
-			if node: self.output += node+" "
-		self.output += ","
 
 	def saveOutput(self):
 		logHeaders = "Type,Time,Seed,Robots,Pop,Tourn,Iterations,Params,,"
@@ -863,3 +819,70 @@ class Utilities():
 						 container.fitness_extrema[0],
 						 nbTicks=None)
 
+
+	def getArchives(self, redundancy):
+
+		archive = redundancy.getArchive()
+		cumulative_archive = redundancy.getCumulativeArchive()
+
+		algorithm = "qdpy" if self.params.is_qdpy else "gp"
+
+		for i in range(10):
+			archive_path = "../gp/test/"+self.params.description+"/"+str(i+1)+"/"
+			if archive_path != "../"+algorithm+"/"+self.params.path():
+				if os.path.exists(archive_path+"archive.pkl"):
+					with open(archive_path+"archive.pkl", "rb") as archive_file:
+						cumulative_archive.update(pickle.load(archive_file))
+			else:
+				print ("disregarding "+archive_path)
+
+		for i in range(10):
+			archive_path = "../qdpy/test/"+self.params.description+"/"+str(i+1)+"/"
+			if archive_path != "../"+algorithm+"/"+self.params.path():
+				if os.path.exists(archive_path+"archive.pkl"):
+					with open(archive_path+"archive.pkl", "rb") as archive_file:
+						cumulative_archive.update(pickle.load(archive_file))
+			else:
+				print ("disregarding "+archive_path)
+
+		temp_archive = {}
+		if os.path.exists(self.params.path()+"archive.pkl"):
+			with open(self.params.path()+"archive.pkl", "rb") as archive_file:
+				temp_archive = pickle.load(archive_file)
+
+		print (len(temp_archive))
+		i = 0
+		for chromosome, scores in temp_archive.items():
+			if i < len(temp_archive) - 0:
+				archive.update({str(chromosome) : scores})
+				i += 1
+
+		redundancy.setArchive(archive)
+		redundancy.setCumulativeArchive(cumulative_archive)
+
+		print("archive length "+str(len(archive)))
+		print("cumulative archive length "+str(len(cumulative_archive)))
+
+	def saveArchive(self, redundancy):
+
+		if self.params.saveOutput:
+			archive = redundancy.getArchive()
+			archive_string = ""
+			archive_dict = {}
+			for chromosome, scores in archive.items():
+				archive_dict.update({str(chromosome) : scores})
+
+			with open(self.params.path()+"archive.pkl", "wb") as archive_file:
+				 pickle.dump(archive_dict, archive_file)
+
+	def saveParams(self):
+
+		if self.params.saveOutput:
+			with open(self.params.path()+"params.txt", 'a') as f:
+				f.write("\n")
+				f.write("time: "+str(time.ctime()) + "\n")
+				f.write("deapSeed: "+str(self.params.deapSeed) + "\n")
+				f.write("populationSize: "+str(self.params.populationSize) + "\n")
+				f.write("tournamentSize: "+str(self.params.tournamentSize) + "\n")
+				f.write("features: "+str(self.params.features) + "\n")
+				f.write("description: "+self.params.description + "\n")

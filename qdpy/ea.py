@@ -172,27 +172,6 @@ class EA():
 
 		self.current_iteration = iteration + 1
 
-	def saveParams(self):
-		
-		if self.params.saveOutput:
-			with open(self.params.path()+"params.txt", 'a') as f:
-				f.write("\n")
-				f.write("time: "+str(time.ctime()) + "\n")
-				f.write("deapSeed: "+str(self.params.deapSeed) + "\n")
-				f.write("tournamentSize: "+str(self.params.tournamentSize) + "\n")
-				f.write("features: "+str(self.params.features) + "\n")
-				f.write("characteristics: "+str(self.params.characteristics) + "\n")
-				f.write("objective: "+str(self.params.description) + "\n")
-				f.write("objective_index: "+str(self.params.indexes[0]) + "\n")
-				f.write("loadCheckpoint: "+("yes" if self.params.loadCheckpoint else "no") + "\n")
-				f.write("start_point: "+str(self.params.start_point) + "\n")
-				f.write("init_batch_size: "+str(self.params.init_batch_size) + "\n")
-				f.write("batch_size: "+str(self.params.batch_size) + "\n")
-				f.write("max_items_per_bin: "+str(self.params.max_items_per_bin) + "\n")
-				f.write("nb_bins: "+str(self.params.nb_bins[0])+", "+str(self.params.nb_bins[1])+", "+str(self.params.nb_bins[2])+"\n")
-				f.write("features_domain: "+str(self.params.features_domain[0])+", "+str(self.params.features_domain[1])+", "+str(self.params.features_domain[2])+"\n")
-				f.write("arenaParams: "+str(self.params.arenaParams[0])+", "+str(self.params.arenaParams[1])+"\n")
-
 	def saveDuration(self):
 		self.total_elapsed = timer() - self.start_time
 		
@@ -204,60 +183,10 @@ class EA():
 			with open(self.params.path()+"params.txt", 'a') as f:
 				f.write("generations: "+str(self.params.generations) + "\n")
 				f.write("duration: "+str(self.total_elapsed) + "\n")
-	
-	def collectArchive(self):
-	
-		archive = self.redundancy.getArchive()
-		cumulative_archive = self.redundancy.getCumulativeArchive()
-		
-		for i in range(10):
-			archive_path = "../gp/test/"+self.params.description+"/"+str(i+1)+"/archive.pkl"
-			if os.path.exists(archive_path):
-				print("reading from "+archive_path)
-				with open(archive_path, "rb") as archive_file:
-					cumulative_archive.update(pickle.load(archive_file))
-		
-		for i in range(10):
-			archive_path = "../qdpy/test/"+self.params.description+"/"+str(i+1)+"/archive.pkl"
-			if i + 1 != self.params.deapSeed and os.path.exists(archive_path):
-				print("reading from "+archive_path)
-				with open(archive_path, "rb") as archive_file:
-					cumulative_archive.update(pickle.load(archive_file))
-		
-		if os.path.exists(self.params.path()+"archive.pkl"):
-			with open(self.params.path()+"archive.pkl", "rb") as archive_file:
-				archive = pickle.load(archive_file)
-		
-		self.redundancy.setArchive(archive)
-		self.redundancy.setCumulativeArchive(cumulative_archive)
-		
-		print("archive length "+str(len(archive)))
-		print("cumulative archive length "+str(len(cumulative_archive)))
-	
-	def saveArchive(self):
-		
-		if self.params.saveOutput:
-			
-			archive = self.redundancy.getArchive()
-			archive_dict = {}
-			archive_string = ""
-			for chromosome, scores in archive.items():
-				archive_dict.update({str(chromosome) : scores})
-				archive_string += str(chromosome)+"+"
-				for f in scores:
-					archive_string += str(f)+","
-				archive_string = archive_string[0:-1]
-				archive_string += "\n"
-				
-			# with open(self.params.path()+"archive.txt", 'w') as f:
-				# f.write(archive_string)
-				
-			with open(self.params.path()+"archive.pkl", "wb") as archive_file:
-				 pickle.dump(archive_dict, archive_file)
 
 	def run(self, init_batch = None, **kwargs):
 		
-		self.collectArchive()
+		self.utilities.getArchives(self.redundancy)
 		
 		if self.params.loadCheckpoint:
 			from deap import base, creator, gp
@@ -270,7 +199,7 @@ class EA():
 					random.setstate(data[i])
 			print ("")
 
-		self.saveParams()
+		self.utilities.saveParams()
 
 		self._update_params(**kwargs)
 		
@@ -287,7 +216,7 @@ class EA():
 		batch, logbook = self.qdSimple(self.init_batch, self.toolbox, self.container, iteration_callback = self._iteration_callback)
 		# ======
 		
-		self.saveArchive()
+		self.utilities.saveArchive(self.redundancy)
 		self.saveDuration()
 		
 		
@@ -436,10 +365,10 @@ class EA():
 		avg_string = str("%.1f" % avg)
 		
 		# no repro after this change because using RNG
-		best = self.getBestHDRandom(self.container)
+		best = self.utilities.getBestHDRandom(self.container, random.randint(0, self.params.features - 1))
 		best_length = str(len(best))
 		best_fitness = str("%.6f" % best.fitness.values[0])
-		derated = best.fitness.values[0] * self.deratingFactor(best)
+		derated = best.fitness.values[0] * self.utilities.deratingFactor(best)
 		fitness = str("%.6f" % derated)+" ("+best_fitness+")"
 		
 		output_string = "\t"+str(self.params.deapSeed)+" - "+str(generation)+"\t| "
@@ -613,7 +542,7 @@ class EA():
 			else:
 				feature = int(random.random() * self.params.features)
 				# best = self.getBestHDRandom(aspirants, i % self.params.features)
-				best = self.getBestHDRandom(aspirants, feature)
+				best = self.utilities.getBestHDRandom(aspirants, feature)
 			chosen.append(best)
 		return chosen
 
@@ -649,63 +578,6 @@ class EA():
 				del offspring[i].fitness.values
 
 		return offspring
-
-	def getBestHDRandom(self, population, feature = -1):
-		if (feature == -1):
-			feature = random.randint(0, self.params.features - 1)
-		
-		# get the best member of the population
-		
-		for individual in population:		
-			
-			thisFitness = individual.fitness.getValues()[feature]
-			thisFitness *= self.deratingFactor(individual)
-			
-			currentBest = False
-			
-			if ('best' not in locals()):
-				currentBest = True
-			
-			elif (thisFitness > bestFitness):
-				currentBest = True
-			
-			elif (thisFitness == bestFitness and bestHeight > 3 and individual.height < bestHeight):
-				currentBest = True
-				
-			if (currentBest):
-				best = individual
-				bestFitness = thisFitness	
-				bestHeight = individual.height
-				
-		return best
-
-	def getBestHDRandomMin(self, population, feature = -1):
-		if (feature == -1):
-			feature = random.randint(0, self.params.features - 1)
-		
-		# get the best member of the population
-		
-		for individual in population:		
-			
-			thisFitness = individual.fitness.getValues()[feature]
-			
-			currentBest = False
-			
-			if ('best' not in locals()):
-				currentBest = True
-			
-			elif (thisFitness < bestFitness):
-				currentBest = True
-			
-			elif (thisFitness == bestFitness and bestHeight > 3 and individual.height < bestHeight):
-				currentBest = True
-				
-			if (currentBest):
-				best = individual
-				bestFitness = thisFitness	
-				bestHeight = individual.height
-				
-		return best
 
 	def getExtremis(self, population, feature = -1):
 		
@@ -745,49 +617,6 @@ class EA():
 		# print (best.features[feature])
 		# print("\n\n")
 		return best
-
-	def getBestHDAllOld(self, population):
-		
-		allBest = []
-		
-		for i in range(self.params.features):
-			
-			first = True
-			
-			for individual in population:		
-				
-				thisFitness = individual.fitness.getValues()[i]
-				
-				currentBest = False
-				
-				if (first):
-					currentBest = True
-					first = False
-				
-				elif (thisFitness > bestFitness):
-					currentBest = True
-				
-				elif (thisFitness == bestFitness and bestHeight > 3 and individual.height < bestHeight):
-					currentBest = True
-					
-				if (currentBest):
-					best = individual
-					bestFitness = thisFitness	
-					bestHeight = individual.height
-				
-			allBest.append(best)
-		print ("")
-		return allBest
-
-	def deratingFactor(self, individual):
-		
-		length = float(len(individual))
-		
-		usage = length - 10 if length > 10 else 0
-		usage = usage / 990 if length <= 1000 else 1		
-		usage = 1 - usage
-		
-		return usage
 
 
 
