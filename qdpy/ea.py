@@ -65,6 +65,7 @@ class EA():
 	
 	def __init__(self, params):
 		self.params = params
+		self.params.is_qdpy = True
 		# random.seed(self.params.deapSeed)
 		self.utilities = Utilities(params)
 		self.redundancy = Redundancy()
@@ -114,7 +115,7 @@ class EA():
 			self.stats = stats
 
 	def gen_init_batch(self):
-		self.init_batch = self.toolbox.population(n = self.params.init_batch_size)
+		self.init_batch = self.toolbox.population(n = self.params.populationSize)
 
 	def save(self, outputFile):
 		if (self.params.saveOutput):
@@ -292,7 +293,7 @@ class EA():
 
 	def eaLoop(self, toolbox, container, i, iteration_callback):
 
-		batch = toolbox.select(container, self.params.batch_size)
+		batch = toolbox.select(container, self.params.populationSize)
 		offspring = self.varAnd(batch, toolbox)
 		
 		invalid_ind = [ind for ind in offspring if not ind.fitness.valid]

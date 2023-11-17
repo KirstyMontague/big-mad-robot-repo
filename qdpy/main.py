@@ -194,9 +194,9 @@ if not params.stop:
 		results_infos['features_domain'] = params.features_domain
 		results_infos['fitness_domain'] = params.fitness_domain
 		results_infos['nb_bins'] = params.nb_bins
-		results_infos['init_batch_size'] = params.init_batch_size
+		results_infos['init_batch_size'] = params.populationSize
 		results_infos['nb_iterations'] = params.generations
-		results_infos['batch_size'] = params.batch_size
+		results_infos['batch_size'] = params.populationSize
 		results_infos['max_items_per_bin'] = params.max_items_per_bin
 		results_infos['current_batch'] = []
 		return results_infos

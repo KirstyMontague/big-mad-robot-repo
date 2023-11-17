@@ -44,6 +44,7 @@ class EA():
 	
 	def setParams(self, params):
 		self.params = params
+		self.params.is_qdpy = False
 		self.utilities = Utilities(params)
 		
 

@@ -17,8 +17,6 @@ addNodes - actions & conditions, makeRepertoireNodes vs makeTerminalNodes, addAc
 
 class eaParams():
 	
-	init_batch_size = 25
-	batch_size = 25
 	characteristics = 3
 	saveHeatmap = False
 	start_point = "final"
@@ -44,8 +42,6 @@ class eaParams():
 	tournamentSize = 3 # EA2
 	features = 1 # EA2
 
-	is_qdpy = False # QD2 # QD1
-	
 	objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
 	
 	# description = "density-nest-ifood" # EA2 # EA1
@@ -113,8 +109,8 @@ class eaParams():
 		for line in f:
 			data = line.split()
 			if len(data) > 0:
-				print (data[0])
-				print (data[1])
+				for d in data:
+					print(d)
 				if data[0] == "runs": self.runs = int(data[1])
 				if data[0] == "generations": self.generations = int(data[1])
 				if data[0] == "genSleep": self.genSleep = float(data[1])
@@ -129,6 +125,11 @@ class eaParams():
 				if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
 				if data[0] == "best_save_period": self.best_save_period = int(data[1])
 				if data[0] == "stop": self.stop = False if data[1] == "False" else True
+				if data[0] == "cancel":
+					self.stop = True
+					self.saveOutput = False
+					self.saveCSV = False
+					self.generations = 0
 		
 
 	def addNodes(self, pset):
