@@ -148,25 +148,6 @@ if not params.stop:
 		# print("Best time in nest fitness:", best_time_in_nest.fitness)
 		print("")
 
-	def setupToolbox(toolbox):
-		toolbox.register("expr_init", local.genFull, pset=pset, min_=1, max_=4)
-
-		toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr_init)
-		toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-
-		toolbox.register("evaluate", ea.utilities.evaluateRobot, thread_index=1)
-		toolbox.register("select", ea.selTournament, tournsize=params.tournamentSize)
-
-		for i in range(1,9):
-			toolbox.register("evaluate"+str(i), ea.utilities.evaluateRobot, thread_index=i)
-
-		toolbox.register("mate", gp.cxOnePoint)
-		toolbox.register("expr_mut", local.genFull, min_=0, max_=2)
-		toolbox.register("mutSubtreeReplace", local.mutUniform, expr=toolbox.expr_mut, pset=pset)
-		toolbox.register("mutSubtreeShrink", local.mutShrink)
-		toolbox.register("mutNodeReplace", local.mutNodeReplacement, pset=pset)
-		toolbox.register("mutConstantReplace", gp.mutEphemeral, mode="one")
-
 	def parseArguments():
 		
 		parser = argparse.ArgumentParser()
@@ -295,14 +276,7 @@ if not params.stop:
 		print ("")
 
 	else:
-		creator.create("Fitness", base.Fitness, weights=fitness_weight)
-		creator.create("Individual", gp.PrimitiveTree, fitness=creator.Fitness, features=list)
-		pset = local.PrimitiveSetExtended("MAIN", 0)
 		start_gen = 0
-
-	params.addNodes(pset)
-	toolbox = base.Toolbox()
-	setupToolbox(toolbox)
 
 	if __name__ == "__main__":
 
@@ -319,8 +293,7 @@ if not params.stop:
 
 		if not params.readCheckpoint:
 			
-			ea.config(toolbox, 
-						 start_gen,
+			ea.config(start_gen,
 						 grid, 
 						 results_infos = results_infos)
 

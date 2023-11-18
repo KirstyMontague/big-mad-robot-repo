@@ -2,6 +2,14 @@
 import subprocess
 import time
 import pickle
+import threading
+
+from deap import gp
+from deap import tools
+from deap import base
+from deap import creator
+
+import local
 
 # QD2
 from containers import *
@@ -36,6 +44,40 @@ class Utilities():
 	def __init__(self, params):
 		self.params = params
 	
+	def setupToolbox(self, tournament):
+
+		toolbox = base.Toolbox()
+
+		pset = local.PrimitiveSetExtended("MAIN", 0)
+		self.params.addNodes(pset)
+
+		weights = [] if self.params.is_qdpy else [(1.0),(1.0),(1.0)]
+		for i in range(self.params.features): weights.append(1.0)
+
+		creator.create("Fitness", base.Fitness, weights=(weights))
+		creator.create("Individual", gp.PrimitiveTree, fitness=creator.Fitness)
+
+		toolbox.register("expr_init", local.genFull, pset=pset, min_=1, max_=4)
+
+		toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr_init)
+		toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+
+		toolbox.register("evaluate", self.evaluateRobot, thread_index=1)
+		toolbox.register("select", tournament, tournsize=self.params.tournamentSize)
+
+		self.evaluation_functions = []
+		for i in range(1,9):
+			toolbox.register("evaluate"+str(i), self.evaluateRobot, thread_index=i)
+			self.evaluation_functions.append(self.makeEvaluationFunction("evaluate"+str(i)))
+
+		toolbox.register("mate", gp.cxOnePoint)
+		toolbox.register("expr_mut", local.genFull, min_=0, max_=2)
+		toolbox.register("mutSubtreeReplace", local.mutUniform, expr=toolbox.expr_mut, pset=pset)
+		toolbox.register("mutSubtreeShrink", local.mutShrink)
+		toolbox.register("mutNodeReplace", local.mutNodeReplacement, pset=pset)
+
+		self.toolbox = toolbox
+
 	def evaluateRobotHdOnly(self, individual, thread_index):
 		
 		# print ("")
@@ -886,3 +928,47 @@ class Utilities():
 				f.write("tournamentSize: "+str(self.params.tournamentSize) + "\n")
 				f.write("features: "+str(self.params.features) + "\n")
 				f.write("description: "+self.params.description + "\n")
+
+
+
+	def evaluate(self, assign_fitness, invalid_ind):
+
+		# fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+		# assign_fitness(invalid_ind, fitnesses)
+
+		self.split(assign_fitness, invalid_ind)
+
+
+	def split(self, assign_fitness, population):
+
+		num_threads = self.params.num_threads
+
+		pop = []
+		for i in range(num_threads):
+			pop.append([])
+
+		for i in range(len(population)):
+			for j in range(num_threads):
+				if i % num_threads == j:
+					pop[j].append(population[i])
+					continue
+
+		threads = []
+		for i in range(num_threads):
+			threads.append(threading.Thread(target=self.evaluation_functions[i], args=(assign_fitness, [pop[i]], getattr(self.toolbox, "evaluate"+str(i+1)))))
+
+		for thread in threads:
+			thread.start()
+
+		for thread in threads:
+			thread.join()
+
+
+	def makeEvaluationFunction(self, name):
+
+		def _method(assign_fitness, population, evaluation_function):
+			toolbox_function = getattr(self.toolbox, name)
+			fitnesses = self.toolbox.map(toolbox_function, population[0])
+			assign_fitness(population[0], fitnesses)
+
+		return _method

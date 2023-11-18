@@ -5,7 +5,6 @@ import time
 import copy
 import random
 import os
-import threading
 
 import numpy
 
@@ -35,6 +34,7 @@ from containers import *
 # from extended_containers import *
 
 from redundancy import Redundancy
+import local
 
 
 
@@ -68,15 +68,16 @@ class EA():
 		self.params.is_qdpy = True
 		# random.seed(self.params.deapSeed)
 		self.utilities = Utilities(params)
+		self.utilities.setupToolbox(self.selTournament)
 		self.redundancy = Redundancy()
 		# Path(self.params.path()).mkdir(parents=False, exist_ok=True)
 		# Path(self.params.path()+"/csvs").mkdir(parents=False, exist_ok=True)
 		
-	def config(self, toolbox, start_gen, container = None, stats = None, halloffame = None,
+	def config(self, start_gen, container = None, stats = None, halloffame = None,
 					ea_fn = qdSimple, results_infos = None,					
 					iteration_callback_fn = None, **kwargs):
 		self._update_params(**kwargs)
-		self.toolbox = toolbox
+		self.toolbox = self.utilities.toolbox
 		self.halloffame = halloffame
 		self.ea_fn = ea_fn
 		self.iteration_callback_fn = iteration_callback_fn
@@ -242,8 +243,8 @@ class EA():
 		
 		invalid_ind = [ind for ind in init_batch if not ind.fitness.valid]
 		invalid_new = len(invalid_ind)
-			
-		self.evaluate(toolbox, invalid_ind)
+
+		self.utilities.evaluate(self.assignFitness, invalid_ind)
 
 		for ind in invalid_ind:
 			self.addToArchive(str(ind), ind.fitness.values, ind.features)
@@ -306,8 +307,8 @@ class EA():
 		invalid_new = len(invalid_ind)
 		
 		# print ("\t"+str(self.params.deapSeed)+" - "+str(i)+" | invalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
-		
-		self.evaluate(toolbox, invalid_ind)
+
+		self.utilities.evaluate(self.assignFitness, invalid_ind)
 
 		for ind in invalid_ind:
 			self.addToArchive(str(ind), ind.fitness.values, ind.features)
@@ -447,79 +448,6 @@ class EA():
 		scores_list = [fitness[0]] + features
 		scores = tuple(scores_list)
 		self.redundancy.archive.update({new_chromosome : scores})	
-
-
-	def evaluate(self, toolbox, invalid_ind):
-		
-		# fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-		# for ind, fit in zip(invalid_ind, fitnesses):
-			# ind.fitness.values = fit[0]
-			# ind.features = fit[1]
-			# print(str(ind.fitness.values)+" - "+str(ind.features))
-		self.split(toolbox, invalid_ind)
-
-
-	def split(self, toolbox, population):
-
-		num_threads = 8
-
-		pop = []
-		for i in range(num_threads):
-			pop.append([])
-
-		for i in range(len(population)):
-			for j in range(num_threads):
-				if i % num_threads == j:
-					pop[j].append(population[i])
-					continue
-
-		threads = []
-		threads.append(threading.Thread(target=self.evaluate1, args=(toolbox, [pop[0]])))
-		threads.append(threading.Thread(target=self.evaluate2, args=(toolbox, [pop[1]])))
-		threads.append(threading.Thread(target=self.evaluate3, args=(toolbox, [pop[2]])))
-		threads.append(threading.Thread(target=self.evaluate4, args=(toolbox, [pop[3]])))
-		threads.append(threading.Thread(target=self.evaluate5, args=(toolbox, [pop[4]])))
-		threads.append(threading.Thread(target=self.evaluate6, args=(toolbox, [pop[5]])))
-		threads.append(threading.Thread(target=self.evaluate7, args=(toolbox, [pop[6]])))
-		threads.append(threading.Thread(target=self.evaluate8, args=(toolbox, [pop[7]])))
-
-		for thread in threads:
-			thread.start()
-
-		for thread in threads:
-			thread.join()
-
-	def evaluate1(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate1, population[0])
-		self.assignFitness(population[0], fitnesses)
-
-	def evaluate2(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate2, population[0])
-		self.assignFitness(population[0], fitnesses)
-
-	def evaluate3(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate3, population[0])
-		self.assignFitness(population[0], fitnesses)
-
-	def evaluate4(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate4, population[0])
-		self.assignFitness(population[0], fitnesses)
-
-	def evaluate5(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate5, population[0])
-		self.assignFitness(population[0], fitnesses)
-
-	def evaluate6(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate6, population[0])
-		self.assignFitness(population[0], fitnesses)
-
-	def evaluate7(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate7, population[0])
-		self.assignFitness(population[0], fitnesses)
-
-	def evaluate8(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate8, population[0])
-		self.assignFitness(population[0], fitnesses)
 
 	def assignFitness(self, population, fitnesses):
 		for ind, fit in zip(population, fitnesses):

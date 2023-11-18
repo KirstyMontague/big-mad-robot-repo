@@ -33,11 +33,11 @@ class eaParams():
 	def input_filename(self): return self.path()+"seed"+str(self.deapSeed)+"-"+self.start_point+".p"
 	def iteration_filename(self): return self.path()+"seed"+str(self.deapSeed)+"-iteration%i.p"
 	def final_filename(self): return self.path()+"seed"+str(self.deapSeed)+"-final.p"
-
-
 	sqrtRobots = 3
 	iterations = 5
-	
+
+	num_threads = 8
+
 	populationSize = 25 # EA2
 	tournamentSize = 3 # EA2
 	features = 1 # EA2

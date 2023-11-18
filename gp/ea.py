@@ -4,7 +4,6 @@ import random
 import time
 import subprocess
 import pickle
-import threading
 import sys
 import os
 
@@ -36,58 +35,14 @@ class EA():
 	
 	output = ""
 	
-	
-	def __init__(self):
-		self.redundancy = Redundancy()
-		self.subBehaviours()
-		# random.seed(self.params.deapSeed)
-	
 	def setParams(self, params):
 		self.params = params
 		self.params.is_qdpy = False
 		self.utilities = Utilities(params)
+		self.utilities.setupToolbox(self.selTournament)
 		
-
-		toolbox = base.Toolbox()
-
-		pset = local.PrimitiveSetExtended("MAIN", 0)
-		self.params.addNodes(pset)
-
-		weights = []
-		for i in range(self.params.features): weights.append(1.0)
-		# qdpy optimisation
-		weights.append(1.0)
-		weights.append(1.0)
-		weights.append(1.0)
-		# end qdpy
-		weights2 = (weights)
-		creator.create("Fitness", base.Fitness, weights=weights2)
-		creator.create("Individual", gp.PrimitiveTree, fitness=creator.Fitness)
-
-		toolbox.register("expr_init", local.genFull, pset=pset, min_=1, max_=4)
-
-		toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr_init)
-		toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-
-		toolbox.register("evaluate", self.utilities.evaluateRobot, thread_index=1)
-		toolbox.register("evaluate1", self.utilities.evaluateRobot, thread_index=1)
-		toolbox.register("evaluate2", self.utilities.evaluateRobot, thread_index=2)
-		toolbox.register("evaluate3", self.utilities.evaluateRobot, thread_index=3)
-		toolbox.register("evaluate4", self.utilities.evaluateRobot, thread_index=4)
-		toolbox.register("evaluate5", self.utilities.evaluateRobot, thread_index=5)
-		toolbox.register("evaluate6", self.utilities.evaluateRobot, thread_index=6)
-		toolbox.register("evaluate7", self.utilities.evaluateRobot, thread_index=7)
-		toolbox.register("evaluate8", self.utilities.evaluateRobot, thread_index=8)
-		toolbox.register("select", self.selTournament, tournsize=self.params.tournamentSize)
-
-		toolbox.register("mate", gp.cxOnePoint)
-		toolbox.register("expr_mut", local.genFull, min_=0, max_=2)
-		toolbox.register("mutSubtreeReplace", local.mutUniform, expr=toolbox.expr_mut, pset=pset)
-		toolbox.register("mutSubtreeShrink", local.mutShrink)
-		toolbox.register("mutNodeReplace", local.mutNodeReplacement, pset=pset)
-
-		self.toolbox = toolbox
-		
+		self.redundancy = Redundancy()
+		self.subBehaviours()
 		self.loadSubBehaviours()
 		# self.setUpGrid()
 
@@ -101,35 +56,35 @@ class EA():
 			chosen.append(best)
 		return chosen
 
-	def varAnd(self, population, toolbox):
+	def varAnd(self, population):
 		
 		# apply crossover and mutation
 		
-		offspring = [toolbox.clone(ind) for ind in population]
+		offspring = [self.utilities.toolbox.clone(ind) for ind in population]
 			
 		# crossover
 		for i in range(1, len(offspring), 2):
 			if random.random() < self.params.crossoverProbability:
-				offspring[i - 1], offspring[i] = toolbox.mate(offspring[i - 1],
+				offspring[i - 1], offspring[i] = self.utilities.toolbox.mate(offspring[i - 1],
 																			 offspring[i])
 				del offspring[i - 1].fitness.values, offspring[i].fitness.values
 
 		# mutation - subtree replacement
 		for i in range(len(offspring)):
 			if random.random() < self.params.mutSRProbability:
-				offspring[i], = toolbox.mutSubtreeReplace(offspring[i])
+				offspring[i], = self.utilities.toolbox.mutSubtreeReplace(offspring[i])
 				del offspring[i].fitness.values
 
 		# mutation - subtree shrink
 		for i in range(len(offspring)):
 			if random.random() < self.params.mutSSProbability:
-				offspring[i], = toolbox.mutSubtreeShrink(offspring[i])
+				offspring[i], = self.utilities.toolbox.mutSubtreeShrink(offspring[i])
 				del offspring[i].fitness.values
 
 		# mutation - node replacement
 		for i in range(len(offspring)):
 			if random.random() < self.params.mutNRProbability:
-				offspring[i], = toolbox.mutNodeReplace(offspring[i])
+				offspring[i], = self.utilities.toolbox.mutNodeReplace(offspring[i])
 				del offspring[i].fitness.values
 
 		return offspring
@@ -206,7 +161,7 @@ class EA():
 		
 		
 		
-		population = self.toolbox.population(n=self.params.populationSize)
+		population = self.utilities.toolbox.population(n=self.params.populationSize)
 	
 		self.params.start_gen = 0	
 		
@@ -300,10 +255,10 @@ class EA():
 		invalid_ind = [ind for ind in population if not ind.fitness.valid]
 		invalid_new = len(invalid_ind)
 		
-		self.evaluate(self.toolbox, invalid_ind)
+		self.utilities.evaluate(self.assignFitness, invalid_ind)
 		
 		if generation > 0 and generation % self.params.save_period == 0:
-			self.checkDuplicatesAreCorrect(self.toolbox, invalid_ind)
+			self.checkDuplicatesAreCorrect(invalid_ind)
 
 		# self.convertDEAPtoGrid(population)
 		
@@ -445,8 +400,8 @@ class EA():
 				elite = self.utilities.getBestHDRandom(population, i)
 				elites.append(elite)	
 			
-			offspring = self.toolbox.select(population, len(population)-self.params.features)			
-			offspring = self.varAnd(offspring, self.toolbox)	
+			offspring = self.utilities.toolbox.select(population, len(population)-self.params.features)
+			offspring = self.varAnd(offspring)
 			
 			newPop = elites + offspring
 			population[:] = newPop
@@ -468,7 +423,7 @@ class EA():
 			if gen % self.params.best_save_period == 0: self.saveBestIndividuals(population)
 
 
-	def checkDuplicatesAreCorrect(self, toolbox, population):
+	def checkDuplicatesAreCorrect(self, population):
 		
 		# use self.params.pset instead
 		pset = local.PrimitiveSetExtended("MAIN", 0)
@@ -483,7 +438,7 @@ class EA():
 			trimmed.append(trimmed_individual)
 		
 		actual = []
-		actual_fitnesses = toolbox.map(toolbox.evaluate, trimmed)
+		actual_fitnesses = self.utilities.toolbox.map(self.utilities.toolbox.evaluate, trimmed)
 		for ind, fit in zip(trimmed, actual_fitnesses):
 			print(fit)
 			ind.fitness.values = fit
@@ -561,106 +516,8 @@ class EA():
 		# redundancy.removeRedundancy("probm3(selm4(seqm2(ifRobotToRight, rr), rl, selm2(rr, ifRobotToRight), probm2(seqm2(seqm2(seqm2(ifNestToRight, seqm2(ifRobotToRight, selm2(rl, rr))), ifInNest), rl), ifOnFood)), selm4(seqm2(selm2(ifRobotToRight, seqm2(ifOnFood, seqm2(seqm2(seqm2(seqm2(rl, seqm2(ifRobotToRight, rr)), fr), seqm2(ifOnFood, rr)), rr))), rr), rl, rr, seqm2(selm4(seqm2(rr, ifRobotToRight), ifInNest, selm2(fr, ifRobotToLeft), probm2(seqm2(rl, seqm2(selm2(ifRobotToRight, seqm2(rl, rr)), rr)), rr)), probm2(rl, seqm2(ifRobotToRight, rr)))), r)")
 		return offspring
 
-	def evaluate(self, toolbox, invalid_ind):
-		
-		# fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-		# for ind, fit in zip(invalid_ind, fitnesses):
-			# print(fit)
-			# ind.fitness.values = fit
-		fitnesses = self.split(toolbox, invalid_ind)
-
-	def split(self, toolbox, population):
-
-		pop1 = []
-		pop2 = []
-		pop3 = []
-		pop4 = []
-		pop5 = []
-		pop6 = []
-		pop7 = []
-		pop8 = []
-		fitnesses1 = []
-		fitnesses2 = []
-		fitnesses3 = []
-		fitnesses4 = []
-		fitnesses5 = []
-		fitnesses6 = []
-		fitnesses7 = []
-		fitnesses8 = []
-		for i in range(len(population)):
-			if i % 8 == 0: pop1.append(population[i])
-			elif i % 8 == 1: pop2.append(population[i])
-			elif i % 8 == 2: pop3.append(population[i])
-			elif i % 8 == 3: pop4.append(population[i])
-			elif i % 8 == 4: pop5.append(population[i])
-			elif i % 8 == 5: pop6.append(population[i])
-			elif i % 8 == 6: pop7.append(population[i])
-			else: pop8.append(population[i])
-
-		trd1 = threading.Thread(target=self.evaluate1, args=(toolbox, [pop1]))
-		trd2 = threading.Thread(target=self.evaluate2, args=(toolbox, [pop2]))
-		trd3 = threading.Thread(target=self.evaluate3, args=(toolbox, [pop3]))
-		trd4 = threading.Thread(target=self.evaluate4, args=(toolbox, [pop4]))
-		trd5 = threading.Thread(target=self.evaluate5, args=(toolbox, [pop5]))
-		trd6 = threading.Thread(target=self.evaluate6, args=(toolbox, [pop6]))
-		trd7 = threading.Thread(target=self.evaluate7, args=(toolbox, [pop7]))
-		trd8 = threading.Thread(target=self.evaluate8, args=(toolbox, [pop8]))
-		trd1.start()
-		trd2.start()
-		trd3.start()
-		trd4.start()
-		trd5.start()
-		trd6.start()
-		trd7.start()
-		trd8.start()
-		trd1.join()
-		trd2.join()
-		trd3.join()
-		trd4.join()
-		trd5.join()
-		trd6.join()
-		trd7.join()
-		trd8.join()
-		return fitnesses1 + fitnesses2 + fitnesses3 + fitnesses4 + fitnesses5 + fitnesses6 + fitnesses7 + fitnesses8
-
-	def evaluate1(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate1, population[0])
-		for ind, fit in zip(population[0], fitnesses):
-			ind.fitness.values = fit
-
-	def evaluate2(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate2, population[0])
-		for ind, fit in zip(population[0], fitnesses):
-			ind.fitness.values = fit
-
-	def evaluate3(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate3, population[0])
-		for ind, fit in zip(population[0], fitnesses):
-			ind.fitness.values = fit
-
-	def evaluate4(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate4, population[0])
-		for ind, fit in zip(population[0], fitnesses):
-			ind.fitness.values = fit
-
-	def evaluate5(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate5, population[0])
-		for ind, fit in zip(population[0], fitnesses):
-			ind.fitness.values = fit
-
-	def evaluate6(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate6, population[0])
-		for ind, fit in zip(population[0], fitnesses):
-			ind.fitness.values = fit
-
-	def evaluate7(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate7, population[0])
-		for ind, fit in zip(population[0], fitnesses):
-			ind.fitness.values = fit
-
-	def evaluate8(self, toolbox, population):
-		fitnesses = toolbox.map(toolbox.evaluate8, population[0])
-		for ind, fit in zip(population[0], fitnesses):
+	def assignFitness(self, population, fitnesses):
+		for ind, fit in zip(population, fitnesses):
 			ind.fitness.values = fit
 
 	def unpackSubBehaviours(self, individual):
