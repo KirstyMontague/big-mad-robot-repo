@@ -141,12 +141,12 @@ class EA():
 		invalid_orig = len(invalid_ind)	
 		
 		matched = [0,0]
-		invalid_ind = self.assignDuplicateFitness(container.items, invalid_ind, matched)
+		invalid_ind = self.utilities.assignDuplicateFitness(self.redundancy, invalid_ind, self.assignFitness, matched)
 		
 		invalid_ind = [ind for ind in init_batch if not ind.fitness.valid]
 		invalid_new = len(invalid_ind)
 
-		self.utilities.evaluate(self.assignFitness, invalid_ind)
+		self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
 
 		for ind in invalid_ind:
 			self.addToArchive(str(ind), ind.fitness.values, ind.features)
@@ -203,14 +203,14 @@ class EA():
 		invalid_orig = len(invalid_ind)			
 		
 		matched = [0,0]
-		invalid_ind = self.assignDuplicateFitness(container.items, invalid_ind, matched)
+		invalid_ind = self.utilities.assignDuplicateFitness(self.redundancy, invalid_ind, self.assignFitness, matched)
 			
 		invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
 		invalid_new = len(invalid_ind)
 		
 		# print ("\t"+str(self.params.deapSeed)+" - "+str(i)+" | invalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 
-		self.utilities.evaluate(self.assignFitness, invalid_ind)
+		self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
 
 		for ind in invalid_ind:
 			self.addToArchive(str(ind), ind.fitness.values, ind.features)
@@ -300,39 +300,6 @@ class EA():
 					f.write(self.utilities.formatChromosome(b))
 					f.write("\n============================================\n")
 
-	def assignDuplicateFitness(self, population, offspring, matched):
-		
-		offspring_chromosomes = []
-		for ind in offspring:
-			trimmed = self.redundancy.removeRedundancy(str(ind))
-			trimmed = self.redundancy.mapNodesToArchive(trimmed)
-			offspring_chromosomes.append(trimmed)
-		
-		
-		archive = self.redundancy.getArchive()
-		cumulative_archive = self.redundancy.getCumulativeArchive()
-		
-		archive_count = 0
-		cumulative_count = 0
-		for i in range(len(offspring)):
-			if offspring_chromosomes[i] in archive:
-				scores = archive.get(offspring_chromosomes[i])
-				offspring[i].fitness.values = (scores[0],)
-				offspring[i].features = [scores[1], scores[2], scores[3]]
-				# print(str(offspring[i].fitness.values)+" - "+str(offspring[i].features))
-				archive_count += 1
-			elif offspring_chromosomes[i] in cumulative_archive:
-				scores = cumulative_archive.get(offspring_chromosomes[i])
-				offspring[i].fitness.values = (scores[0],)
-				offspring[i].features = [scores[1], scores[2], scores[3]]
-				# print(str(offspring[i].fitness.values)+" - "+str(offspring[i].features))
-				cumulative_count += 1
-		
-		matched[0] = archive_count
-		matched[1] = cumulative_count
-		
-		return offspring
-
 	def addToArchive(self, chromosome, fitness, features):
 		
 		new_chromosome = self.redundancy.trim(chromosome)
@@ -351,7 +318,11 @@ class EA():
 		scores = tuple(scores_list)
 		self.redundancy.archive.update({new_chromosome : scores})	
 
-	def assignFitness(self, population, fitnesses):
+	def assignFitness(self, offspring, fitness):
+		offspring.fitness.values = (fitness[0],)
+		offspring.features = [fitness[1], fitness[2], fitness[3]]
+
+	def assignPopulationFitness(self, population, fitnesses):
 		for ind, fit in zip(population, fitnesses):
 			ind.fitness.values = fit[0]
 			ind.features = fit[1]

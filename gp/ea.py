@@ -250,12 +250,12 @@ class EA():
 		invalid_orig = len(invalid_ind)			
 		
 		matched = [0,0]
-		invalid_ind = self.assignDuplicateFitness(invalid_ind, matched)
+		invalid_ind = self.utilities.assignDuplicateFitness(self.redundancy, invalid_ind, self.assignFitness, matched)
 		
 		invalid_ind = [ind for ind in population if not ind.fitness.valid]
 		invalid_new = len(invalid_ind)
 		
-		self.utilities.evaluate(self.assignFitness, invalid_ind)
+		self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
 		
 		if generation > 0 and generation % self.params.save_period == 0:
 			self.checkDuplicatesAreCorrect(invalid_ind)
@@ -460,63 +460,10 @@ class EA():
 				print (str(expected[i].fitness))
 				print (str(actual[i].fitness))
 
-	def assignDuplicateFitness(self, offspring, matched):
-		
-		# print ("population chromosomes\n")
-		
-		# population_chromosomes = []
-		# for ind in population:
-			# trimmed = self.redundancy.removeRedundancy(str(ind))
-			# population_chromosomes.append(trimmed)
-			# print("")
-			# print(trimmed)
-		
-		# print ("\noffspring chromosomes\n")
-		offspring_chromosomes = []
-		for ind in offspring:
-			# print("")
-			# print(str(ind))
-			trimmed = self.redundancy.removeRedundancy(str(ind))
-			trimmed = self.redundancy.mapNodesToArchive(trimmed)
-			offspring_chromosomes.append(trimmed)
-			# print(trimmed)
-		
-		
-		archive = self.redundancy.getArchive()
-		cumulative_archive = self.redundancy.getCumulativeArchive()
-		
-		# for chromosome, fitness in archive.items():
-			# print(chromosome)
-		# print ("\n\n")
-		
-		# print ("check duplicates")
-		archive_count = 0
-		cumulative_count = 0
-		for i in range(len(offspring)):
-			if offspring_chromosomes[i] in archive:
-				offspring[i].fitness.values = archive.get(offspring_chromosomes[i])
-				archive_count += 1
-			elif offspring_chromosomes[i] in cumulative_archive:
-				offspring[i].fitness.values = cumulative_archive.get(offspring_chromosomes[i])
-				cumulative_count += 1
-			# for j in range(len(archive[0])):				
-				# print("==")
-				# print(offspring_chromosomes[i])
-				# print(archive[0][j])
-				# if str(offspring_chromosomes[i]) == str(archive[0][j]):
-					# print("matched\n")
-					# break
-			# print("\n====================================\n")
-		# print("==")			
-		# print("\tmatched "+str(archive_count)+" and "+str(cumulative_count))
-		matched[0] = archive_count
-		matched[1] = cumulative_count
-		
-		# redundancy.checkRedundancy()
-		# redundancy.removeRedundancy("probm3(selm4(seqm2(ifRobotToRight, rr), rl, selm2(rr, ifRobotToRight), probm2(seqm2(seqm2(seqm2(ifNestToRight, seqm2(ifRobotToRight, selm2(rl, rr))), ifInNest), rl), ifOnFood)), selm4(seqm2(selm2(ifRobotToRight, seqm2(ifOnFood, seqm2(seqm2(seqm2(seqm2(rl, seqm2(ifRobotToRight, rr)), fr), seqm2(ifOnFood, rr)), rr))), rr), rl, rr, seqm2(selm4(seqm2(rr, ifRobotToRight), ifInNest, selm2(fr, ifRobotToLeft), probm2(seqm2(rl, seqm2(selm2(ifRobotToRight, seqm2(rl, rr)), rr)), rr)), probm2(rl, seqm2(ifRobotToRight, rr)))), r)")
-		return offspring
+	def assignFitness(self, offspring, fitness):
+		offspring.fitness.values = fitness
 
-	def assignFitness(self, population, fitnesses):
+	def assignPopulationFitness(self, population, fitnesses):
 		for ind, fit in zip(population, fitnesses):
 			ind.fitness.values = fit
 

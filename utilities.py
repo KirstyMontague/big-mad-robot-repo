@@ -516,6 +516,35 @@ class Utilities():
 				# print (output)
 				offspring.pop(i)
 
+	def assignDuplicateFitness(self, redundancy, offspring, assign_fitness, matched):
+
+		offspring_chromosomes = []
+		for ind in offspring:
+			trimmed = redundancy.removeRedundancy(str(ind))
+			trimmed = redundancy.mapNodesToArchive(trimmed)
+			offspring_chromosomes.append(trimmed)
+
+		archive = redundancy.getArchive()
+		cumulative_archive = redundancy.getCumulativeArchive()
+
+		archive_count = 0
+		cumulative_count = 0
+		for i in range(len(offspring)):
+			if offspring_chromosomes[i] in archive:
+				scores = archive.get(offspring_chromosomes[i])
+				assign_fitness(offspring[i], scores)
+				archive_count += 1
+
+			elif offspring_chromosomes[i] in cumulative_archive:
+				scores = cumulative_archive.get(offspring_chromosomes[i])
+				assign_fitness(offspring[i], scores)
+				cumulative_count += 1
+
+		matched[0] = archive_count
+		matched[1] = cumulative_count
+
+		return offspring
+
 	def convertToNewGrid(self, container, objective, objective_index, features, shape, fitness_domain, features_domain):
 		
 		# from deap import base, creator, tools, gp
