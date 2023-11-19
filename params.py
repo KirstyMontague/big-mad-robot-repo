@@ -20,12 +20,11 @@ class eaParams():
 	characteristics = 3
 	saveHeatmap = False
 	start_point = "final"
-	fitness_grid = False # QD2
 	max_size = 1000000
-	max_items_per_bin = 9 if fitness_grid else 3	
-	nb_bins = [48,40,40] if fitness_grid else [8,8,8]
-	features_domain = [(0.2, 0.8), (0.0, 1.0), (0.0, 1.0)] if fitness_grid else [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)]	
-	fitness_domain = [(0., numpy.inf)] if not fitness_grid or features == 1 else [(0.0,1.0),(0.0,1.0),(0.0,1.0)]
+	max_items_per_bin = 3
+	nb_bins = [8,8,8]
+	features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)]
+	fitness_domain = [(0., numpy.inf)]
 	verbose = False
 	show_warnings = True
 	printOffspring = False

@@ -557,7 +557,6 @@ class Utilities():
 		# from deap import base, creator, tools, gp
 		# weights = (1.0,)
 		# if features == 3: weights = (1.0,1.0,1.0,)
-		# if objective == "fitness_grid": weights = (-1.0,)
 
 		# creator.create("Fitness", base.Fitness, weights=weights)
 		# creator.create("Individual", gp.PrimitiveTree, fitness=creator.Fitness, features=list)
@@ -571,10 +570,6 @@ class Utilities():
 			for ind in inds:
 				if best is None:
 					best = ind
-				elif objective == "fitness_grid":
-					if ind.fitness.values[0] < best.fitness.values[0]:
-						best = ind
-				# elif self.params.features > 1:
 				elif features > 1:
 					if ind.fitness.values[objective_index] > best.fitness.values[objective_index]:
 						best = ind
@@ -592,38 +587,6 @@ class Utilities():
 					fitness_domain = fitness_domain,
 					features_domain = features_domain,
 					storage_type=list)
-						
-		if False:
-			if objective == "fitness_grid":
-				grid = Grid(#shape = [24,20,20],
-							# shape = [5,12,12],
-							shape = shape,
-							max_items_per_bin = 1,
-							# fitness_domain = [(0., numpy.inf)],
-							fitness_domain = fitness_domain,
-							# features_domain = [(0.2, 0.8), (0.0, 1.0), (0.0, 1.0)],
-							# features_domain = [(0.45, 0.575), (0.2, 0.8), (0.3, 0.9)],
-							features_domain = features_domain,
-							storage_type=list)
-			else:
-				if features == 1:
-					grid = Grid(#shape = [8,8,8],
-								shape = shape,
-								max_items_per_bin = 1,
-								# fitness_domain = [(0., numpy.inf)],
-								fitness_domain = fitness_domain,
-								# features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)],
-								features_domain = features_domain,
-								storage_type=list)
-				else:
-					grid = Grid(# shape = [8,8,8],
-								shape = shape,
-								max_items_per_bin = 1,
-								# fitness_domain = [(0., numpy.inf),(0., numpy.inf),(0., numpy.inf)],
-								fitness_domain = fitness_domain,
-								# features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)],
-								features_domain = features_domain,
-								storage_type=list)
 
 		nb_updated = grid.update(fittest_flat, issue_warning = True)
 		return grid
@@ -855,15 +818,10 @@ class Utilities():
 			f.write(output)
 
 	def saveCoverage(self, container, iteration, mode="a"):
-		
+
 		filename = self.params.path() + "csvs/coverage-"+str(self.params.deapSeed)+".csv"
-		if self.params.fitness_grid:
-			shape = self.params.nb_bins
-			coverage = len(container.items)
-			coverage /= shape[0]*shape[1]*shape[2]
-		else:
-			coverage = self.getCoverage(container)
-		
+		coverage = self.getCoverage(container)
+
 		output = str(iteration) + "," + str(coverage) + "\n"
 
 		with open(filename, mode) as f:

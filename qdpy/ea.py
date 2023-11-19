@@ -168,21 +168,17 @@ class EA():
 			self.utilities.printContainer(container)
 
 		if (self.params.printBestIndividuals):
-			# print ("\nPrint best individuals\n")
-			if self.params.fitness_grid:
-				self.utilities.printExtrema(container)
-			else:
-				self.utilities.printBestMax(container)
-				qdscore = self.utilities.getQDScore(container)
-				coverage = self.utilities.getCoverage(container)
-				print("QD Score: "+str("%.9f" % qdscore))
-				print("Coverage: "+str("%.9f" % coverage))
-				print("")
+			self.utilities.printBestMax(container)
+			qdscore = self.utilities.getQDScore(container)
+			coverage = self.utilities.getCoverage(container)
+			print("QD Score: "+str("%.9f" % qdscore))
+			print("Coverage: "+str("%.9f" % coverage))
+			print("")
 		
 		if self.params.saveOutput:
-			if not self.params.fitness_grid: self.utilities.saveQDScore(container, generation, mode)
+			self.utilities.saveQDScore(container, generation, mode)
 			self.utilities.saveCoverage(container, generation, mode)
-			if not self.params.fitness_grid: self.utilities.saveBestToCsv(container, generation, mode)
+			self.utilities.saveBestToCsv(container, generation, mode)
 			# else: self.utilities.saveExtrema(container, generation)
 
 		if generation % self.params.best_save_period == 0:
@@ -239,23 +235,12 @@ class EA():
 			ind.features = fit[1]
 
 	def selTournament(self, individuals, k, tournsize, fit_attr="fitness"):		
-		
-		# if self.params.fitness_grid:
-			# return tools.selRandom(individuals, k)
-		
+
 		chosen = []
 		for i in range(k):
 			aspirants = tools.selRandom(individuals, tournsize)
-			if self.params.fitness_grid:
-				feature = random.randint(0, self.params.characteristics - 1)
-				best = self.getExtremis(aspirants, feature)
-				# feature = random.randint(0, self.params.features - 1)
-				# best = self.getBestHDRandomMin(aspirants, 0)
-				# best = aspirants[0]
-			else:
-				feature = int(random.random() * self.params.features)
-				# best = self.getBestHDRandom(aspirants, i % self.params.features)
-				best = self.utilities.getBestHDRandom(aspirants, feature)
+			feature = int(random.random() * self.params.features)
+			best = self.utilities.getBestHDRandom(aspirants, feature)
 			chosen.append(best)
 		return chosen
 
@@ -291,45 +276,3 @@ class EA():
 				del offspring[i].fitness.values
 
 		return offspring
-
-	def getExtremis(self, population, feature = -1):
-		
-		if (feature == -1):
-			feature = random.randint(0, self.params.characteristics - 1)
-		invert = True if random.randint(0, 1) < 0.5 else False
-		
-		# print ("\n\nfeature "+str(feature))
-		# self.utilities.printIndividuals(population)
-			
-		# get the best member of the population
-		
-		for individual in population:		
-			
-			thisFitness = individual.features[feature]
-			# if thisFitness < .5:
-			if invert:
-				thisFitness = 1.0 - thisFitness
-			# print (thisFitness)
-			
-			currentBest = False
-			
-			if ('best' not in locals()):
-				currentBest = True
-			
-			elif (thisFitness > bestFitness):
-				currentBest = True
-			
-			elif (thisFitness == bestFitness and bestHeight > 3 and individual.height < bestHeight):
-				currentBest = True
-				
-			if (currentBest):
-				best = individual
-				bestFitness = thisFitness	
-				bestHeight = individual.height
-		
-		# print (best.features[feature])
-		# print("\n\n")
-		return best
-
-
-

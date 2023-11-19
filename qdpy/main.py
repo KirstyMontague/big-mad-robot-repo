@@ -169,7 +169,7 @@ if not params.stop:
 		if args.end != None:
 			params.generations = args.end
 
-	fitness_weight = (1.0,) if not params.fitness_grid else (1.0,1.0,1.0)
+	fitness_weight = (1.0,)
 
 	parseArguments()
 	print(params.deapSeed)
