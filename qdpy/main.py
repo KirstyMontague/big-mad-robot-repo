@@ -168,19 +168,6 @@ if not params.stop:
 
 		if args.end != None:
 			params.generations = args.end
-		
-	def resultsInfo():
-
-		results_infos = {}
-		results_infos['features_domain'] = params.features_domain
-		results_infos['fitness_domain'] = params.fitness_domain
-		results_infos['nb_bins'] = params.nb_bins
-		results_infos['init_batch_size'] = params.populationSize
-		results_infos['nb_iterations'] = params.generations
-		results_infos['batch_size'] = params.populationSize
-		results_infos['max_items_per_bin'] = params.max_items_per_bin
-		results_infos['current_batch'] = []
-		return results_infos
 
 	fitness_weight = (1.0,) if not params.fitness_grid else (1.0,1.0,1.0)
 
@@ -280,8 +267,6 @@ if not params.stop:
 
 	if __name__ == "__main__":
 
-		results_infos = resultsInfo()
-
 		if params.loadCheckpoint:
 			grid = checkpoint_container
 		else:
@@ -294,8 +279,7 @@ if not params.stop:
 		if not params.readCheckpoint:
 			
 			ea.config(start_gen,
-						 grid, 
-						 results_infos = results_infos)
+					  grid)
 
 			if params.loadCheckpoint:		
 				init_batch = []
@@ -307,7 +291,3 @@ if not params.stop:
 				ea.run(init_batch)
 			else:
 				ea.run()
-
-			# printInfo(grid)
-			# printBestIndividuals(grid)
-

@@ -5,60 +5,26 @@ import time
 import copy
 import random
 import os
-
 import numpy
-
-from functools import partial
-
-from deap import algorithms
-from deap import base
-from deap import creator
-from deap import tools
-from deap import gp
-
-# ====================
-
-# import os
-import deap.tools
-import deap.algorithms
-import numpy as np
-from timeit import default_timer as timer
 import pickle
 import copy
+
+from pathlib import Path
+import numpy as np
+from timeit import default_timer as timer
 
 from qdpy.phenotype import *
 # from qdpy.containers import *
 
-# QD2
 from containers import *
-# from extended_containers import *
 
-from redundancy import Redundancy
-import local
-
-
-
-# ====================
-
-from pathlib import Path
-
-import matplotlib as mpl
-mpl.use('Agg')
-import matplotlib.pyplot as plt
-
-from qdpy.plots import *
-
-import scipy
-
-# ====================
+from deap import tools
 
 from params import eaParams
 from utilities import Utilities
+from redundancy import Redundancy
+import local
 
-
-def qdSimple(init_batch, toolbox, container, batch_size, niter, cxpb = 0.0, mutpb = 1.0, stats = None, halloffame = None, verbose = False, show_warnings = False, start_time = None, iteration_callback = None):
-
-    print ("================================================= qdsimple ================================================= ")
 
 
 class EA():
@@ -66,111 +32,51 @@ class EA():
 	def __init__(self, params):
 		self.params = params
 		self.params.is_qdpy = True
-		# random.seed(self.params.deapSeed)
 		self.utilities = Utilities(params)
 		self.utilities.setupToolbox(self.selTournament)
 		self.redundancy = Redundancy()
-		# Path(self.params.path()).mkdir(parents=False, exist_ok=True)
-		# Path(self.params.path()+"/csvs").mkdir(parents=False, exist_ok=True)
-		
-	def config(self, start_gen, container = None, stats = None, halloffame = None,
-					ea_fn = qdSimple, results_infos = None,					
-					iteration_callback_fn = None, **kwargs):
-		self._update_params(**kwargs)
+
+	def config(self, start_gen, container = None):
 		self.toolbox = self.utilities.toolbox
-		self.halloffame = halloffame
-		self.ea_fn = ea_fn
-		self.iteration_callback_fn = iteration_callback_fn
 		self.start_gen = start_gen
 		self.current_iteration = start_gen
 		self._init_container(container)
-		self._init_stats(stats)
-		self._results_infos = {}
-		if results_infos != None:
-			self.add_results_infos(results_infos)
 		self.total_elapsed = 0.
 		random.seed(self.params.deapSeed)
 		if self.params.saveOutput:
 			Path(self.params.path()).mkdir(parents=False, exist_ok=True)
 			Path(self.params.path()+"/csvs").mkdir(parents=False, exist_ok=True)
-	
-	def setParams(self, params):
-		self.params = params
 
 	def _init_container(self, container = None):
 		if container == None:
 			self.container = Container()
 		else:
 			self.container = container
-			
-
-	def _init_stats(self, stats = None):
-		if stats == None:
-			# Default stats
-			self.stats = deap.tools.Statistics(lambda ind: ind.fitness.values)
-			self.stats.register("avg", np.mean, axis=0)
-			self.stats.register("std", np.std, axis=0)
-			self.stats.register("min", np.min, axis=0)
-			self.stats.register("max", np.max, axis=0)
-		else:
-			self.stats = stats
 
 	def gen_init_batch(self):
 		self.init_batch = self.toolbox.population(n = self.params.populationSize)
 
 	def save(self, outputFile):
-		if (self.params.saveOutput):
+		if self.params.saveOutput:
 			results = {}
 			results['current_iteration'] = self.current_iteration
 			results['container'] = self.container
 			results['random_state'] = random.getstate()
-			results = {**results, **self._results_infos}
-			
-			# print("\n saving container \n")
-			# print(self.current_iteration)
-			# print("")
-			# print(self.utilities.printContainer(self.container))
-			
-			# for ind in self.container:
-				# performance = str("%.5f" % ind.fitness.values[0]) + "  \t"
-				# for f in ind.features:
-					# performance += str("%.5f" % f) + " \t"
-				# print (performance)
-			
+			results = {**results}
 			with open(outputFile, "wb") as f:
 				pickle.dump(results, f)
-
-	def _update_params(self, **kwargs):
-		for k,v in kwargs.items():
-			if v != None:
-				if k == "start_time":
-					setattr(self, k, v)
-
-	def add_results_infos(self, *args):
-		if len(args) == 1:
-			self._results_infos = {**self._results_infos, **args[0]}
-		elif len(args) == 2:
-			self._results_infos[args[0]] = args[1]
-		else:
-			raise ValueError("Please either pass a dictionary or key, value as parameter.")
 
 	def _iteration_callback(self, iteration, batch, container):
 		self.current_iteration = iteration
 		self.current_batch = batch
 		if self.params.final_filename() != None and self.params.final_filename() != "":
 			self.save(self.params.final_filename())
-		if self.iteration_callback_fn is not None:
-			self.iteration_callback_fn(iteration, batch, container)
 		if self.params.save_period == None or self.params.save_period == 0:
 			return
 		if iteration % self.params.save_period == 0 and self.params.iteration_filename() != None and self.params.iteration_filename() != "":
 			self.save(self.params.iteration_filename() % iteration)			
-			# Create plots
-			# plot_path = self.params.path+"performance"+str(self.params.deapSeed)+"-iteration"+str(iteration)+".pdf"
-			# plotGridSubplots(self.container.quality_array[... ,0], plot_path, plt.get_cmap("nipy_spectral"), self.container.features_domain, self.container.fitness_extrema[0], nbTicks=None)
 			if self.params.saveHeatmap: self.utilities.saveHeatmap(self.container, self.current_iteration)
-			# print("\nA plot of the performance grid was saved in '%s'." % os.path.abspath(plot_path))
-			time.sleep(self.params.genSleep)
+		time.sleep(self.params.genSleep)
 
 		self.current_iteration = iteration + 1
 
@@ -203,8 +109,6 @@ class EA():
 
 		self.utilities.saveParams()
 
-		self._update_params(**kwargs)
-		
 		if not hasattr(self, "start_time") or self.start_time == None:
 			self.start_time = timer()
 			
@@ -215,7 +119,7 @@ class EA():
 			self.init_batch = init_batch
 		
 		# ======
-		batch, logbook = self.qdSimple(self.init_batch, self.toolbox, self.container, iteration_callback = self._iteration_callback)
+		batch = self.qdSimple(self.init_batch, self.toolbox, self.container, iteration_callback = self._iteration_callback)
 		# ======
 		
 		self.utilities.saveArchive(self.redundancy)
@@ -229,8 +133,6 @@ class EA():
 
 		if start_time == None:
 			start_time = timer()
-		logbook = deap.tools.Logbook()
-		logbook.header = ["iteration", "containerSize", "evals", "nbUpdated"] + (stats.fields if stats else []) + ["elapsed"]
 
 		if len(init_batch) == 0:
 			raise ValueError("``init_batch`` must not be empty.")
@@ -290,7 +192,7 @@ class EA():
 			# print("\n")
 		# print ("\n\n")
 	
-		return batch, logbook
+		return batch
 
 	def eaLoop(self, toolbox, container, i, iteration_callback):
 
