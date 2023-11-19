@@ -494,6 +494,13 @@ class Utilities():
 
 		return best
 
+	def getBestAll(self, population):
+
+		allBest = []
+		for feature in range(self.params.features):
+			allBest.append(self.getBestHDRandom(population, feature))
+		return allBest
+
 
 	def removeDuplicates(self, offspring, container):
 		# print ("\ncheck for duplicates\n")
@@ -642,6 +649,25 @@ class Utilities():
 			f.write(str(self.params.sqrtRobots))
 			f.write("\n")
 			f.write(str(best))
+
+	def saveBestIndividuals(self, population):
+
+		if self.params.saveBestIndividuals or self.params.saveAllIndividuals:
+
+			if not self.params.saveAllIndividuals:
+				population = self.getBestAll(population)
+
+			with open('../txt/current.txt', 'w') as f:
+				f.write("\n")
+
+			for b in population:
+
+				with open('../txt/current.txt', 'a') as f:
+					f.write("\n")
+					f.write(str(b.fitness))
+					f.write("\n\n")
+					f.write(self.formatChromosome(b))
+					f.write("\n============================================\n")
 
 	def formatChromosome(self, chromosome):
 		
@@ -815,7 +841,7 @@ class Utilities():
 		with open(filename, mode) as f:
 			f.write(output)
 
-	def saveBestIndividuals(self, container, iteration, mode="a"):
+	def saveBestToCsv(self, container, iteration, mode="a"):
 		
 		filename = self.params.path() + "csvs/best-"+str(self.params.deapSeed)+".csv"
 		best = self.getBestMax(container)

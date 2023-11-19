@@ -171,7 +171,7 @@ class EA():
 		if self.params.saveOutput:
 			if not self.params.fitness_grid: self.utilities.saveQDScore(container, 0, "w")
 			self.utilities.saveCoverage(container, 0, "w")
-			if not self.params.fitness_grid: self.utilities.saveBestIndividuals(container, 0, "w")
+			if not self.params.fitness_grid: self.utilities.saveBestToCsv(container, 0, "w")
 			# else: self.utilities.saveExtrema(container, i)
 		
 		
@@ -252,10 +252,11 @@ class EA():
 		if self.params.saveOutput:
 			if not self.params.fitness_grid: self.utilities.saveQDScore(container, i)
 			self.utilities.saveCoverage(container, i)
-			if not self.params.fitness_grid: self.utilities.saveBestIndividuals(container, i)
+			if not self.params.fitness_grid: self.utilities.saveBestToCsv(container, i)
 			else: self.utilities.saveExtrema(container, i)
 
-		if i % self.params.best_save_period == 0: self.saveBestIndividuals(container)
+		if i % self.params.best_save_period == 0:
+			self.utilities.saveBestIndividuals(self.utilities.getBestMax(container, 25))
 
 		if iteration_callback != None:
 			iteration_callback(i, offspring, container)
@@ -281,24 +282,6 @@ class EA():
 		output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
 		
 		print (output_string)
-
-	def saveBestIndividuals(self, container):
-
-		if self.params.saveBestIndividuals:
-
-			with open('../txt/current.txt', 'w') as f:
-				f.write("\n")
-
-			best = self.utilities.getBestMax(container, 10)
-
-			for b in best:
-
-				with open('../txt/current.txt', 'a') as f:
-					f.write("\n")
-					f.write(str(b.fitness.values[0]))
-					f.write("\n\n")
-					f.write(self.utilities.formatChromosome(b))
-					f.write("\n============================================\n")
 
 	def addToArchive(self, chromosome, fitness, features):
 		

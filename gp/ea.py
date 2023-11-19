@@ -116,7 +116,7 @@ class EA():
 		print("population size")
 		print(len(population))
 		
-		self.printIndividuals(self.getBestHDAll(population), True)
+		self.printIndividuals(self.utilities.getBestAll(population), True)
 		
 		# print(output)
 		return population
@@ -168,7 +168,7 @@ class EA():
 		matched = self.evaluateNewPopulation(True, self.params.start_gen, population)
 				
 		self.printScores(population, self.params.printFitnessScores)
-		self.printIndividuals(self.getBestHDAll(population), self.params.printBestIndividuals)
+		self.printIndividuals(self.utilities.getBestAll(population), self.params.printBestIndividuals)
 		self.printIndividuals(population, self.params.printAllIndividuals)
 		
 		# for ind in population:
@@ -265,7 +265,7 @@ class EA():
 		for ind in invalid_ind:
 			self.redundancy.addToLibrary(str(ind), ind.fitness.values)
 		
-		best = self.getBestHDAll(population)
+		best = self.utilities.getBestAll(population)
 		# self.printIndividuals(best, True)
 		
 		scores = ""
@@ -299,24 +299,6 @@ class EA():
 				print (self.utilities.formatChromosome(b))
 				print ("")
 			print ("")
-
-	def saveBestIndividuals(self, population):
-
-		if self.params.saveBestIndividuals or self.params.saveAllIndividuals:
-
-			if not self.params.saveAllIndividuals:
-				population = self.getBestHDAll(population)
-
-			with open('../txt/current.txt', 'w') as f:
-				f.write("\n")
-
-			for b in population:
-
-				with open('../txt/current.txt', 'a') as f:
-					f.write(str(b.fitness))
-					f.write("\n\n")
-					f.write(self.utilities.formatChromosome(b))
-					f.write("\n============================================\n")
 
 	def printScores(self, population, print_scores):
 		if print_scores:
@@ -358,7 +340,7 @@ class EA():
 		self.eaLoop(population, self.params.start_gen, self.params.generations, stats)
 
 		# get the best individual at the end of the evolutionary run
-		best = self.getBestHDAll(population)
+		best = self.utilities.getBestAll(population)
 		self.printIndividuals(best, True)
 		
 		# log chromosome and test performance in different environments
@@ -415,12 +397,12 @@ class EA():
 			
 			self.printScores(elites, self.params.printEliteScores)
 			self.printScores(offspring, self.params.printFitnessScores)
-			self.printIndividuals(self.getBestHDAll(population), self.params.printBestIndividuals)
+			self.printIndividuals(self.utilities.getBestAll(population), self.params.printBestIndividuals)
 			
 			self.saveCheckpoint(gen, population)
 			self.saveCSV(gen, population)
 			if gen % self.params.csv_save_period == 0: self.utilities.saveArchive(self.redundancy)
-			if gen % self.params.best_save_period == 0: self.saveBestIndividuals(population)
+			if gen % self.params.best_save_period == 0: self.utilities.saveBestIndividuals(population)
 
 
 	def checkDuplicatesAreCorrect(self, population):
@@ -503,41 +485,6 @@ class EA():
 		usage = 1 - usage
 		
 		return usage
-
-	def getBestHDAll(self, population):
-		
-		allBest = []
-		
-		for i in range(self.params.features):
-			
-			first = True
-			
-			for individual in population:		
-				
-				thisFitness = individual.fitness.getValues()[i]
-				thisFitness *= self.utilities.deratingFactor(individual)
-				# thisFitness *= self.deratingFactorForForaging(individual)
-				
-				currentBest = False
-				
-				if (first):
-					currentBest = True
-					first = False
-				
-				elif (thisFitness > bestFitness):
-					currentBest = True
-				
-				elif (thisFitness == bestFitness and bestHeight > 3 and individual.height < bestHeight):
-					currentBest = True
-					
-				if (currentBest):
-					best = individual
-					bestFitness = thisFitness	
-					bestHeight = individual.height
-				
-			allBest.append(best)
-		
-		return allBest
 
 	def logFirst(self):
 		
