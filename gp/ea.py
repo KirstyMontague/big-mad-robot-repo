@@ -89,12 +89,6 @@ class EA():
 
 		return offspring
 
-	def saveDuration(self, duration, minutes_str):
-		
-		if self.params.saveOutput:
-			with open(self.params.path()+"params.txt", 'a') as f:
-				f.write("duration: "+str(duration)+" ("+minutes_str+") minutes\n")
-
 	def readCheckpoint(self):
 	
 		with open(self.params.checkpointInputFilename(self.params.start_gen), "rb") as checkpoint_file:
@@ -350,15 +344,10 @@ class EA():
 		self.saveCheckpoint(self.params.generations, population)
 		self.utilities.saveArchive(self.redundancy)
 		
-		end_time = round(time.time() * 1000)
-		duration = end_time - start_time
-		minutes = (duration / 1000) / 60
-		minutes_str = str("%.2f" % minutes)		
-		print("duration " +minutes_str)
-		
 		# self.printGrid()
 
-		self.saveDuration(duration, minutes_str)
+		end_time = round(time.time() * 1000)
+		self.utilities.saveDuration(start_time, end_time)
 		
 		return population
 

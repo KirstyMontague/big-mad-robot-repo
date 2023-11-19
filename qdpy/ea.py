@@ -11,7 +11,6 @@ import copy
 
 from pathlib import Path
 import numpy as np
-from timeit import default_timer as timer
 
 from qdpy.phenotype import *
 # from qdpy.containers import *
@@ -53,9 +52,6 @@ class EA():
 		else:
 			self.container = container
 
-	def gen_init_batch(self):
-		self.init_batch = self.toolbox.population(n = self.params.populationSize)
-
 	def save(self, outputFile):
 		if self.params.saveOutput:
 			results = {}
@@ -80,22 +76,10 @@ class EA():
 
 		self.current_iteration = iteration + 1
 
-	def saveDuration(self):
-		self.total_elapsed = timer() - self.start_time
-		
-		minutes = self.total_elapsed / 60
-		minutes_str = str("%.2f" % minutes)
-		print("Duration " +minutes_str+"\n")
-
-		if self.params.saveOutput:
-			with open(self.params.path()+"params.txt", 'a') as f:
-				f.write("generations: "+str(self.params.generations) + "\n")
-				f.write("duration: "+str(self.total_elapsed) + "\n")
-
 	def run(self, init_batch = None, **kwargs):
-		
+
 		self.utilities.getArchives(self.redundancy)
-		
+
 		if self.params.loadCheckpoint:
 			from deap import base, creator, gp
 			import pickle
@@ -109,106 +93,54 @@ class EA():
 
 		self.utilities.saveParams()
 
-		if not hasattr(self, "start_time") or self.start_time == None:
-			self.start_time = timer()
-			
+		start_time = round(time.time() * 1000)
+
 		if init_batch == None:
 			if not hasattr(self, "init_batch") or self.init_batch == None:
-				self.gen_init_batch()
-		else:
-			self.init_batch = init_batch
-		
-		# ======
-		batch = self.qdSimple(self.init_batch, self.toolbox, self.container, iteration_callback = self._iteration_callback)
-		# ======
-		
-		self.utilities.saveArchive(self.redundancy)
-		self.saveDuration()
-		
-		
-		return self.total_elapsed
-
-
-	def qdSimple(self, init_batch, toolbox, container, stats = None, halloffame = None, start_time = None, iteration_callback = None):
-
-		if start_time == None:
-			start_time = timer()
+				init_batch = self.toolbox.population(n = self.params.populationSize)
 
 		if len(init_batch) == 0:
 			raise ValueError("``init_batch`` must not be empty.")
 
-		invalid_ind = [ind for ind in init_batch if not ind.fitness.valid]
-		invalid_orig = len(invalid_ind)	
-		
-		matched = [0,0]
-		invalid_ind = self.utilities.assignDuplicateFitness(self.redundancy, invalid_ind, self.assignFitness, matched)
-		
-		invalid_ind = [ind for ind in init_batch if not ind.fitness.valid]
-		invalid_new = len(invalid_ind)
+		self.evaluateNewPopulation(self.container, 0, init_batch, "w")
 
-		self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
-
-		for ind in invalid_ind:
-			self.addToArchive(str(ind), ind.fitness.values, ind.features)
-				
-		if halloffame is not None:
-			halloffame.update(init_batch)
-
-		print ("\nupdating\n")
-		nb_updated = 0
-		if not self.params.loadCheckpoint:
-			nb_updated = container.update(init_batch, issue_warning = self.params.show_warnings)
-			if nb_updated == 0:
-				raise ValueError("No individual could be added to the container !")
-		
-		# print ("\nPrint all individuals in container\n")
-		# self.utilities.printContainer(container)
-		
-		batch = init_batch
-
-		self.printOutput(self.start_gen, invalid_new, invalid_orig, matched)
-		
-		if self.params.saveOutput:
-			if not self.params.fitness_grid: self.utilities.saveQDScore(container, 0, "w")
-			self.utilities.saveCoverage(container, 0, "w")
-			if not self.params.fitness_grid: self.utilities.saveBestToCsv(container, 0, "w")
-			# else: self.utilities.saveExtrema(container, i)
-		
-		
 		max_gen = self.params.generations + 1
-		i = self.start_gen + 1
+		generation = self.start_gen + 1
 		
-		# for i in range(self.start_gen + 1, self.params.generations + 1):
-		while (i < max_gen):			
+		while (generation < max_gen):
 			self.params.configure()
 			max_gen = self.params.generations + 1
-			self.eaLoop(toolbox, container, i, iteration_callback)
-			i += 1
+			self.eaLoop(self.container, generation)
+			generation += 1
 
 		print("\nEnd the generational process\n")
 		print ("\n\n")
-		# for x in self.container:
-			# print(x)
-			# print("\n")
-		# print ("\n\n")
-	
-		return batch
 
-	def eaLoop(self, toolbox, container, i, iteration_callback):
+		self.utilities.saveArchive(self.redundancy)
 
-		batch = toolbox.select(container, self.params.populationSize)
-		offspring = self.varAnd(batch, toolbox)
-		
+		end_time = round(time.time() * 1000)
+
+		self.utilities.saveDuration(start_time, end_time)
+
+	def eaLoop(self, container, generation):
+
+		batch = self.toolbox.select(container, self.params.populationSize)
+		offspring = self.varAnd(batch, self.toolbox)
+
+		self.evaluateNewPopulation(container, generation, offspring, "a")
+
+		self._iteration_callback(generation, offspring, container)
+
+	def evaluateNewPopulation(self, container, generation, offspring, mode):
+
 		invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-		invalid_orig = len(invalid_ind)			
-		
+		invalid_orig = len(invalid_ind)
+
 		matched = [0,0]
 		invalid_ind = self.utilities.assignDuplicateFitness(self.redundancy, invalid_ind, self.assignFitness, matched)
-			
+
 		invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
 		invalid_new = len(invalid_ind)
-		
-		# print ("\t"+str(self.params.deapSeed)+" - "+str(i)+" | invalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 
 		self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
 
@@ -228,10 +160,8 @@ class EA():
 		self.utilities.removeDuplicates(offspring, container)
 
 		nb_updated = container.update(offspring, issue_warning = self.params.show_warnings)
-		# print ("number updated, rejected, discarded " + str(nb_updated) + ", "+str(container.nb_rejected) + ", " + str(container.nb_discarded))
-		# print ("== " + str(self.params.deapSeed) + " == generation " + str(i) + " / "+ str(self.params.generations) +" ==========================================================")
 		
-		self.printOutput(i, invalid_new, invalid_orig, matched)
+		self.printOutput(generation, invalid_new, invalid_orig, matched)
 		
 		if (self.params.printContainer):
 			print ("\nPrint all individuals in container\n")
@@ -250,16 +180,14 @@ class EA():
 				print("")
 		
 		if self.params.saveOutput:
-			if not self.params.fitness_grid: self.utilities.saveQDScore(container, i)
-			self.utilities.saveCoverage(container, i)
-			if not self.params.fitness_grid: self.utilities.saveBestToCsv(container, i)
-			else: self.utilities.saveExtrema(container, i)
+			if not self.params.fitness_grid: self.utilities.saveQDScore(container, generation, mode)
+			self.utilities.saveCoverage(container, generation, mode)
+			if not self.params.fitness_grid: self.utilities.saveBestToCsv(container, generation, mode)
+			# else: self.utilities.saveExtrema(container, generation)
 
-		if i % self.params.best_save_period == 0:
+		if generation % self.params.best_save_period == 0:
 			self.utilities.saveBestIndividuals(self.utilities.getBestMax(container, 25))
 
-		if iteration_callback != None:
-			iteration_callback(i, offspring, container)
 
 	def printOutput(self, generation, invalid_new, invalid_orig, matched):
 		

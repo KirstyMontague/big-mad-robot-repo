@@ -984,6 +984,18 @@ class Utilities():
 				f.write("features: "+str(self.params.features) + "\n")
 				f.write("description: "+self.params.description + "\n")
 
+	def saveDuration(self, start_time, end_time):
+
+		duration = end_time - start_time
+		minutes = (duration / 1000) / 60
+		minutes_str = str("%.2f" % minutes)
+		print("Duration " +minutes_str+"\n")
+
+		if self.params.saveOutput:
+			with open(self.params.path()+"params.txt", 'a') as f:
+				f.write("generations: "+str(self.params.generations) + "\n")
+				f.write("duration: "+str(duration) + " ms ("+minutes_str+" minutes)\n")
+
 
 
 	def evaluate(self, assign_fitness, invalid_ind):
