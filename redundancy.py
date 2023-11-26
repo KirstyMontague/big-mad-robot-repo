@@ -191,7 +191,7 @@ class Redundancy():
 
 		return new_chromosome
 
-	def addToLibrary(self, chromosome, fitness):
+	def addToArchive(self, chromosome, fitness):
 
 		new_chromosome = self.trim(chromosome)
 		mapped_chromosome = self.mapNodesToArchive(str(new_chromosome))
@@ -210,8 +210,8 @@ class Redundancy():
 				print (self.archive[str(mapped_chromosome)])
 				print (fitness)
 		else:
-			self.verbose_archive.update({str(new_chromosome) : fitness})	
-			self.archive.update({mapped_chromosome : fitness})	
+			self.verbose_archive.update({str(new_chromosome) : fitness})
+			self.archive.update({mapped_chromosome : fitness})
 
 	def removeRedundancy(self, chromosome):
 		

@@ -145,7 +145,7 @@ class EA():
 		self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
 
 		for ind in invalid_ind:
-			self.addToArchive(str(ind), ind.fitness.values, ind.features)
+			self.redundancy.addToArchive(str(ind), tuple([ind.fitness.values[0]] + ind.features))
 			
 		if self.params.printOffspring:
 			print ("\nPrint all offspring\n")
@@ -206,25 +206,6 @@ class EA():
 		output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
 		
 		print (output_string)
-
-	def addToArchive(self, chromosome, fitness, features):
-		
-		new_chromosome = self.redundancy.trim(chromosome)
-		mapped_chromosome = self.redundancy.mapNodesToArchive(str(new_chromosome))
-
-		if mapped_chromosome in self.redundancy.archive:
-			expected = self.redundancy.archive[mapped_chromosome]
-			if expected[0] != fitness[0] or expected[1] != features[0] or expected[2] != features[1]:
-				print ("\nWRONG FITNESS\n")
-				print (chromosome)
-				print (new_chromosome)
-				print (self.archive[new_chromosome])
-				print (fitness)
-				print (features)
-		
-		scores_list = [fitness[0]] + features
-		scores = tuple(scores_list)
-		self.redundancy.archive.update({mapped_chromosome : scores})
 
 	def assignFitness(self, offspring, fitness):
 		offspring.fitness.values = (fitness[0],)

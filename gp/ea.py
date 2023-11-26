@@ -257,7 +257,7 @@ class EA():
 		# self.convertDEAPtoGrid(population)
 		
 		for ind in invalid_ind:
-			self.redundancy.addToLibrary(str(ind), ind.fitness.values)
+			self.redundancy.addToArchive(str(ind), ind.fitness.values)
 		
 		best = self.utilities.getBestAll(population)
 		# self.printIndividuals(best, True)
