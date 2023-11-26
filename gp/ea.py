@@ -16,6 +16,7 @@ from containers import *
 
 from redundancy import Redundancy
 from utilities import Utilities
+from archive import Archive
 
 import local
 
@@ -42,6 +43,8 @@ class EA():
 		self.utilities.setupToolbox(self.selTournament)
 		
 		self.redundancy = Redundancy()
+		self.archive = Archive(params, self.redundancy)
+
 		self.subBehaviours()
 		self.loadSubBehaviours()
 		# self.setUpGrid()
@@ -244,7 +247,7 @@ class EA():
 		invalid_orig = len(invalid_ind)			
 		
 		matched = [0,0]
-		invalid_ind = self.utilities.assignDuplicateFitness(self.redundancy, invalid_ind, self.assignFitness, matched)
+		invalid_ind = self.archive.assignDuplicateFitness(invalid_ind, self.assignFitness, matched)
 		
 		invalid_ind = [ind for ind in population if not ind.fitness.valid]
 		invalid_new = len(invalid_ind)
@@ -257,7 +260,7 @@ class EA():
 		# self.convertDEAPtoGrid(population)
 		
 		for ind in invalid_ind:
-			self.redundancy.addToArchive(str(ind), ind.fitness.values)
+			self.archive.addToArchive(str(ind), ind.fitness.values)
 		
 		best = self.utilities.getBestAll(population)
 		# self.printIndividuals(best, True)
@@ -311,7 +314,7 @@ class EA():
 
 		start_time = round(time.time() * 1000)
 		
-		self.utilities.getArchives(self.redundancy)
+		self.archive.getArchives(self.redundancy)
 		
 		invalid_orig = 0
 		invalid_new = 0
@@ -342,7 +345,7 @@ class EA():
 		self.logNodes()
 		
 		self.saveCheckpoint(self.params.generations, population)
-		self.utilities.saveArchive(self.redundancy)
+		self.archive.saveArchive(self.redundancy)
 		
 		# self.printGrid()
 
@@ -390,7 +393,7 @@ class EA():
 			
 			self.saveCheckpoint(gen, population)
 			self.saveCSV(gen, population)
-			if gen % self.params.csv_save_period == 0: self.utilities.saveArchive(self.redundancy)
+			if gen % self.params.csv_save_period == 0: self.archive.saveArchive(self.redundancy)
 			if gen % self.params.best_save_period == 0: self.utilities.saveBestIndividuals(population)
 
 

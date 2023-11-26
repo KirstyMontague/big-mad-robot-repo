@@ -22,6 +22,7 @@ from deap import tools
 from params import eaParams
 from utilities import Utilities
 from redundancy import Redundancy
+from archive import Archive
 import local
 
 
@@ -34,6 +35,7 @@ class EA():
 		self.utilities = Utilities(params)
 		self.utilities.setupToolbox(self.selTournament)
 		self.redundancy = Redundancy()
+		self.archive = Archive(params, self.redundancy)
 
 	def config(self, start_gen, container = None):
 		self.toolbox = self.utilities.toolbox
@@ -78,7 +80,7 @@ class EA():
 
 	def run(self, init_batch = None, **kwargs):
 
-		self.utilities.getArchives(self.redundancy)
+		self.archive.getArchives(self.redundancy)
 
 		if self.params.loadCheckpoint:
 			from deap import base, creator, gp
@@ -116,7 +118,7 @@ class EA():
 		print("\nEnd the generational process\n")
 		print ("\n\n")
 
-		self.utilities.saveArchive(self.redundancy)
+		self.archive.saveArchive(self.redundancy)
 
 		end_time = round(time.time() * 1000)
 
@@ -137,7 +139,7 @@ class EA():
 		invalid_orig = len(invalid_ind)
 
 		matched = [0,0]
-		invalid_ind = self.utilities.assignDuplicateFitness(self.redundancy, invalid_ind, self.assignFitness, matched)
+		invalid_ind = self.archive.assignDuplicateFitness(invalid_ind, self.assignFitness, matched)
 
 		invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
 		invalid_new = len(invalid_ind)
@@ -145,7 +147,7 @@ class EA():
 		self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
 
 		for ind in invalid_ind:
-			self.redundancy.addToArchive(str(ind), tuple([ind.fitness.values[0]] + ind.features))
+			self.archive.addToArchive(str(ind), tuple([ind.fitness.values[0]] + ind.features))
 			
 		if self.params.printOffspring:
 			print ("\nPrint all offspring\n")

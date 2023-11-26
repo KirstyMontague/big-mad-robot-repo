@@ -523,35 +523,6 @@ class Utilities():
 				# print (output)
 				offspring.pop(i)
 
-	def assignDuplicateFitness(self, redundancy, offspring, assign_fitness, matched):
-
-		offspring_chromosomes = []
-		for ind in offspring:
-			trimmed = redundancy.removeRedundancy(str(ind))
-			trimmed = redundancy.mapNodesToArchive(trimmed)
-			offspring_chromosomes.append(trimmed)
-
-		archive = redundancy.getArchive()
-		cumulative_archive = redundancy.getCumulativeArchive()
-
-		archive_count = 0
-		cumulative_count = 0
-		for i in range(len(offspring)):
-			if offspring_chromosomes[i] in archive:
-				scores = archive.get(offspring_chromosomes[i])
-				assign_fitness(offspring[i], scores)
-				archive_count += 1
-
-			elif offspring_chromosomes[i] in cumulative_archive:
-				scores = cumulative_archive.get(offspring_chromosomes[i])
-				assign_fitness(offspring[i], scores)
-				cumulative_count += 1
-
-		matched[0] = archive_count
-		matched[1] = cumulative_count
-
-		return offspring
-
 	def convertToNewGrid(self, container, objective, objective_index, features, shape, fitness_domain, features_domain):
 		
 		# from deap import base, creator, tools, gp
@@ -873,62 +844,6 @@ class Utilities():
 						 container.features_domain,
 						 container.fitness_extrema[0],
 						 nbTicks=None)
-
-
-	def getArchives(self, redundancy):
-
-		archive = redundancy.getArchive()
-		cumulative_archive = redundancy.getCumulativeArchive()
-
-		algorithm = "qdpy" if self.params.is_qdpy else "gp"
-
-		for i in range(10):
-			archive_path = "../gp/test/"+self.params.description+"/"+str(i+1)+"/"
-			if archive_path != "../"+algorithm+"/"+self.params.path():
-				if os.path.exists(archive_path+"archive.pkl"):
-					with open(archive_path+"archive.pkl", "rb") as archive_file:
-						cumulative_archive.update(pickle.load(archive_file))
-			else:
-				print ("disregarding "+archive_path)
-
-		for i in range(10):
-			archive_path = "../qdpy/test/"+self.params.description+"/"+str(i+1)+"/"
-			if archive_path != "../"+algorithm+"/"+self.params.path():
-				if os.path.exists(archive_path+"archive.pkl"):
-					with open(archive_path+"archive.pkl", "rb") as archive_file:
-						cumulative_archive.update(pickle.load(archive_file))
-			else:
-				print ("disregarding "+archive_path)
-
-		temp_archive = {}
-		if os.path.exists(self.params.path()+"archive.pkl"):
-			with open(self.params.path()+"archive.pkl", "rb") as archive_file:
-				temp_archive = pickle.load(archive_file)
-
-		print (len(temp_archive))
-		i = 0
-		for chromosome, scores in temp_archive.items():
-			if i < len(temp_archive) - 0:
-				archive.update({str(chromosome) : scores})
-				i += 1
-
-		redundancy.setArchive(archive)
-		redundancy.setCumulativeArchive(cumulative_archive)
-
-		print("archive length "+str(len(archive)))
-		print("cumulative archive length "+str(len(cumulative_archive)))
-
-	def saveArchive(self, redundancy):
-
-		if self.params.saveOutput:
-			archive = redundancy.getArchive()
-			archive_string = ""
-			archive_dict = {}
-			for chromosome, scores in archive.items():
-				archive_dict.update({str(chromosome) : scores})
-
-			with open(self.params.path()+"archive.pkl", "wb") as archive_file:
-				 pickle.dump(archive_dict, archive_file)
 
 	def saveParams(self):
 

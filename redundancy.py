@@ -71,12 +71,6 @@ class Redundancy():
 		self.chromosomes = []
 		tests = RedundancyTests()
 		self.tests = tests.getTests()
-		
-		self.library = [[], []]
-		self.archive = {}
-		self.cumulative_archive = {}
-		self.verbose_archive = {}
-		
 
 	def test(tree):
 		print ("test")
@@ -103,72 +97,6 @@ class Redundancy():
 
 		self.chromosomes.append("selm2(r, probm4(rl, ifRobotToLeft, ifNestToLeft, ifNestToRight))")
 
-	def getLibrary(self):
-		return self.library
-
-	def setArchive(self, archive):
-		self.archive = archive
-
-	def setCumulativeArchive(self, archive):
-		self.cumulative_archive = archive
-
-	def getVerboseArchive(self):
-		return self.verbose_archive
-	
-	def getArchive(self):
-		return self.archive
-	
-	def getCumulativeArchive(self):
-		return self.cumulative_archive
-	
-	def mapNodesToArchive(self, chromosome):
-		mapping = {
-			"seqm2" : "a",
-			"seqm3" : "b",
-			"seqm4" : "c",
-			"selm2" : "d",
-			"selm3" : "e",
-			"selm4" : "f",
-			"probm2" : "g",
-			"probm3" : "h",
-			"probm4" : "i",
-			"ifInNest" : "j",
-			"ifOnFood" : "k",
-			"ifGotFood" : "l",
-			"ifNestToLeft" : "m",
-			"ifNestToRight" : "n",
-			"ifFoodToLeft" : "o",
-			"ifFoodToRight" : "p",
-			"ifRobotToLeft" : "q",
-			"ifRobotToRight" : "r",
-			"stop" : "s",
-			"f" : "t",
-			"fl" : "u",
-			"fr" : "v",
-			"r" : "w",
-			"rl" : "x",
-			"rr" : "y",
-		}
-		
-		for i in range(1,9):
-			mapping["increaseDensity"+str(i)] = "0"+str(i)
-			mapping["reduceDensity"+str(i)] = "1"+str(i)
-			mapping["gotoNest"+str(i)] = "2"+str(i)
-			mapping["goAwayFromNest"+str(i)] = "3"+str(i)
-			mapping["gotoFood"+str(i)] = "4"+str(i)
-			mapping["goAwayFromFood"+str(i)] = "5"+str(i)
-		
-		chromosome = chromosome.replace(" ", "")
-		tokens = re.split("[ (),]", chromosome)
-		
-		string = ""
-		for token in tokens:
-			if len(token) > 0:
-				string += mapping[token]
-		
-		return string
-			
-
 	def trim(self, chromosome):
 		
 		tree = self.primitivetree.from_string(chromosome, self.pset)
@@ -190,28 +118,6 @@ class Redundancy():
 		new_chromosome = self.rebuildFromTrailingList(trailing, new_chromosome, new_chromosome.searchSubtree(0), "", 1)
 
 		return new_chromosome
-
-	def addToArchive(self, chromosome, fitness):
-
-		new_chromosome = self.trim(chromosome)
-		mapped_chromosome = self.mapNodesToArchive(str(new_chromosome))
-
-		if mapped_chromosome in self.archive:
-			expected = self.archive[mapped_chromosome]
-			if expected[0] != fitness[0] or expected[1] != fitness[1] or expected[2] != fitness[2]:
-
-				print ("\nWRONG FITNESS\n")
-				print (chromosome)
-				print("\n")
-				print (new_chromosome)
-				print("\n")
-				print (mapped_chromosome)
-				print("\n")
-				print (self.archive[str(mapped_chromosome)])
-				print (fitness)
-		else:
-			self.verbose_archive.update({str(new_chromosome) : fitness})
-			self.archive.update({mapped_chromosome : fitness})
 
 	def removeRedundancy(self, chromosome):
 		
