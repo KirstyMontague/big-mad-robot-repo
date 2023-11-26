@@ -210,9 +210,10 @@ class EA():
 	def addToArchive(self, chromosome, fitness, features):
 		
 		new_chromosome = self.redundancy.trim(chromosome)
-		
-		if new_chromosome in self.redundancy.archive:
-			expected = self.redundancy.archive[new_chromosome]
+		mapped_chromosome = self.redundancy.mapNodesToArchive(str(new_chromosome))
+
+		if mapped_chromosome in self.redundancy.archive:
+			expected = self.redundancy.archive[mapped_chromosome]
 			if expected[0] != fitness[0] or expected[1] != features[0] or expected[2] != features[1]:
 				print ("\nWRONG FITNESS\n")
 				print (chromosome)
@@ -223,7 +224,7 @@ class EA():
 		
 		scores_list = [fitness[0]] + features
 		scores = tuple(scores_list)
-		self.redundancy.archive.update({new_chromosome : scores})	
+		self.redundancy.archive.update({mapped_chromosome : scores})
 
 	def assignFitness(self, offspring, fitness):
 		offspring.fitness.values = (fitness[0],)

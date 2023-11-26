@@ -188,88 +188,18 @@ class Redundancy():
 		trailing = self.trailingList
 		new_chromosome = self.replaceObsoleteConditionsWithStop(tree, tree.searchSubtree(0), trailing, "", 1, True)
 		new_chromosome = self.rebuildFromTrailingList(trailing, new_chromosome, new_chromosome.searchSubtree(0), "", 1)
-		
-		new_chromosome = self.mapNodesToArchive(str(new_chromosome))
-		
+
 		return new_chromosome
 
 	def addToLibrary(self, chromosome, fitness):
-		
-		# matched = False
-		# if chromosome == "seqm2(seqm3(seqm4(selm2(gotoFood, ifGotFood), selm2(gotoNest, ifFoodToLeft), gotoFood, probm2(seqm4(ifInNest, ifGotFood, ifNestToRight, selm4(ifNestToRight, ifNestToRight, gotoNest, ifGotFood)), ifRobotToRight)), probm3(seqm2(seqm3(ifFoodToRight, gotoNest, ifInNest), ifFoodToRight), probm2(gotoNest, ifInNest), seqm2(seqm2(seqm3(ifGotFood, gotoFood, ifInNest), gotoNest), ifNestToRight)), probm2(probm4(increaseDensity, ifNestToRight, ifFoodToRight, gotoFood), probm2(selm2(gotoNest, ifRobotToLeft), selm3(seqm3(ifFoodToRight, ifRobotToRight, ifGotFood), probm2(gotoFood, ifInNest), selm4(ifFoodToRight, ifNestToRight, ifRobotToRight, ifGotFood))))), ifInNest)":
-			# print("=====")
-			# print("addToLibrary")
-			# print(chromosome)
-			# print(fitness)
-			# print("\n")
-			# print("=====")
-			# matched = True
-			
-		tree = self.primitivetree.from_string(chromosome, self.pset)
-		# print(self.formatChromosome(tree))
-		
-		output = []
-		for j in range(len(self.trailingList) - 1, -1, -1):
-			self.trailingList.pop()
-		
-		self.active = [True]
-		self.trailingList = []
 
-		self.parseSubtreeGreedy(tree, "  ", output)
-		self.trailingNodesGreedy(tree, output)
-		self.capitaliseOutput(output)
-		
-		trailing = self.trailingList
-		new_chromosome = self.replaceObsoleteConditionsWithStop(tree, tree.searchSubtree(0), trailing, "", 1, True)
-		new_chromosome = self.rebuildFromTrailingList(trailing, new_chromosome, new_chromosome.searchSubtree(0), "", 1)
-		
-		# add = True
-		# for i in range(len(self.library[0])):
-			# print(str(new_chromosome))
-			# print(str(self.library[0][i]))
-			# if new_chromosome == self.library[0][i]:
-				# add = False
-				# break
-			# print(add)
-			# print("")
-		
-		# if add:
-			# new_tree = self.primitivetree.from_string(str(new_chromosome), self.pset)
-			# self.library[0].append(new_tree)
-			# self.library[1].append(fitness)
-			# print("\n\nadding...")
-			# print(new_tree)
-			# print(fitness)
-		
+		new_chromosome = self.trim(chromosome)
 		mapped_chromosome = self.mapNodesToArchive(str(new_chromosome))
-		# new_chromosome = str(new_chromosome)
-		
-		# if matched:
-			# print("== matched ==")
-			# print(new_chromosome)
-			# print(mapped_chromosome)
-			# print(fitness)
-			# print("==")
-		
-		# if mapped_chromosome == "bcd2ld1o2gcjlnfnn1lrhabp1jpg1jaabl2j1ngh0jjgjdbprlg2j":
-			# print(chromosome)
-			# print(mapped_chromosome)
-			# print(fitness)
-			# print("\n")
-			
+
 		if mapped_chromosome in self.archive:
 			expected = self.archive[mapped_chromosome]
 			if expected[0] != fitness[0] or expected[1] != fitness[1] or expected[2] != fitness[2]:
-				
-				# chromosomes = ""
-				# for c, fitness in self.getArchive().items():
-					# print(chromosome)
-					# chromosomes += c +"\n\n"
-				# print("\n\n")
-				
-				# with open("./test/foraging/chromosomes.txt", 'w') as f:
-					# f.write(chromosomes)
-		
+
 				print ("\nWRONG FITNESS\n")
 				print (chromosome)
 				print("\n")
@@ -282,14 +212,7 @@ class Redundancy():
 		else:
 			self.verbose_archive.update({str(new_chromosome) : fitness})	
 			self.archive.update({mapped_chromosome : fitness})	
-		
-		# if matched:
-			# print("== matched ==")
-			# print(mapped_chromosome)
-			# print(self.archive.get(mapped_chromosome))
-			# print("==")
-		
-	
+
 	def removeRedundancy(self, chromosome):
 		
 		tree = self.primitivetree.from_string(chromosome, self.pset)
