@@ -32,8 +32,10 @@ class eaParams():
 	def input_filename(self): return self.path()+"seed"+str(self.deapSeed)+"-"+self.start_point+".p"
 	def iteration_filename(self): return self.path()+"seed"+str(self.deapSeed)+"-iteration%i.p"
 	def final_filename(self): return self.path()+"seed"+str(self.deapSeed)+"-final.p"
+
 	sqrtRobots = 3
 	iterations = 5
+
 
 	num_threads = 8
 
@@ -46,18 +48,18 @@ class eaParams():
 	# description = "density-nest-ifood" # EA2 # EA1
 	# indexes = [0,1,5]
 	
-	description = "foraging" # EA2 # EA1
-	indexes = [6]
+	description = "density"
+	indexes = [0]
 	
 	stop = False
 	
 	start_gen = 0
-	generations = 1000
+	generations = 10
 	
 	readCheckpoint = False
 	loadCheckpoint = False
-	saveOutput = True
-	saveCSV = True
+	saveOutput = False
+	saveCSV = False
 	
 	save_period = 100
 	csv_save_period = 100
@@ -134,16 +136,16 @@ class eaParams():
 	def addNodes(self, pset):
 		
 		primitives = ["seqm", "selm", "probm"]
-		conditions = ["ifGotFood", "ifOnFood", "ifInNest"]
-		# conditions = ["ifGotFood", "ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
-		actions = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
-		# actions = ["stop", "f", "fl", "fr", "r", "rl", "rr"]
+		# conditions = ["ifGotFood", "ifOnFood", "ifInNest"]
+		conditions = ["ifGotFood", "ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
+		# actions = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
+		actions = ["stop", "f", "fl", "fr", "r", "rl", "rr"]
 		
 		robot = robotObject()
 		robot.makeCompositionNodes(primitives)
 		robot.makeTerminalNodes("conditions", conditions)
-		robot.makeRepertoireNodes(actions)
-		# robot.makeTerminalNodes("actions", actions)
+		# robot.makeRepertoireNodes(actions)
+		robot.makeTerminalNodes("actions", actions)
 		
 		for i in range(3):
 			self.nodes['selm'+str(i+2)] = True; pset.addPrimitive(robot.selm[i], i+2)
@@ -153,17 +155,17 @@ class eaParams():
 		for node in conditions:
 			self.nodes[node] = True; pset.addCondition(robot.conditions[node])
 
-		for i in range(8):
-			index = str(i+1)
-			self.nodes['increaseDensity'+index] = True; pset.addAction(robot.increaseDensity[i])
-			self.nodes['reduceDensity'+index] = True; pset.addAction(robot.reduceDensity[i])
-			self.nodes['gotoNest'+index] = True; pset.addAction(robot.gotoNest[i])
-			self.nodes['goAwayFromNest'+index] = True; pset.addAction(robot.goAwayFromNest[i])
-			self.nodes['gotoFood'+index] = True; pset.addAction(robot.gotoFood[i])
-			self.nodes['goAwayFromFood'+index] = True; pset.addAction(robot.goAwayFromFood[i])
+		# for i in range(8):
+			# index = str(i+1)
+			# self.nodes['increaseDensity'+index] = True; pset.addAction(robot.increaseDensity[i])
+			# self.nodes['reduceDensity'+index] = True; pset.addAction(robot.reduceDensity[i])
+			# self.nodes['gotoNest'+index] = True; pset.addAction(robot.gotoNest[i])
+			# self.nodes['goAwayFromNest'+index] = True; pset.addAction(robot.goAwayFromNest[i])
+			# self.nodes['gotoFood'+index] = True; pset.addAction(robot.gotoFood[i])
+			# self.nodes['goAwayFromFood'+index] = True; pset.addAction(robot.goAwayFromFood[i])
 
-		# for node in actions:
-			# pset.addAction(robot.actions[node])
+		for node in actions:
+			pset.addAction(robot.actions[node])
 
 	def addUnpackedNodes(self, pset):
 		
