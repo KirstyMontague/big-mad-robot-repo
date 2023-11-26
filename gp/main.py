@@ -7,12 +7,12 @@ params.configure()
 
 # from redundancy import Redundancy
 # redundancy = Redundancy()
-# redundancy.mapNodesToArchive("seqm2(f, f)")
+
+# redundancy.params.is_qdpy = False
 # redundancy.checkRedundancy()
 # redundancy.checkProbmNodes()
-# redundancy.removeRedundancy("selm4(ifOnFood, seqm2(seqm2(seqm2(seqm3(selm2(r, ifOnFood), ifOnFood, rl), seqm2(ifOnFood, ifRobotToRight)), seqm2(seqm2(seqm2(selm2(ifOnFood, ifOnFood), seqm2(seqm2(seqm2(seqm2(seqm2(seqm2(selm3(fl, seqm2(rr, seqm2(seqm2(rr, ifInNest), ifRobotToLeft)), selm3(seqm2(r, ifOnFood), seqm2(fl, fl), rl)), seqm2(seqm2(ifOnFood, rr), seqm2(selm2(ifOnFood, seqm2(seqm2(seqm2(seqm2(selm3(fr, fr, ifRobotToLeft), seqm2(fl, fl)), rr), seqm2(fl, fl)), rr)), ifOnFood))), rr), fl), fl), seqm2(ifOnFood, fl)), rr)), seqm2(seqm2(selm2(selm3(seqm2(r, seqm2(seqm2(fl, fl), rr)), rr, rl), seqm2(selm3(seqm2(ifNestToRight, fl), seqm2(selm3(fl, seqm2(ifInNest, seqm2(seqm2(r, ifOnFood), ifOnFood)), selm3(seqm2(r, ifOnFood), seqm2(seqm2(ifOnFood, ifOnFood), fl), rl)), seqm2(selm2(r, ifNestToLeft), seqm2(selm2(ifOnFood, seqm2(seqm2(seqm2(fl, rr), seqm2(selm3(seqm2(ifNestToRight, fl), ifRobotToRight, ifNestToLeft), fl)), rr)), ifOnFood))), seqm2(ifOnFood, ifNestToLeft)), seqm2(seqm2(selm3(seqm2(ifNestToRight, ifOnFood), rr, seqm2(seqm2(seqm2(seqm2(selm3(ifRobotToRight, fr, r), seqm2(fl, fl)), rr), seqm2(selm3(seqm2(rr, fl), ifNestToRight, rl), f)), rl)), seqm2(fl, fl)), ifRobotToRight))), rr), seqm2(seqm2(seqm2(seqm2(seqm2(seqm2(selm2(ifOnFood, seqm2(seqm2(seqm2(seqm2(selm3(ifRobotToRight, fr, ifOnFood), seqm2(fl, fl)), rr), seqm2(selm3(seqm2(fl, fl), ifNestToRight, seqm2(ifNestToRight, fl)), rr)), fl)), seqm2(seqm2(ifOnFood, rr), seqm2(selm2(ifOnFood, seqm2(seqm2(seqm2(seqm2(selm3(f, fr, ifOnFood), seqm2(fl, rr)), rr), seqm2(seqm3(seqm2(rr, fl), ifRobotToRight, rl), rr)), fl)), ifOnFood))), seqm2(seqm2(seqm2(selm3(ifOnFood, ifInNest, ifOnFood), seqm2(fl, fl)), fr), ifNestToRight)), seqm2(seqm2(seqm2(seqm2(seqm3(selm2(r, ifNestToLeft), ifOnFood, rl), seqm2(ifOnFood, ifOnFood)), seqm2(fl, seqm2(ifOnFood, fl))), seqm2(selm3(seqm2(seqm2(selm3(seqm2(rr, fl), ifNestToRight, ifRobotToLeft), rr), fl), seqm2(rr, seqm2(ifOnFood, ifRobotToRight)), seqm2(ifNestToRight, fl)), rr)), fl)), fl), seqm2(ifOnFood, ifRobotToLeft)), rr))), ifNestToLeft)), fr), seqm2(seqm2(ifOnFood, rr), fl), ifOnFood)")
 
-# if False and not params.stop:
+# if False:
 if not params.stop:
 
 	import time
