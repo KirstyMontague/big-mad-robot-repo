@@ -78,105 +78,6 @@ class Utilities():
 
 		self.toolbox = toolbox
 
-	def evaluateRobotHdOnly(self, individual, thread_index):
-		
-		# print ("")
-		# print (individual)
-		
-		# save number of robots and chromosome to file
-		with open('../txt/chromosome'+str(thread_index)+'.txt', 'w') as f:
-			f.write(str(self.params.sqrtRobots))
-			f.write("\n")
-			f.write(str(individual))
-		
-		totals = []
-		# qdpy optimisation
-		# for i in range(self.params.features):
-		for i in range(self.params.features + 3):
-			# end qdpy
-			totals.append(0.0)
-		
-		robots = {}
-		seed = 0
-		
-		for i in self.params.arenaParams:
-			
-			# get maximum food available with the current gap between the nest and food
-			# maxFood = self.calculateMaxFood(i)
-			
-			# for j in range(self.params.iterations):
-			
-			# write seed to file
-			seed += 1
-			with open('../txt/seed'+str(thread_index)+'.txt', 'w') as f:
-				f.write(str(seed))
-				f.write("\n")
-				f.write(str(i))
-
-			# run argos
-			subprocess.call(["/bin/bash", "../evaluate"+str(thread_index), "", "./"])
-			
-			# result from file
-			f = open("../txt/result"+str(thread_index)+".txt", "r")
-			
-			# print ("")
-			for line in f:
-				first = line[0:line.find(" ")]
-				if (first == "result"):
-					# print (line[0:-1])
-					lines = line.split()
-					robotId = int(float(lines[1]))
-					robots[robotId] = []
-					for j in range(self.params.features):
-						for k in range(self.params.iterations):
-							index = (self.params.objective_index * self.params.iterations) + (j * self.params.iterations) + k + 2
-							robots[robotId].append(float(lines[index]))
-					# qdpy optimisation
-					for j in range(3):
-						for k in range(self.params.iterations):
-							index = (j * self.params.iterations) + (6 * self.params.iterations) + k + 2
-							robots[robotId].append(float(lines[index]))
-					# end qdpy
-					# string = str(robotId)+" "
-					# for s in robots[robotId]:
-						# string += str(s)+" "
-					# print (string)
-					# string = str(robotId)+" "
-					# for s in robots[robotId][5:20]:
-						# string += str(s)+" "
-					# print (string)
-			
-			# get scores for each robot and add to cumulative total
-			# qdpy optimisation
-			# for k in range(self.params.features):
-			for k in range(self.params.features + 3):
-				# end qdpy
-				totals[k] += self.collectFitnessScore(robots, k)
-				# print (totals[k])
-			
-			# increment counter and pause to free up CPU
-			time.sleep(self.params.trialSleep)
-		
-		# divide to get average per seed and arena configuration then apply derating factor
-		# deratingFactor = self.deratingFactor(individual)
-		deratingFactor = 1.0
-		features = []
-		# qdpy optimisation
-		# for i in range(self.params.features):
-		for i in range(self.params.features + 3):
-			# end qdpy
-			features.append(self.getAvgAndDerate(totals[i], individual, deratingFactor))
-		
-		# pause to free up CPU
-		time.sleep(self.params.evalSleep)
-		
-		# output = ""
-		# for f in features:
-			# output += str("%.9f" % f) + " \t"
-		# print (output)
-		
-		return (features)
-
 	def evaluateRobot(self, individual, thread_index):
 		
 		# print ("")
@@ -687,22 +588,6 @@ class Utilities():
 		
 		return tree
 
-
-
-
-
-	def saveOutput(self):
-		logHeaders = "Type,Time,Seed,Robots,Pop,Tourn,Iterations,Params,,"
-		for i in range(self.params.generations + 1):
-			logHeaders += str(i)+","
-		logHeaders += ",Chromosome,Nodes,"
-		
-		with open('features'+str(self.params.generations)+'.csv', 'a') as f:
-			f.write(logHeaders)
-			f.write("\n")
-			f.write(self.output)
-	
-	
 	def getCoverage(self, container):
 		
 		""" get the ratio of filled vs empty bins, returns a value between 0 and 1"""
@@ -797,43 +682,6 @@ class Utilities():
 
 		with open(filename, mode) as f:
 			f.write(output)
-		
-	def saveExtrema(self, container, iteration):
-		
-		filename = self.params.path() + "csvs/extremis-"+str(self.params.deapSeed)+".csv"
-		
-		minVals = [1.0,1.0,1.0]
-		maxVals = [0.0,0.0,0.0]
-		minIndividuals = [None, None, None]
-		maxIndividuals = [None, None, None]
-		
-		for idx, inds in container.solutions.items():
-			if len(inds) == 0:
-				continue
-			
-			for i in range(len(self.params.nb_bins)):
-				for ind in inds:
-					if minVals[i] > ind.features[i]:
-						minVals[i] = ind.features[i]
-						minIndividuals[i] = ind
-					if maxVals[i] < ind.features[i]:
-						maxVals[i] = ind.features[i]
-						maxIndividuals[i] = ind
-			
-		output = str(iteration) + ","
-		for i in minVals:
-			output += str(i)+","
-		for i in maxVals:
-			output += str(i)+","
-		output += "\n"
-		
-		with open(filename, 'a') as f:
-			f.write(output)
-			
-
-
-
-
 
 	def saveHeatmap(self, container, iteration):
 
