@@ -112,7 +112,9 @@ class eaParams():
 			if len(data) > 0:
 				for d in data:
 					print(d)
+				if data[0] == "loadCheckpoint":  self.loadCheckpoint = False if data[1] == "False" else True
 				if data[0] == "runs": self.runs = int(data[1])
+				if data[0] == "start_gen": self.start_gen = int(data[1])
 				if data[0] == "generations": self.generations = int(data[1])
 				if data[0] == "genSleep": self.genSleep = float(data[1])
 				if data[0] == "evalSleep": self.evalSleep = float(data[1])
