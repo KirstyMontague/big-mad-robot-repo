@@ -97,63 +97,53 @@ class EA():
 		with open(self.params.checkpointInputFilename(self.params.start_gen), "rb") as checkpoint_file:
 			checkpoint = pickle.load(checkpoint_file)
 		population = checkpoint["population"]
-		
-		output = ""
-		for i in range(len(population)):
-			if True or population[i].fitness.values[5] > 0.7:
-				output += "\n"
-				output += str(population[i])
-				output += "\n"
-				for f in population[i].fitness.values:
-					output += str("%.9f" % f) + " \t"
-				output += "\n"
-			# output += "\n\n\n\n"
-			# print (output)
-		
-		print("population size")
-		print(len(population))
-		
-		self.printIndividuals(self.utilities.getBestAll(population), True)
-		
-		# print(output)
-		return population
-		
-		self.params.features = 1
-		for i in range(len(population)):
-			self.utilities.evaluateRobot(population[i], 5)
+
+		print("============================================")
+		print("population size: "+str(len(population)))
+
+		print("============================================")
+		for ind in population:
+			print("")
+			print (ind.fitness)
+			print (ind)
+			print("")
+			print("============================================")
+
 		return population
 
 	def loadCheckpoint(self):
-			
+
 		with open(self.params.checkpointInputFilename(self.params.start_gen), "rb") as checkpoint_file:
 			checkpoint = pickle.load(checkpoint_file)
 		population = checkpoint["population"]
 		random.setstate(checkpoint["rndstate"])
+		self.getCheckpointCsvData()
+
+		for ind in population:
+			self.printIndividual(ind)
+
+		return population
+
+	def getCheckpointCsvData(self):
+
+		# load output for earlier generations from csv
+
 		csvFilename = self.params.csvInputFilename(self.params.start_gen)
-		
 		f = open(csvFilename, "r")
-		output = ""
+
 		for line in f:
 			items = line.split(",")
 			if len(items) > 1 and items[2] != "Seed":
-				# print (items[0]+" | "+items[2]+" | "+items[4]+" | "+items[5])
-				# print (self.params.description+" | "+str(self.params.deapSeed)+" | "+str(self.params.populationSize)+" | "+str(self.params.tournamentSize))
 				if items[0] == self.params.description and \
 					int(items[2]) == self.params.deapSeed and \
 					int(items[4]) == self.params.populationSize and \
 					int(items[5]) == self.params.tournamentSize:
 						output = ""
 						for i in range(9,self.params.start_gen+10):
-							# print(items[i]+",")
 							output += items[i]+","
 							
 		self.output += output
 		
-		for ind in population:
-			self.printIndividual(ind)
-		
-		return population
-	
 	def startWithNewPopulation(self):
 		
 		
@@ -194,15 +184,10 @@ class EA():
 		return population
 	
 	def saveCheckpoint(self, generation, population):
-		
+
 		if self.params.saveOutput and (generation % self.params.save_period == 0 or generation == self.params.generations):
-			
-			# qdpy_population = []
-			# for ind in population:
-				# qdpy_individual = dict(genome=str(ind), fitness=ind.fitness.values)
-				# qdpy_population.append(qdpy_individual)
+
 			checkpoint = dict(population=population, generation=self.params.generations, rndstate=random.getstate())
-			
 			with open(self.params.checkpointOutputFilename(generation), "wb") as checkpoint_file:
 				 pickle.dump(checkpoint, checkpoint_file)
 	
