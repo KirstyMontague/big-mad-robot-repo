@@ -17,6 +17,7 @@ from containers import *
 from redundancy import Redundancy
 from utilities import Utilities
 from archive import Archive
+from checkpoint import Checkpoint
 
 import local
 
@@ -44,6 +45,7 @@ class EA():
 		
 		self.redundancy = Redundancy()
 		self.archive = Archive(params, self.redundancy)
+		self.checkpoint = Checkpoint(params)
 
 		self.subBehaviours()
 		self.loadSubBehaviours()
@@ -92,57 +94,6 @@ class EA():
 
 		return offspring
 
-	def readCheckpoint(self):
-	
-		with open(self.params.checkpointInputFilename(self.params.start_gen), "rb") as checkpoint_file:
-			checkpoint = pickle.load(checkpoint_file)
-		population = checkpoint["population"]
-
-		print("============================================")
-		print("population size: "+str(len(population)))
-
-		print("============================================")
-		for ind in population:
-			print("")
-			print (ind.fitness)
-			print (ind)
-			print("")
-			print("============================================")
-
-		return population
-
-	def loadCheckpoint(self):
-
-		with open(self.params.checkpointInputFilename(self.params.start_gen), "rb") as checkpoint_file:
-			checkpoint = pickle.load(checkpoint_file)
-		population = checkpoint["population"]
-		random.setstate(checkpoint["rndstate"])
-
-		for ind in population:
-			self.printIndividual(ind)
-
-		return population
-
-	def getCheckpointCsvData(self):
-
-		# load output for earlier generations from csv
-
-		csvFilename = self.params.csvInputFilename(self.params.start_gen)
-		f = open(csvFilename, "r")
-
-		for line in f:
-			items = line.split(",")
-			if len(items) > 1 and items[2] != "Seed":
-				if items[0] == self.params.description and \
-					int(items[2]) == self.params.deapSeed and \
-					int(items[4]) == self.params.populationSize and \
-					int(items[5]) == self.params.tournamentSize:
-						output = ""
-						for i in range(9,self.params.start_gen+10):
-							output += items[i]+","
-							
-		return output
-		
 	def startWithNewPopulation(self):
 		
 		
@@ -181,16 +132,7 @@ class EA():
 		# self.logFitness(self.getBestHDAll(population))
 		
 		return population
-	
-	def saveCheckpoint(self, generation, population):
 
-		if self.params.saveOutput and (generation % self.params.save_period == 0 or generation == self.params.generations):
-
-			checkpoint = dict(population=population, generation=self.params.generations, rndstate=random.getstate())
-
-			with open(self.params.checkpointOutputFilename(generation), "wb") as checkpoint_file:
-				 pickle.dump(checkpoint, checkpoint_file)
-	
 	def saveCSV(self, generation, population):
 		
 		if self.params.saveCSV and generation % self.params.csv_save_period == 0:
@@ -307,13 +249,13 @@ class EA():
 		self.logFirst()
 		
 		if self.params.readCheckpoint:
-			population = self.readCheckpoint()
+			population = self.checkpoint.read()
 			return population
 
-		elif self.params.loadCheckpoint:			
-			population = self.loadCheckpoint()
-			self.output += self.getCheckpointCsvData()
-			
+		elif self.params.loadCheckpoint:
+			population = self.checkpoint.load()
+			self.output += self.checkpoint.getCsvData()
+
 		else:	
 			population = self.startWithNewPopulation()
 		
@@ -330,7 +272,7 @@ class EA():
 		self.logChromosomes(best)
 		self.logNodes()
 		
-		self.saveCheckpoint(self.params.generations, population)
+		self.checkpoint.save(self.params.generations, population)
 		self.archive.saveArchive(self.redundancy)
 		
 		# self.printGrid()
@@ -377,7 +319,7 @@ class EA():
 			self.printScores(offspring, self.params.printFitnessScores)
 			self.printIndividuals(self.utilities.getBestAll(population), self.params.printBestIndividuals)
 			
-			self.saveCheckpoint(gen, population)
+			self.checkpoint.save(gen, population)
 			self.saveCSV(gen, population)
 			if gen % self.params.csv_save_period == 0: self.archive.saveArchive(self.redundancy)
 			if gen % self.params.best_save_period == 0: self.utilities.saveBestIndividuals(population)
