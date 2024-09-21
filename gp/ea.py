@@ -117,7 +117,6 @@ class EA():
 			checkpoint = pickle.load(checkpoint_file)
 		population = checkpoint["population"]
 		random.setstate(checkpoint["rndstate"])
-		self.getCheckpointCsvData()
 
 		for ind in population:
 			self.printIndividual(ind)
@@ -142,7 +141,7 @@ class EA():
 						for i in range(9,self.params.start_gen+10):
 							output += items[i]+","
 							
-		self.output += output
+		return output
 		
 	def startWithNewPopulation(self):
 		
@@ -188,6 +187,7 @@ class EA():
 		if self.params.saveOutput and (generation % self.params.save_period == 0 or generation == self.params.generations):
 
 			checkpoint = dict(population=population, generation=self.params.generations, rndstate=random.getstate())
+
 			with open(self.params.checkpointOutputFilename(generation), "wb") as checkpoint_file:
 				 pickle.dump(checkpoint, checkpoint_file)
 	
@@ -312,6 +312,7 @@ class EA():
 
 		elif self.params.loadCheckpoint:			
 			population = self.loadCheckpoint()
+			self.output += self.getCheckpointCsvData()
 			
 		else:	
 			population = self.startWithNewPopulation()
