@@ -11,6 +11,7 @@ if __name__ == "__main__":
 
     params = eaParams()
     params.deapSeed = 2
+    params.description = "testing"
 
     start_gen = 5
     generations = 10
@@ -19,13 +20,16 @@ if __name__ == "__main__":
 
     os.chdir("../gp")
 
+
     # run for 10 generations to get data for comparison
 
     with open("../config.txt", 'w') as f:
+        f.write("description testing\n")
         f.write("generations "+str(generations)+"\n")
         f.write("saveOutput True\n")
-        f.write("saveCSV False\n")
-        f.write("save_period 5")
+        f.write("saveCSV True\n")
+        f.write("save_period 5\n")
+        f.write("csv_save_period 5")
 
     subprocess.call(["python3", "main.py", "--seed",  str(params.deapSeed)])
 
@@ -38,10 +42,12 @@ if __name__ == "__main__":
 
     with open("../config.txt", 'w') as f:
         f.write("loadCheckpoint True\n")
+        f.write("description testing\n")
         f.write("start_gen "+str(start_gen)+"\n")
         f.write("generations "+str(generations)+"\n")
         f.write("saveOutput True\n")
-        f.write("saveCSV False")
+        f.write("saveCSV True\n")
+        f.write("csv_save_period 10")
 
     subprocess.call(["python3", "main.py", "--seed",  str(params.deapSeed)])
 
@@ -74,7 +80,14 @@ if __name__ == "__main__":
         print("failed")
 
 
-    # clear config file
+    # clean up
 
     with open("../config.txt", 'w') as f:
         f.write("")
+
+    if os.path.isfile(params.csvInputFilename(start_gen)):
+        os.remove(params.csvInputFilename(start_gen))
+
+    if os.path.isfile(params.csvInputFilename(generations)):
+        os.remove(params.csvInputFilename(generations))
+

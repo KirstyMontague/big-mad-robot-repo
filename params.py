@@ -112,6 +112,7 @@ class eaParams():
 			if len(data) > 0:
 				for d in data:
 					print(d)
+				if data[0] == "description": self.description = data[1]
 				if data[0] == "loadCheckpoint":  self.loadCheckpoint = False if data[1] == "False" else True
 				if data[0] == "runs": self.runs = int(data[1])
 				if data[0] == "start_gen": self.start_gen = int(data[1])
