@@ -49,7 +49,7 @@ class EA():
 
 		self.subBehaviours()
 		self.loadSubBehaviours()
-		# self.setUpGrid()
+		self.setUpGrid()
 
 	def selTournament(self, individuals, k, tournsize, fit_attr="fitness"):		
 		chosen = []
@@ -184,7 +184,7 @@ class EA():
 		if generation > 0 and generation % self.params.save_period == 0:
 			self.checkDuplicatesAreCorrect(invalid_ind)
 
-		# self.convertDEAPtoGrid(population)
+		self.convertDEAPtoGrid(population)
 		
 		for ind in invalid_ind:
 			self.archive.addToArchive(str(ind), ind.fitness.values)
@@ -275,7 +275,7 @@ class EA():
 		self.checkpoint.save(self.params.generations, population)
 		self.archive.saveArchive(self.redundancy)
 		
-		# self.printGrid()
+		self.printGrid()
 
 		end_time = round(time.time() * 1000)
 		self.utilities.saveDuration(start_time, end_time)
@@ -514,6 +514,9 @@ class EA():
 
 
 	def printGrid(self):
+
+		if not self.params.saveOutput:
+			return
 
 		for i in range(len(self.grids)):
 

@@ -113,6 +113,13 @@ class eaParams():
 				for d in data:
 					print(d)
 				if data[0] == "description": self.description = data[1]
+				if data[0] == "indexes":
+					self.indexes = []
+					for i in range(1, len(data)):
+						self.indexes.append(int(data[i]))
+				if data[0] == "features": self.features = int(data[1])
+				if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
+				if data[0] == "populationsSize": self.populationsSize = int(data[1])
 				if data[0] == "loadCheckpoint":  self.loadCheckpoint = False if data[1] == "False" else True
 				if data[0] == "runs": self.runs = int(data[1])
 				if data[0] == "start_gen": self.start_gen = int(data[1])
