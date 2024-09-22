@@ -18,6 +18,7 @@ from redundancy import Redundancy
 from utilities import Utilities
 from archive import Archive
 from checkpoint import Checkpoint
+from qd import QD
 
 import local
 
@@ -49,7 +50,7 @@ class EA():
 
 		self.subBehaviours()
 		self.loadSubBehaviours()
-		self.setUpGrid()
+		self.grid = QD(params, self.utilities)
 
 	def selTournament(self, individuals, k, tournsize, fit_attr="fitness"):		
 		chosen = []
@@ -184,8 +185,8 @@ class EA():
 		if generation > 0 and generation % self.params.save_period == 0:
 			self.checkDuplicatesAreCorrect(invalid_ind)
 
-		self.convertDEAPtoGrid(population)
-		
+		self.grid.addPopulation(population)
+
 		for ind in invalid_ind:
 			self.archive.addToArchive(str(ind), ind.fitness.values)
 		
@@ -274,8 +275,8 @@ class EA():
 		
 		self.checkpoint.save(self.params.generations, population)
 		self.archive.saveArchive(self.redundancy)
-		
-		self.printGrid()
+
+		self.grid.save()
 
 		end_time = round(time.time() * 1000)
 		self.utilities.saveDuration(start_time, end_time)
@@ -454,77 +455,3 @@ class EA():
 		for node in self.params.nodes:
 			if node: self.output += node+" "
 		self.output += ","
-
-	def setUpGrid(self):
-
-		def genEmpty():
-			return []
-
-		self.grids = []
-
-		toolbox = base.Toolbox()
-
-		pset = local.PrimitiveSetExtended("MAIN", 0)
-		self.params.addNodes(pset)
-
-		creator.create("Single_Objective_Fitness", base.Fitness, weights=(1.0,))
-		creator.create("Single_Objective_Individual", gp.PrimitiveTree, fitness=creator.Single_Objective_Fitness, features=list)
-		toolbox.register("expr_init", genEmpty)
-		toolbox.register("Single_Objective_Individual", tools.initIterate, creator.Individual, toolbox.expr_init)
-		toolbox.register("Single_Objective_Population", tools.initRepeat, list, toolbox.Single_Objective_Individual)
-
-		self.qdpy_toolbox = toolbox
-
-		self.grids = []
-
-		for objective in self.params.indexes:
-
-			fitness_domain = [(0.,1.0),]
-
-			self.grids.append(Grid(shape = [8,8,8],
-							  max_items_per_bin = 1,
-							  fitness_domain = fitness_domain,
-							  features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)],
-							  storage_type=list))
-
-	def convertDEAPtoGrid(self, population):
-
-		for i in range(self.params.features):
-
-			pop = self.qdpy_toolbox.Single_Objective_Population(n=len(population))
-
-			for j in range(len(population)):
-
-				pop[j] = creator.Single_Objective_Individual(population[j])
-
-				fitness = [population[j].fitness.values[i]]
-
-				features = []
-				features.append(population[j].fitness.values[-3])
-				features.append(population[j].fitness.values[-2])
-				features.append(population[j].fitness.values[-1])
-
-				pop[j].fitness.values = tuple(fitness)
-				# print(pop[j].fitness.values)
-				pop[j].features = tuple(features)
-
-			grid = self.grids[i]
-			self.utilities.removeDuplicates(pop, grid)
-			nb_updated = grid.update(pop, issue_warning = True)
-
-
-	def printGrid(self):
-
-		if not self.params.saveOutput:
-			return
-
-		for i in range(len(self.grids)):
-
-			grid = self.grids[i]
-
-			filename = "./test/"+self.params.description+"/"+str(self.params.deapSeed)+"/"
-			filename += self.params.objectives[self.params.indexes[i]]+".pkl"
-			print(filename)
-
-			with open(filename, "wb") as f:
-				pickle.dump(grid, f)
