@@ -23,17 +23,16 @@ def checkLogs(description, indexes):
 
     # load expected csv data
 
-    expected = ""
+    expected = []
     filename = "./test/"+description+"/expected-checkpoint"+str(generations)+".csv"
     f = open(filename, "r")
 
     for line in f:
         items = line.split(",")
         if len(items) > 1 and items[2] != "Seed":
-            output = ""
             for i in range(len(items)):
                 if i != 1:
-                    expected += items[i]+","
+                    expected.append(str(items[i]))
 
 
     # run EA
@@ -59,25 +58,30 @@ def checkLogs(description, indexes):
 
     # load new csv data
 
-    actual = ""
+    actual = []
     filename = "./test/"+description+"/checkpoint"+str(generations)+".csv"
     f = open(filename, "r")
 
     for line in f:
         items = line.split(",")
         if len(items) > 1 and items[2] != "Seed":
-            output = ""
             for i in range(len(items)):
                 if i != 1:
-                    actual += items[i]+","
+                    actual.append(str(items[i]))
 
 
     # check results
 
-    if expected == actual:
-        print("passed")
-    else:
-        print("failed")
+    if expected != actual:
+        print("arrays don't match")
+        print(len(expected))
+        print(len(actual))
+    for i in range(len(expected)):
+        if expected[i] != actual[i]:
+            print("failed")
+            print(i)
+            print("\""+expected[i]+"\"")
+            print("\""+actual[i]+"\"")
 
 
     # clean up
