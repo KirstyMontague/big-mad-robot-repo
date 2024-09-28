@@ -213,8 +213,6 @@ class EA():
 		invalid_orig = 0
 		invalid_new = 0
 
-		self.output = self.logs.logFirst()
-		
 		if self.params.readCheckpoint:
 			population = self.checkpoint.read()
 			return population
