@@ -18,6 +18,7 @@ from redundancy import Redundancy
 from utilities import Utilities
 from archive import Archive
 from checkpoint import Checkpoint
+from logs import Logs
 from qd import QD
 
 import local
@@ -43,7 +44,8 @@ class EA():
 		self.params.is_qdpy = False
 		self.utilities = Utilities(params)
 		self.utilities.setupToolbox(self.selTournament)
-		
+
+		self.logs = Logs(self.params, self.utilities)
 		self.redundancy = Redundancy()
 		self.archive = Archive(params, self.redundancy)
 		self.checkpoint = Checkpoint(params)
@@ -134,41 +136,6 @@ class EA():
 		
 		return population
 
-	def saveCSV(self, generation, population):
-		
-		if self.params.saveCSV and generation % self.params.csv_save_period == 0:
-			logHeaders = "Type,Time,Seed,Robots,Pop,Tourn,Iterations,Params,,"
-			for i in range(generation + 1):
-				logHeaders += str(i)+","
-			logHeaders += ",Chromosome,Nodes,"
-			
-			# get the best individual at the end of the evolutionary run
-			allBest = []
-			for i in range(self.params.features):
-				bestThisPop = self.utilities.getBestHDRandom(population, i)
-				allBest.append(bestThisPop)		
-				performance = ""
-				for f in bestThisPop.fitness.values:
-					performance += str("%.5f" % f) + " \t"
-
-			chromosomes = ",\""
-			for bestThisPop in allBest:
-				chromosomes += ""+str(bestThisPop)+" + "
-			chromosomes = chromosomes[0:-3]
-			chromosomes += "\",,"
-			
-			nodes = ""
-			for node in self.params.nodes:
-				if node: nodes += node+" "
-	
-			filename = self.params.csvOutputFilename(generation)
-			with open(filename, 'a') as f:
-				f.write(logHeaders)
-				f.write("\n")
-				f.write(self.output)
-				f.write(chromosomes)
-				f.write(nodes)
-
 	def evaluateNewPopulation(self, starting, generation, population):
 		
 		invalid_ind = [ind for ind in population if not ind.fitness.valid]
@@ -204,11 +171,10 @@ class EA():
 		
 		# print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+str(len(best[0]))+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 
-		self.logFitness(best)
-			
+		self.output += self.logs.logFitness(best)
+
 		return matched
-			
-	
+
 	def printIndividual(self, ind):
 		performance = ""
 		for fitness in ind.fitness.values:
@@ -247,7 +213,7 @@ class EA():
 		invalid_orig = 0
 		invalid_new = 0
 
-		self.logFirst()
+		self.output = self.logs.logFirst()
 		
 		if self.params.readCheckpoint:
 			population = self.checkpoint.read()
@@ -268,10 +234,6 @@ class EA():
 		# get the best individual at the end of the evolutionary run
 		best = self.utilities.getBestAll(population)
 		self.printIndividuals(best, True)
-		
-		# log chromosome and test performance in different environments
-		self.logChromosomes(best)
-		self.logNodes()
 		
 		self.checkpoint.save(self.params.generations, population)
 		self.archive.saveArchive(self.redundancy)
@@ -321,7 +283,7 @@ class EA():
 			self.printIndividuals(self.utilities.getBestAll(population), self.params.printBestIndividuals)
 			
 			self.checkpoint.save(gen, population)
-			self.saveCSV(gen, population)
+			self.logs.saveCSV(gen, population, self.output)
 			if gen % self.params.csv_save_period == 0: self.archive.saveArchive(self.redundancy)
 			if gen % self.params.best_save_period == 0: self.utilities.saveBestIndividuals(population)
 
@@ -406,52 +368,3 @@ class EA():
 		usage = 1 - usage
 		
 		return usage
-
-	def logFirst(self):
-		
-		# save parameters to the output
-		
-		self.output = self.params.description+","
-		self.output += str(time.time())[0:10]+","
-		self.output += str(self.params.deapSeed)+","
-		self.output += str(self.params.sqrtRobots)+","
-		self.output += str(self.params.populationSize)+","
-		self.output += str(self.params.tournamentSize)+","
-		
-		self.output += str(self.params.iterations)+","
-
-		for param in self.params.arenaParams:
-			self.output += str(param)+" "
-		self.output += ","
-		
-		# self.output += str(self.params.unseenIterations)+", "
-
-		# for param in self.params.unseenParams:
-			# self.output += str(param)+" "
-		# self.output += ","
-		
-		# self.output += "\""
-		# for node in sorted(self.params.nodes):
-			# if (self.params.nodes[node]):
-				# self.output += node+", "
-		# self.output += "\","
-		
-		self.output += ","
-
-	def logFitness(self, best):
-		for i in range(self.params.features):
-			self.output += str("%.6f" % best[i].fitness.values[i])+" "
-		self.output += ","
-
-	def logChromosomes(self, allBest):
-		chromosomes = ",\""
-		for best in allBest:
-			chromosomes += ""+str(best)+" + "
-		chromosomes = chromosomes[0:-3]
-		chromosomes += "\","
-		self.output += chromosomes
-
-	def logNodes(self):
-		for node in self.params.nodes:
-			if node: self.output += node+" "
-		self.output += ","
