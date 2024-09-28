@@ -171,7 +171,7 @@ class EA():
 		
 		# print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+str(len(best[0]))+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 
-		self.output += self.logs.logFitness(best)
+		self.logs.logFitness(best)
 
 		return matched
 
@@ -219,7 +219,7 @@ class EA():
 
 		elif self.params.loadCheckpoint:
 			population = self.checkpoint.load()
-			self.output += self.checkpoint.getCsvData()
+			self.logs.fitnessFromCheckpoint(self.checkpoint.getCsvData())
 
 		else:	
 			population = self.startWithNewPopulation()
@@ -281,7 +281,7 @@ class EA():
 			self.printIndividuals(self.utilities.getBestAll(population), self.params.printBestIndividuals)
 			
 			self.checkpoint.save(gen, population)
-			self.logs.saveCSV(gen, population, self.output)
+			self.logs.saveCSV(gen, population)
 			if gen % self.params.csv_save_period == 0: self.archive.saveArchive(self.redundancy)
 			if gen % self.params.best_save_period == 0: self.utilities.saveBestIndividuals(population)
 

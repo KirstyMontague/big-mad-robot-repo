@@ -7,6 +7,7 @@ class Logs():
     def __init__(self, params, utilities):
         self.params = params
         self.utilities = utilities
+        self.output = ""
 
     def getParameters(self):
 
@@ -26,12 +27,14 @@ class Logs():
 
         return parameters
 
+    def fitnessFromCheckpoint(self, fitness):
+        self.output = fitness
+
     def logFitness(self, best):
-        output = ""
+
         for i in range(self.params.features):
-            output += str("%.6f" % best[i].fitness.values[i])+" "
-        output += ","
-        return output
+            self.output += str("%.6f" % best[i].fitness.values[i])+" "
+        self.output += ","
 
     def getHeadings(self, generation):
 
@@ -64,7 +67,7 @@ class Logs():
 
         return nodes
 
-    def saveCSV(self, generation, population, output):
+    def saveCSV(self, generation, population):
 
         if self.params.saveCSV and generation % self.params.csv_save_period == 0:
 
@@ -78,9 +81,10 @@ class Logs():
             output_string = ""
             if not os.path.exists(filename): output_string += headings
             output_string += parameters
-            output_string += output
+            output_string += self.output
             output_string += chromosomes
             output_string += nodes
+            output_string += "\n"
 
             with open(filename, 'a') as f:
                 f.write(output_string)
