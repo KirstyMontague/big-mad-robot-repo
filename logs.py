@@ -85,44 +85,22 @@ class Logs():
             parameters = self.getParameters()
             chromosomes = self.getChromosomes(population)
             nodes = self.getNodes()
+            self.write("best", generation, headings, parameters, self.output, chromosomes, nodes)
+            self.write("qd-scores", generation, headings, parameters, self.qd_scores, chromosomes, nodes)
+            self.write("coverage", generation, headings, parameters, self.coverage, chromosomes, nodes)
 
-            filename = self.params.csvOutputFilename(generation, "best")
+    def write(self, query, generation, headings, parameters, output, chromosomes, nodes):
 
-            output_string = ""
-            if not os.path.exists(filename): output_string += headings
-            output_string += parameters
-            output_string += self.output
-            output_string += chromosomes
-            output_string += nodes
-            output_string += "\n"
+        filename = self.params.csvOutputFilename(generation, query)
 
-            with open(filename, 'a') as f:
-                f.write(output_string)
+        output_string = ""
+        if not os.path.exists(filename): output_string += headings
+        output_string += parameters
+        output_string += output
+        output_string += chromosomes
+        output_string += nodes
+        output_string += "\n"
 
-            filename = self.params.csvOutputFilename(generation, "qd-scores")
-
-            qd_string = ""
-            if not os.path.exists(filename): qd_string += headings
-            qd_string += parameters
-            qd_string += self.qd_scores
-            qd_string += chromosomes
-            qd_string += nodes
-            qd_string += "\n"
-
-            with open(filename, 'a') as f:
-                f.write(qd_string)
-
-            filename = self.params.csvOutputFilename(generation, "coverage")
-
-            coverage = ""
-            if not os.path.exists(filename): coverage += headings
-            coverage += parameters
-            coverage += self.coverage
-            coverage += chromosomes
-            coverage += nodes
-            coverage += "\n"
-
-            with open(filename, 'a') as f:
-                f.write(coverage)
-
+        with open(filename, 'a') as f:
+            f.write(output_string)
 
