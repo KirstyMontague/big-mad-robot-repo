@@ -7,7 +7,7 @@ class Logs():
     def __init__(self, params, utilities):
         self.params = params
         self.utilities = utilities
-        self.output = ""
+        self.best = ""
         self.qd_scores = ""
         self.coverage = ""
 
@@ -29,14 +29,11 @@ class Logs():
 
         return parameters
 
-    def fitnessFromCheckpoint(self, fitness):
-        self.output = fitness
-
     def logFitness(self, best):
 
         for i in range(self.params.features):
-            self.output += str("%.6f" % best[i].fitness.values[i])+" "
-        self.output += ","
+            self.best += str("%.6f" % best[i].fitness.values[i])+" "
+        self.best += ","
 
     def logQdScore(self, qd_scores):
         for i in range(self.params.features):
@@ -85,7 +82,7 @@ class Logs():
             parameters = self.getParameters()
             chromosomes = self.getChromosomes(population)
             nodes = self.getNodes()
-            self.write("best", generation, headings, parameters, self.output, chromosomes, nodes)
+            self.write("best", generation, headings, parameters, self.best, chromosomes, nodes)
             self.write("qd-scores", generation, headings, parameters, self.qd_scores, chromosomes, nodes)
             self.write("coverage", generation, headings, parameters, self.coverage, chromosomes, nodes)
 

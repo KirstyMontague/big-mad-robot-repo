@@ -220,10 +220,9 @@ class EA():
 			return population
 
 		elif self.params.loadCheckpoint:
-			population = self.checkpoint.load()
-			self.logs.fitnessFromCheckpoint(self.checkpoint.getCsvData())
+			population, self.logs.best, self.logs.qd_scores, self.logs.coverage, self.grid.grids = self.checkpoint.load()
 
-		else:	
+		else:
 			population = self.startWithNewPopulation()
 		
 		self.utilities.saveParams()
@@ -235,7 +234,7 @@ class EA():
 		best = self.utilities.getBestAll(population)
 		self.printIndividuals(best, True)
 		
-		self.checkpoint.save(self.params.generations, population)
+		self.checkpoint.save(self.params.generations, population, self.grid.grids)
 		self.archive.saveArchive(self.redundancy)
 
 		self.grid.save()
@@ -282,7 +281,7 @@ class EA():
 			self.printScores(offspring, self.params.printFitnessScores)
 			self.printIndividuals(self.utilities.getBestAll(population), self.params.printBestIndividuals)
 			
-			self.checkpoint.save(gen, population)
+			self.checkpoint.save(gen, population, self.grid.grids)
 			self.logs.saveCSV(gen, population)
 			if gen % self.params.csv_save_period == 0: self.archive.saveArchive(self.redundancy)
 			if gen % self.params.best_save_period == 0: self.utilities.saveBestIndividuals(population)

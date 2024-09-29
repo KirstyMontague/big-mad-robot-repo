@@ -34,15 +34,20 @@ class Checkpoint():
         with open(self.params.checkpointInputFilename(self.params.start_gen), "rb") as checkpoint_file:
             checkpoint = pickle.load(checkpoint_file)
         population = checkpoint["population"]
+        containers = checkpoint["containers"]
         random.setstate(checkpoint["rndstate"])
 
-        return population
+        best_output = self.getCsvData("best")
+        qd_score_output = self.getCsvData("qd-scores")
+        coverage_output = self.getCsvData("coverage")
 
-    def getCsvData(self):
+        return population, best_output, qd_score_output, coverage_output, containers
+
+    def getCsvData(self, query):
 
         # load output for earlier generations from csv
 
-        csvFilename = self.params.csvInputFilename(self.params.start_gen, "best")
+        csvFilename = self.params.csvInputFilename(self.params.start_gen, query)
         f = open(csvFilename, "r")
 
         for line in f:
@@ -58,11 +63,11 @@ class Checkpoint():
 
         return output
 
-    def save(self, generation, population):
+    def save(self, generation, population, containers):
         
         if self.params.saveOutput and (generation % self.params.save_period == 0 or generation == self.params.generations):
 
-            checkpoint = dict(population=population, generation=self.params.generations, rndstate=random.getstate())
+            checkpoint = dict(containers=containers, population=population, generation=self.params.generations, rndstate=random.getstate())
 
             with open(self.params.checkpointOutputFilename(generation), "wb") as checkpoint_file:
                  pickle.dump(checkpoint, checkpoint_file)
