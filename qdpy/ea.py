@@ -23,6 +23,7 @@ from params import eaParams
 from utilities import Utilities
 from redundancy import Redundancy
 from archive import Archive
+from logs import Logs
 import local
 
 
@@ -36,6 +37,7 @@ class EA():
 		self.utilities.setupToolbox(self.selTournament)
 		self.redundancy = Redundancy()
 		self.archive = Archive(params, self.redundancy)
+		self.logs = Logs(params, self.utilities)
 
 	def config(self, start_gen, container = None):
 		self.toolbox = self.utilities.toolbox
@@ -74,6 +76,8 @@ class EA():
 		if iteration % self.params.save_period == 0 and self.params.iteration_filename() != None and self.params.iteration_filename() != "":
 			self.save(self.params.iteration_filename() % iteration)			
 			if self.params.saveHeatmap: self.utilities.saveHeatmap(self.container, self.current_iteration)
+		if iteration % self.params.csv_save_period == 0:
+			self.logs.saveCSV(iteration, self.utilities.getBestMax(container))
 		time.sleep(self.params.genSleep)
 
 		self.current_iteration = iteration + 1
@@ -176,12 +180,16 @@ class EA():
 			print("QD Score: "+str("%.9f" % qdscore))
 			print("Coverage: "+str("%.9f" % coverage))
 			print("")
-		
-		if self.params.saveOutput:
+
+		if self.params.saveCSV: # all seeds
+			self.logs.logFitness(self.utilities.getBestMax(container))
+			self.logs.logQdScore([self.utilities.getQDScore(container)])
+			self.logs.logCoverage(self.utilities.getCoverage(container))
+
+		if self.params.saveOutput: # one seed
 			self.utilities.saveQDScore(container, generation, mode)
 			self.utilities.saveCoverage(container, generation, mode)
 			self.utilities.saveBestToCsv(container, generation, mode)
-			# else: self.utilities.saveExtrema(container, generation)
 
 		if generation % self.params.best_save_period == 0:
 			self.utilities.saveBestIndividuals(self.utilities.getBestMax(container, 25))
