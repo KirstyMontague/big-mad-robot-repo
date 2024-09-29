@@ -42,7 +42,7 @@ class Checkpoint():
 
         # load output for earlier generations from csv
 
-        csvFilename = self.params.csvInputFilename(self.params.start_gen)
+        csvFilename = self.params.csvInputFilename(self.params.start_gen, "best")
         f = open(csvFilename, "r")
 
         for line in f:

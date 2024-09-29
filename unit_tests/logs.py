@@ -18,22 +18,27 @@ def checkLogs(description, indexes):
 
     generations = 50
 
+    queries = ["best", "coverage", "qd-scores"]
+
     os.chdir("../gp")
 
 
     # load expected csv data
 
-    expected = []
-    filename = "./test/"+description+"/expected-checkpoint"+str(generations)+".csv"
-    f = open(filename, "r")
+    expected = {}
 
-    for line in f:
-        items = line.split(",")
-        if len(items) > 1 and items[2] != "Seed":
-            for i in range(len(items)):
-                if i != 1:
-                    expected.append(str(items[i]))
+    for query in queries:
 
+        filename = "./test/"+description+"/expected-"+query+str(generations)+".csv"
+        f = open(filename, "r")
+
+        expected[query] = []
+        for line in f:
+            items = line.split(",")
+            if len(items) > 1 and items[2] != "Seed":
+                for i in range(len(items)):
+                    if i != 1:
+                        expected[query].append(str(items[i]))
 
     # run EA
 
@@ -58,30 +63,47 @@ def checkLogs(description, indexes):
 
     # load new csv data
 
-    actual = []
-    filename = "./test/"+description+"/checkpoint"+str(generations)+".csv"
-    f = open(filename, "r")
+    actual = {}
 
-    for line in f:
-        items = line.split(",")
-        if len(items) > 1 and items[2] != "Seed":
-            for i in range(len(items)):
-                if i != 1:
-                    actual.append(str(items[i]))
+    for query in queries:
+
+        filename = "./test/"+description+"/"+query+str(generations)+".csv"
+        f = open(filename, "r")
+
+        actual[query] = []
+        for line in f:
+            items = line.split(",")
+            if len(items) > 1 and items[2] != "Seed":
+                for i in range(len(items)):
+                    if i != 1:
+                        actual[query].append(str(items[i]))
 
 
     # check results
 
-    if expected != actual:
-        print("arrays don't match")
-        print(len(expected))
-        print(len(actual))
-    for i in range(len(expected)):
-        if expected[i] != actual[i]:
-            print("failed")
-            print(i)
-            print("\""+expected[i]+"\"")
-            print("\""+actual[i]+"\"")
+    for query in queries:
+        
+        result = query+" passed"
+
+        if expected[query] != actual[query]:
+            result = query+" failed"
+            print("expected size "+str(len(expected[query])))
+            print("actual size "+str(len(actual[query])))
+    
+        for i in range(len(expected[query])):
+            if len(actual[query]) < i:
+                result = result = query+" failed"
+                print("actual results smaller than expected results ("+str(i)+")")
+                break
+            elif expected[query][i] != actual[query][i]:
+                result = query+" failed"
+                print(i)
+                print(expected[query][i])
+                print(actual[query][i])
+                break
+        
+        print(result)
+        print("")
 
 
     # clean up
@@ -89,8 +111,9 @@ def checkLogs(description, indexes):
     with open("../config.txt", 'w') as f:
         f.write("\n")
 
-    if os.path.isfile(filename):
-        os.remove(filename)
+    for query in queries:
+        if os.path.isfile(params.csvInputFilename(generations, query)):
+            os.remove(params.csvInputFilename(generations, query))
 
 
 if __name__ == "__main__":

@@ -22,8 +22,6 @@ class QD():
         def genEmpty():
             return []
 
-        self.grids = []
-
         toolbox = base.Toolbox()
 
         pset = local.PrimitiveSetExtended("MAIN", 0)
@@ -73,6 +71,25 @@ class QD():
             self.utilities.removeDuplicates(pop, grid)
             nb_updated = grid.update(pop, issue_warning = True)
 
+    def getQDScores(self):
+
+        qd_scores = []
+
+        for i in range(self.params.features):
+
+            score = 0.0
+            for idx, inds in self.grids[i].solutions.items():
+                if len(inds) == 0:
+                    continue
+                for ind in inds:
+                    score += ind.fitness.values[0]
+
+            shape = self.grids[i].shape
+            score /= shape[0]*shape[1]*shape[2]
+
+            qd_scores.append(score)
+
+        return qd_scores
 
     def save(self):
 

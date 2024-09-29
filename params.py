@@ -65,8 +65,8 @@ class eaParams():
 	csv_save_period = 100
 	best_save_period = 10
 		
-	def csvInputFilename(self, gen): return "test/"+self.description+"/checkpoint"+str(gen)+".csv"
-	def csvOutputFilename(self, gen): return "test/"+self.description+"/checkpoint"+str(gen)+".csv"
+	def csvInputFilename(self, gen, query): return "test/"+self.description+"/"+query+""+str(gen)+".csv"
+	def csvOutputFilename(self, gen, query): return "test/"+self.description+"/"+query+""+str(gen)+".csv"
 	
 	def path(self): return "test/"+self.description+"/"+str(self.deapSeed)+"/"
 	def checkpointInputFilename(self, gen): return self.path() + "checkpoint-"+self.description+"-"+str(self.deapSeed)+"-"+str(gen)+".pkl"

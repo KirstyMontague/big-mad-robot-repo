@@ -31,7 +31,7 @@ if __name__ == "__main__":
         f.write("save_period 5\n")
         f.write("csv_save_period 5")
 
-    subprocess.call(["python3", "main.py", "--seed",  str(params.deapSeed)])
+    subprocess.call(["python3", "main.py", "--seed",  str(params.deapSeed)], stdout=subprocess.DEVNULL)
 
     with open(filename, "rb") as checkpoint_file:
         checkpoint = pickle.load(checkpoint_file)
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         f.write("saveCSV True\n")
         f.write("csv_save_period 10")
 
-    subprocess.call(["python3", "main.py", "--seed",  str(params.deapSeed)])
+    subprocess.call(["python3", "main.py", "--seed",  str(params.deapSeed)], stdout=subprocess.DEVNULL)
 
     with open(filename, "rb") as checkpoint_file:
         checkpoint = pickle.load(checkpoint_file)
@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     # get last two csv entries
 
-    csvFilename = params.csvInputFilename(generations)
+    csvFilename = params.csvInputFilename(generations, "best")
     f = open(csvFilename, "r")
 
     expected_csv = ""
@@ -74,20 +74,29 @@ if __name__ == "__main__":
 
     # check results
 
-    if expected_population == actual_population and expected_csv == actual_csv:
-        print("passed")
-    else:
-        print("failed")
+    result = "passed"
 
+    if expected_population != actual_population:
+        result = "failed"
+        print("expected_population != actual_population")
+    if expected_csv != actual_csv:
+        result = "failed"
+        print("expected_csv != actual_csv")
+
+    print(result)
 
     # clean up
 
     with open("../config.txt", 'w') as f:
         f.write("")
 
-    if os.path.isfile(params.csvInputFilename(start_gen)):
-        os.remove(params.csvInputFilename(start_gen))
+    queries = ["best", "qd-scores", "coverage"]
 
-    if os.path.isfile(params.csvInputFilename(generations)):
-        os.remove(params.csvInputFilename(generations))
+    for query in queries:
+
+        if os.path.isfile(params.csvInputFilename(start_gen, query)):
+            os.remove(params.csvInputFilename(start_gen, query))
+
+        if os.path.isfile(params.csvInputFilename(generations, query)):
+            os.remove(params.csvInputFilename(generations, query))
 

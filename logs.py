@@ -8,6 +8,8 @@ class Logs():
         self.params = params
         self.utilities = utilities
         self.output = ""
+        self.qd_scores = ""
+        self.coverage = ""
 
     def getParameters(self):
 
@@ -35,6 +37,14 @@ class Logs():
         for i in range(self.params.features):
             self.output += str("%.6f" % best[i].fitness.values[i])+" "
         self.output += ","
+
+    def logQdScore(self, qd_scores):
+        for i in range(self.params.features):
+            self.qd_scores += str(qd_scores[i])+" "
+        self.qd_scores += ","
+
+    def logCoverage(self, coverage):
+        self.coverage += str(coverage)+","
 
     def getHeadings(self, generation):
 
@@ -76,7 +86,7 @@ class Logs():
             chromosomes = self.getChromosomes(population)
             nodes = self.getNodes()
 
-            filename = self.params.csvOutputFilename(generation)
+            filename = self.params.csvOutputFilename(generation, "best")
 
             output_string = ""
             if not os.path.exists(filename): output_string += headings
@@ -88,5 +98,31 @@ class Logs():
 
             with open(filename, 'a') as f:
                 f.write(output_string)
+
+            filename = self.params.csvOutputFilename(generation, "qd-scores")
+
+            qd_string = ""
+            if not os.path.exists(filename): qd_string += headings
+            qd_string += parameters
+            qd_string += self.qd_scores
+            qd_string += chromosomes
+            qd_string += nodes
+            qd_string += "\n"
+
+            with open(filename, 'a') as f:
+                f.write(qd_string)
+
+            filename = self.params.csvOutputFilename(generation, "coverage")
+
+            coverage = ""
+            if not os.path.exists(filename): coverage += headings
+            coverage += parameters
+            coverage += self.coverage
+            coverage += chromosomes
+            coverage += nodes
+            coverage += "\n"
+
+            with open(filename, 'a') as f:
+                f.write(coverage)
 
 
