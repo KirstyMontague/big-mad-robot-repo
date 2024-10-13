@@ -254,7 +254,7 @@ CColor CBTLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane)
 void CBTLoopFunctions::PostStep()
 {
 	m_count++;
-	if (m_count % 160 == 0) // evaluation time 160 for subbehaviours, 800 for foraging
+	if (m_count % 800 == 0) // evaluation time 160 for subbehaviours, 800 for foraging
 	{      
 		//std::cout <s< "poststep " << m_count << std::endl;
 		for (CFootBotEntity* footbot : m_footbots)

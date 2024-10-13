@@ -39,8 +39,8 @@ class QD():
 
         for objective in self.params.indexes:
 
-            fitness_domain = [(0.,1.0),] if self.params.description != "foraging" else [(0., numpy.inf)]
-            features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)] if self.params.description != "foraging" else [(-200.0, 200.0), (-200.0, 200.0), (0.0, 1.0)]
+            fitness_domain = [(0.,1.0),] if self.params.indexes != [6] else [(0., numpy.inf)]
+            features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)] if self.params.indexes != [6] else [(-200.0, 200.0), (-200.0, 200.0), (0.0, 1.0)]
 
             self.grids.append(Grid(shape = [8,8,8],
                               max_items_per_bin = 1,

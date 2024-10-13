@@ -14,31 +14,18 @@ from deap import creator
 
 from containers import *
 
-from redundancy import Redundancy
-from utilities import Utilities
 from archive import Archive
+from behaviours import Behaviours
 from checkpoint import Checkpoint
 from logs import Logs
 from qd import QD
+from redundancy import Redundancy
+from utilities import Utilities
 
 import local
 
 class EA():
 
-	def subBehaviours(self):
-		self.subBehaviourNodes = []
-		for i in range(8):
-			self.subBehaviourNodes.append("increaseDensity"+str(i+1))
-			self.subBehaviourNodes.append("gotoNest"+str(i+1))
-			self.subBehaviourNodes.append("gotoFood"+str(i+1))
-			self.subBehaviourNodes.append("reduceDensity"+str(i+1))
-			self.subBehaviourNodes.append("goAwayFromNest"+str(i+1))
-			self.subBehaviourNodes.append("goAwayFromFood"+str(i+1))
-
-	subBehaviourSizes = {}
-	
-	output = ""
-	
 	def setParams(self, params):
 		self.params = params
 		self.params.is_qdpy = False
@@ -50,8 +37,7 @@ class EA():
 		self.archive = Archive(params, self.redundancy)
 		self.checkpoint = Checkpoint(params)
 
-		self.subBehaviours()
-		self.loadSubBehaviours()
+		self.behaviours = Behaviours(params, "../txt/sub-behaviours.txt")
 		self.grid = QD(params, self.utilities)
 
 	def selTournament(self, individuals, k, tournsize, fit_attr="fitness"):		
@@ -166,7 +152,7 @@ class EA():
 			# derated = best[i].fitness.values[i] * self.deratingFactorForForaging(best[i])
 			scores += str("%.7f" % derated) + " (" + str("%.7f" % best[i].fitness.values[i]) + ") \t"
 		
-		length = str(len(best[0]))+" ("+str(self.unpackSubBehaviours(best[0]))+")"
+		length = str(len(best[0]))+" ("+str(self.behaviours.unpack(best[0]))+")"
 		print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 		
 		# print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+str(len(best[0]))+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
@@ -241,7 +227,9 @@ class EA():
 
 		end_time = round(time.time() * 1000)
 		self.utilities.saveDuration(start_time, end_time)
-		
+
+		time.sleep(self.params.eaRunSleep)
+
 		return population
 
 	def eaLoop(self, population, start_gen, ngen, stats=None, verbose=__debug__):
@@ -331,36 +319,9 @@ class EA():
 		for ind, fit in zip(population, fitnesses):
 			ind.fitness.values = fit
 
-	def unpackSubBehaviours(self, individual):
-		
-		packed_size = len(individual)
-		unpacked_size = len(individual)
-		
-		for node in individual:
-			for sub_behaviour in self.subBehaviourNodes:
-				if node.name == sub_behaviour:
-					unpacked_size -= 1
-					unpacked_size += self.subBehaviourSizes[sub_behaviour]
-		
-		return unpacked_size
-	
-	def loadSubBehaviours(self):
-	
-		pset = local.PrimitiveSetExtended("MAIN", 0)
-		self.params.addUnpackedNodes(pset)
-
-		f = open("../txt/sub-behaviours.txt", "r")
-		
-		for line in f:
-			name = line[0:line.find(" ")]
-			chromosome = line[line.find(" ")+1:]
-			individual = [creator.Individual.from_string(chromosome, pset)]
-			sub_behaviour_size = len(individual[0])
-			self.subBehaviourSizes[name] = sub_behaviour_size
-
 	def deratingFactorForForaging(self, individual):
 		
-		length = float(self.unpackSubBehaviours(individual))
+		length = float(self.behaviours.unpack(individual))
 		
 		usage = length - 100 if length > 100 else 0
 		usage = usage / 9900 if length <= 10000 else 1

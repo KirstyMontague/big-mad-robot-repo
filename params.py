@@ -8,10 +8,16 @@ to switch between foraging and sub-behaviours:
 footbot_bt.cpp 800 vs 160
 bt_loop_functions 800 vs 160
 all bt experiments 500 vs 100
-update sub-behaviours.txt
 gp/ea.py derating factor (baseline only)
 params.py - population, tournament, features, generations, save_period, description, indexes
 addNodes - actions & conditions, makeRepertoireNodes vs makeTerminalNodes, addActions closed loop vs open loop
+
+
+to change repertoire
+
+addNodes - range for action nodes loop = 1, 8 or 64
+gp/ea - subBehaviours() loop = 1, 8 or 64
+update sub-behaviours.txt
 
 """
 
@@ -23,7 +29,6 @@ class eaParams():
 	max_size = 1000000
 	max_items_per_bin = 3
 	nb_bins = [8,8,8]
-	features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)]
 	fitness_domain = [(0., numpy.inf)]
 	verbose = False
 	show_warnings = True
@@ -48,23 +53,28 @@ class eaParams():
 	# description = "density-nest-ifood" # EA2 # EA1
 	# indexes = [0,1,5]
 	
-	description = "density"
-	indexes = [0]
+	description = "foraging"
+	indexes = [6]
 	
 	stop = False
 	
 	start_gen = 0
-	generations = 10
+	generations = 100
 	
 	readCheckpoint = False
 	loadCheckpoint = False
 	saveOutput = False
 	saveCSV = False
 	
-	save_period = 100
-	csv_save_period = 100
-	best_save_period = 10
-		
+	save_period = 100 # save checkpoint, check duplicates
+	csv_save_period = 100 # save csv, save archive
+	best_save_period = 10 # save best individual for each objective to current.txt
+
+	if description != "foraging":
+		features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)]
+	else:
+		features_domain = [(-200.0, 200.0), (-200.0, 200.0), (0.0, 1.0)]
+
 	def csvInputFilename(self, gen, query): return "test/"+self.description+"/"+query+""+str(gen)+".csv"
 	def csvOutputFilename(self, gen, query): return "test/"+self.description+"/"+query+""+str(gen)+".csv"
 	
@@ -135,7 +145,7 @@ class eaParams():
 				if data[0] == "save_period": self.save_period = int(data[1])
 				if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
 				if data[0] == "best_save_period": self.best_save_period = int(data[1])
-				if data[0] == "stop": self.stop = False if data[1] == "False" else True
+				if data[0] == "stop": self.stop = False if len(data) > 1 and data[1] == "False" else True
 				if data[0] == "cancel":
 					self.stop = True
 					self.saveOutput = False
@@ -146,16 +156,16 @@ class eaParams():
 	def addNodes(self, pset):
 		
 		primitives = ["seqm", "selm", "probm"]
-		# conditions = ["ifGotFood", "ifOnFood", "ifInNest"]
-		conditions = ["ifGotFood", "ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
-		# actions = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
-		actions = ["stop", "f", "fl", "fr", "r", "rl", "rr"]
+		conditions = ["ifGotFood", "ifOnFood", "ifInNest"]
+		# conditions = ["ifGotFood", "ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
+		actions = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
+		# actions = ["stop", "f", "fl", "fr", "r", "rl", "rr"]
 		
 		robot = robotObject()
 		robot.makeCompositionNodes(primitives)
 		robot.makeTerminalNodes("conditions", conditions)
-		# robot.makeRepertoireNodes(actions)
-		robot.makeTerminalNodes("actions", actions)
+		robot.makeRepertoireNodes(actions)
+		# robot.makeTerminalNodes("actions", actions)
 		
 		for i in range(3):
 			self.nodes['selm'+str(i+2)] = True; pset.addPrimitive(robot.selm[i], i+2)
@@ -165,17 +175,17 @@ class eaParams():
 		for node in conditions:
 			self.nodes[node] = True; pset.addCondition(robot.conditions[node])
 
-		# for i in range(8):
-			# index = str(i+1)
-			# self.nodes['increaseDensity'+index] = True; pset.addAction(robot.increaseDensity[i])
-			# self.nodes['reduceDensity'+index] = True; pset.addAction(robot.reduceDensity[i])
-			# self.nodes['gotoNest'+index] = True; pset.addAction(robot.gotoNest[i])
-			# self.nodes['goAwayFromNest'+index] = True; pset.addAction(robot.goAwayFromNest[i])
-			# self.nodes['gotoFood'+index] = True; pset.addAction(robot.gotoFood[i])
-			# self.nodes['goAwayFromFood'+index] = True; pset.addAction(robot.goAwayFromFood[i])
+		for i in range(1):
+			index = str(i+1)
+			self.nodes['increaseDensity'+index] = True; pset.addAction(robot.increaseDensity[i])
+			self.nodes['reduceDensity'+index] = True; pset.addAction(robot.reduceDensity[i])
+			self.nodes['gotoNest'+index] = True; pset.addAction(robot.gotoNest[i])
+			self.nodes['goAwayFromNest'+index] = True; pset.addAction(robot.goAwayFromNest[i])
+			self.nodes['gotoFood'+index] = True; pset.addAction(robot.gotoFood[i])
+			self.nodes['goAwayFromFood'+index] = True; pset.addAction(robot.goAwayFromFood[i])
 
-		for node in actions:
-			pset.addAction(robot.actions[node])
+		# for node in actions:
+			# pset.addAction(robot.actions[node])
 
 	def addUnpackedNodes(self, pset):
 		
