@@ -1316,7 +1316,7 @@ class Analysis():
 
 		return best
 
-	def getBestFromAxis(self, container, x, y, z, bins):
+	def getBestFromSubset(self, container, x, y, z, bins):
 		
 		best = None
 		limit = int(8/bins)
@@ -1335,45 +1335,17 @@ class Analysis():
 		
 		return best
 		
-	def getBestEverFromAxis(self, objective, x, y, z, bins):
+	def getBestEverFromSubset(self, containers, objective, x, y, z, bins):
 		
 		best = None
 		
-		for seed in range(1,11):
+		for container in containers:
 			
-			filename = "../qdpy/test/"+objective+"/"+str(seed)+"/seed"+str(seed)+"-iteration1000.p"
-			
-			with open(filename, "rb") as f:
-				data = pickle.load(f)
-			
-			for i in data:
-				if str(i) == "container":
-					container = data[i]
-			
-			ind = self.getBestFromAxis(container, x, y, z, bins)
-			if best == None or (not ind == None and ind.fitness > best.fitness):
-				best = ind
-		
-		print (best.fitness)
-		return best
-
-	def getBestEverFromAxisMT(self, subset, objective, x, y, z, bins):
-
-		best = None
-
-		for seed in range(1,11):
-
-			filename = "../gp/test/"+subset+"-duplicate/"+str(seed)+"/"+objective+".pkl"
-
-			with open(filename, "rb") as f:
-				data = pickle.load(f)
-
-			container = data
-
-			ind = self.getBestFromAxis(container, x, y, z, bins)
+			ind = self.getBestFromSubset(container, x, y, z, bins)
 
 			if best == None:
 				best = ind
+
 			elif not ind == None:
 				ind_fitness = ind.fitness.values[0] * self.deratingFactor(ind)
 				best_fitness = best.fitness.values[0] * self.deratingFactor(best)

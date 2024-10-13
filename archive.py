@@ -37,7 +37,7 @@ class Archive():
 
 		algorithm = "qdpy" if self.params.is_qdpy else "gp"
 
-		for i in range(10):
+		for i in range(30):
 			archive_path = "../gp/test/"+self.params.description+"/"+str(i+1)+"/"
 			if archive_path != "../"+algorithm+"/"+self.params.path():
 				if os.path.exists(archive_path+"archive.pkl"):
@@ -46,8 +46,8 @@ class Archive():
 			else:
 				print ("disregarding "+archive_path)
 
-		for i in range(10):
-			archive_path = "../qdpy/test/"+self.params.description+"/"+str(i+1)+"/"
+		for i in range(30):
+			archive_path = "../qdpy/results/"+self.params.description+"/"+str(i+1)+"/"
 			if archive_path != "../"+algorithm+"/"+self.params.path():
 				if os.path.exists(archive_path+"archive.pkl"):
 					with open(archive_path+"archive.pkl", "rb") as archive_file:
@@ -182,4 +182,5 @@ class Archive():
 		matched[1] = cumulative_count
 
 		return offspring
+
 

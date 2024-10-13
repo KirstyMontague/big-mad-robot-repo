@@ -39,12 +39,13 @@ class QD():
 
         for objective in self.params.indexes:
 
-            fitness_domain = [(0.,1.0),]
+            fitness_domain = [(0.,1.0),] if self.params.description != "foraging" else [(0., numpy.inf)]
+            features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)] if self.params.description != "foraging" else [(-200.0, 200.0), (-200.0, 200.0), (0.0, 1.0)]
 
             self.grids.append(Grid(shape = [8,8,8],
                               max_items_per_bin = 1,
                               fitness_domain = fitness_domain,
-                              features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)],
+                              features_domain = features_domain,
                               storage_type=list))
 
     def addPopulation(self, population):
@@ -101,7 +102,7 @@ class QD():
             grid = self.grids[i]
 
             filename = "./test/"+self.params.description+"/"+str(self.params.deapSeed)+"/"
-            filename += self.params.objectives[self.params.indexes[i]]+".pkl"
+            filename += self.params.description+"-"+str(self.params.deapSeed)+"-"+self.params.objectives[self.params.indexes[i]]+".pkl"
             print(filename)
 
             with open(filename, "wb") as f:
