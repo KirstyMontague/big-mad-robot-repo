@@ -8,7 +8,7 @@ to switch between foraging and sub-behaviours:
 footbot_bt.cpp 800 vs 160
 bt_loop_functions 800 vs 160
 all bt experiments 500 vs 100
-gp/ea.py derating factor (baseline only)
+gp/ea.py derating factor
 params.py - population, tournament, features, generations, save_period, description, indexes
 addNodes - actions & conditions, makeRepertoireNodes vs makeTerminalNodes, addActions closed loop vs open loop
 
@@ -16,8 +16,9 @@ addNodes - actions & conditions, makeRepertoireNodes vs makeTerminalNodes, addAc
 to change repertoire
 
 addNodes - range for action nodes loop = 1, 8 or 64
-gp/ea - subBehaviours() loop = 1, 8 or 64
+behaviours.py - subBehaviours() loop = 1, 8 or 64
 update sub-behaviours.txt
+archive.py update archive path
 
 """
 

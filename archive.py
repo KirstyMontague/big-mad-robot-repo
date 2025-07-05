@@ -14,6 +14,7 @@ class Archive():
 		self.archive = {}
 		self.cumulative_archive = {}
 		self.verbose_archive = {}
+		self.complete_archive = {}
 
 	def getArchive(self):
 		return self.archive
@@ -30,6 +31,9 @@ class Archive():
 	def setCumulativeArchive(self, archive):
 		self.cumulative_archive = archive
 
+	def getCompleteArchive(self):
+		return self.complete_archive
+
 	def getArchives(self, redundancy):
 
 		archive = self.getArchive()
@@ -37,9 +41,13 @@ class Archive():
 
 		algorithm = "qdpy" if self.params.is_qdpy else "gp"
 
+		directory_path = ".."
+		results_directory = "test"
+		use_temp_archive = (directory_path == ".." and results_directory == "test")
+
 		for i in range(30):
-			archive_path = "../gp/test/"+self.params.description+"/"+str(i+1)+"/"
-			if archive_path != "../"+algorithm+"/"+self.params.path():
+			archive_path = directory_path+"/gp/"+results_directory+"/"+self.params.description+"/"+str(i+1)+"/"
+			if not use_temp_archive or archive_path != "../"+algorithm+"/"+self.params.path():
 				if os.path.exists(archive_path+"archive.pkl"):
 					with open(archive_path+"archive.pkl", "rb") as archive_file:
 						cumulative_archive.update(pickle.load(archive_file))
@@ -47,8 +55,8 @@ class Archive():
 				print ("disregarding "+archive_path)
 
 		for i in range(30):
-			archive_path = "../qdpy/results/"+self.params.description+"/"+str(i+1)+"/"
-			if archive_path != "../"+algorithm+"/"+self.params.path():
+			archive_path = directory_path+"/qdpy/"+results_directory+"/"+self.params.description+"/"+str(i+1)+"/"
+			if not use_temp_archive or archive_path != "../"+algorithm+"/"+self.params.path():
 				if os.path.exists(archive_path+"archive.pkl"):
 					with open(archive_path+"archive.pkl", "rb") as archive_file:
 						cumulative_archive.update(pickle.load(archive_file))
@@ -56,7 +64,7 @@ class Archive():
 				print ("disregarding "+archive_path)
 
 		temp_archive = {}
-		if os.path.exists(self.params.path()+"archive.pkl"):
+		if use_temp_archive and os.path.exists(self.params.path()+"archive.pkl"):
 			with open(self.params.path()+"archive.pkl", "rb") as archive_file:
 				temp_archive = pickle.load(archive_file)
 
@@ -76,7 +84,7 @@ class Archive():
 	def saveArchive(self, redundancy):
 
 		if self.params.saveOutput:
-			archive = self.getArchive()
+			archive = self.getCompleteArchive()
 			archive_string = ""
 			archive_dict = {}
 			for chromosome, scores in archive.items():
@@ -153,6 +161,14 @@ class Archive():
 		else:
 			self.verbose_archive.update({str(new_chromosome) : fitness})
 			self.archive.update({mapped_chromosome : fitness})
+
+	def addToCompleteArchive(self, chromosome, fitness):
+
+		new_chromosome = self.redundancy.trim(chromosome)
+		mapped_chromosome = self.mapNodesToArchive(str(new_chromosome))
+
+		if mapped_chromosome not in self.complete_archive:
+			self.complete_archive.update({str(mapped_chromosome) : fitness})
 
 	def assignDuplicateFitness(self, offspring, assign_fitness, matched):
 

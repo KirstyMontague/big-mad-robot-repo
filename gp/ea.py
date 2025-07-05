@@ -129,6 +129,7 @@ class EA():
 		
 		matched = [0,0]
 		invalid_ind = self.archive.assignDuplicateFitness(invalid_ind, self.assignFitness, matched)
+		archive_ind = invalid_ind
 		
 		invalid_ind = [ind for ind in population if not ind.fitness.valid]
 		invalid_new = len(invalid_ind)
@@ -140,6 +141,9 @@ class EA():
 
 		self.grid.addPopulation(population)
 
+		for ind in archive_ind:
+			self.archive.addToCompleteArchive(str(ind), ind.fitness.values)
+
 		for ind in invalid_ind:
 			self.archive.addToArchive(str(ind), ind.fitness.values)
 		
@@ -148,12 +152,14 @@ class EA():
 		
 		scores = ""
 		for i in range(self.params.features):
-			derated = best[i].fitness.values[i] * self.utilities.deratingFactor(best[i])
-			# derated = best[i].fitness.values[i] * self.deratingFactorForForaging(best[i])
+			# derated = best[i].fitness.values[i] * self.utilities.deratingFactor(best[i])
+			derated = best[i].fitness.values[i] * self.deratingFactorForForaging(best[i])
 			scores += str("%.7f" % derated) + " (" + str("%.7f" % best[i].fitness.values[i]) + ") \t"
 		
 		length = str(len(best[0]))+" ("+str(self.behaviours.unpack(best[0]))+")"
-		print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
+		
+		if generation % 100 == 0 or invalid_new > 0:
+			print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 		
 		# print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+str(len(best[0]))+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 
