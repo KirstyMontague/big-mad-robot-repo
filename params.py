@@ -59,7 +59,7 @@ class eaParams():
 	indexes = [6]
 
 	using_repertoire = True
-	repertoire_size = 8
+	repertoire_size = 64
 	repertoire_type = "mt"
 
 	stop = False
@@ -158,7 +158,25 @@ class eaParams():
 					self.saveOutput = False
 					self.saveCSV = False
 					self.generations = 0
-		
+
+	def getRepertoireFilename(self):
+		repertoire_file = "../repertoires/sub-behaviours-"
+		repertoire_file += str(self.repertoire_type)
+		repertoire_file += str(self.repertoire_size)
+		repertoire_file += "-1000gen.txt"
+		return repertoire_file
+
+	def getSubbehavioursFromFile(self):
+
+		names = []
+
+		filename = self.getRepertoireFilename()
+		f = open(filename, "r")
+		for line in f:
+			first = line[0:line.find(" ")]
+			names.append(first)
+
+		return names
 
 	def addNodes(self, pset):
 		
@@ -189,14 +207,28 @@ class eaParams():
 			self.nodes[node] = True; pset.addCondition(robot.conditions[node])
 
 		if self.using_repertoire:
+			names = self.getSubbehavioursFromFile()
 			for i in range(self.repertoire_size):
 				index = str(i+1)
-				self.nodes['increaseDensity'+index] = True; pset.addAction(robot.increaseDensity[i])
-				self.nodes['reduceDensity'+index] = True; pset.addAction(robot.reduceDensity[i])
-				self.nodes['gotoNest'+index] = True; pset.addAction(robot.gotoNest[i])
-				self.nodes['goAwayFromNest'+index] = True; pset.addAction(robot.goAwayFromNest[i])
-				self.nodes['gotoFood'+index] = True; pset.addAction(robot.gotoFood[i])
-				self.nodes['goAwayFromFood'+index] = True; pset.addAction(robot.goAwayFromFood[i])
+				if 'increaseDensity'+index in names:
+					self.nodes['increaseDensity'+index] = True
+					pset.addAction(robot.increaseDensity[i])
+				if 'reduceDensity'+index in names:
+					self.nodes['reduceDensity'+index] = True
+					pset.addAction(robot.reduceDensity[i])
+				if 'gotoNest'+index in names:
+					self.nodes['gotoNest'+index] = True
+					pset.addAction(robot.gotoNest[i])
+				if 'goAwayFromNest'+index in names:
+					self.nodes['goAwayFromNest'+index] = True
+					pset.addAction(robot.goAwayFromNest[i])
+				if 'gotoFood'+index in names:
+					self.nodes['gotoFood'+index] = True
+					pset.addAction(robot.gotoFood[i])
+				if 'goAwayFromFood'+index in names:
+					self.nodes['goAwayFromFood'+index] = True
+					pset.addAction(robot.goAwayFromFood[i])
+
 		else:
 			for node in actions:
 				pset.addAction(robot.actions[node])
@@ -258,7 +290,7 @@ class robotObject(object):
 		for name in (nodes):
 			_list = []
 			setattr(robotObject, name, _list)
-			for i in range(8):
+			for i in range(64):
 				n = name+str(i+1)
 				_method = self.make_method(n)
 				setattr(robotObject, n, _method)

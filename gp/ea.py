@@ -37,11 +37,7 @@ class EA():
 		self.archive = Archive(params, self.redundancy)
 		self.checkpoint = Checkpoint(params)
 
-		repertoire_file = "../repertoires/sub-behaviours-"
-		repertoire_file += str(self.params.repertoire_type)
-		repertoire_file += str(self.params.repertoire_size)
-		repertoire_file += "-1000gen.txt"
-		self.behaviours = Behaviours(params, repertoire_file)
+		self.behaviours = Behaviours(params, self.params.getRepertoireFilename())
 		self.grid = QD(params, self.utilities)
 
 	def selTournament(self, individuals, k, tournsize, fit_attr="fitness"):		

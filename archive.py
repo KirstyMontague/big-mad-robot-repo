@@ -122,13 +122,14 @@ class Archive():
 			"rr" : "y",
 		}
 
-		for i in range(1,9):
-			mapping["increaseDensity"+str(i)] = "0"+str(i)
-			mapping["reduceDensity"+str(i)] = "1"+str(i)
-			mapping["gotoNest"+str(i)] = "2"+str(i)
-			mapping["goAwayFromNest"+str(i)] = "3"+str(i)
-			mapping["gotoFood"+str(i)] = "4"+str(i)
-			mapping["goAwayFromFood"+str(i)] = "5"+str(i)
+		for i in range(1,65):
+			leading_zero = "0" if i < 10 and self.params.repertoire_size > 8 else ""
+			mapping["increaseDensity"+str(i)] = "0"+leading_zero+str(i)
+			mapping["reduceDensity"+str(i)] = "1"+leading_zero+str(i)
+			mapping["gotoNest"+str(i)] = "2"+leading_zero+str(i)
+			mapping["goAwayFromNest"+str(i)] = "3"+leading_zero+str(i)
+			mapping["gotoFood"+str(i)] = "4"+leading_zero+str(i)
+			mapping["goAwayFromFood"+str(i)] = "5"+leading_zero+str(i)
 
 		chromosome = chromosome.replace(" ", "")
 		tokens = re.split("[ (),]", chromosome)

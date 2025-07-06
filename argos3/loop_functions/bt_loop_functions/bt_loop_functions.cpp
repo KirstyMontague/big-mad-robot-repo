@@ -91,7 +91,7 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 	
 	// unpack sub-behaviours
 	
-    std::ifstream subBehavioursFile("../repertoires/sub-behaviours-mt8-1000gen.txt");
+    std::ifstream subBehavioursFile("../repertoires/sub-behaviours-mt64-1000gen.txt");
 	std::vector<std::string> subBehaviourTrees;
     while( getline(subBehavioursFile, line) )
 	{

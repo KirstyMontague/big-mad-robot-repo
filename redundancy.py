@@ -41,7 +41,7 @@ class Redundancy():
 	conditionNodes = []
 	
 	def addSubBehaviours(self):
-		for i in range(8):
+		for i in range(64):
 			for node in self.subBehaviourBaseNodes:
 				self.subBehaviourNodes.append(node+str(i+1))
 				self.effectiveNodes.append(node+str(i+1))
@@ -51,7 +51,7 @@ class Redundancy():
 	def addExtraConditions(self):
 		for node in self.conditionBaseNodes:
 			self.conditionNodes.append(node)
-			for i in range(8):
+			for i in range(64):
 				self.nonEffectiveNodes.append(node+str(i+1))
 
 	active = [True]
