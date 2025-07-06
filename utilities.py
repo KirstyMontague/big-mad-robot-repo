@@ -76,6 +76,11 @@ class Utilities():
 		toolbox.register("mutSubtreeShrink", local.mutShrink)
 		toolbox.register("mutNodeReplace", local.mutNodeReplacement, pset=pset)
 
+		# for creating trimmed population
+		toolbox.register("expr_empty", local.genEmpty, pset=pset, min_=1, max_=4)
+		toolbox.register("empty_individual", tools.initIterate, creator.Individual, toolbox.expr_empty)
+		toolbox.register("empty_population", tools.initRepeat, list, toolbox.empty_individual)
+
 		self.toolbox = toolbox
 
 	def evaluateRobot(self, individual, thread_index):
@@ -223,6 +228,20 @@ class Utilities():
 		usage = 1 - usage
 
 		return usage
+
+	def getTrimmedPopulation(self, offspring, redundancy):
+
+		primitivetree = gp.PrimitiveTree([])
+		pset = local.PrimitiveSetExtended("MAIN", 0)
+		trimmed = self.toolbox.empty_population(n=len(offspring))
+
+		for i in range(len(offspring)):
+			trimmed_str = redundancy.removeRedundancy(str(offspring[i]))
+			trimmed_tree = primitivetree.from_string(trimmed_str, redundancy.pset)
+			trimmed_ind = creator.Individual(trimmed_tree)
+			trimmed[i] = trimmed_ind
+		
+		return trimmed
 
 	def printContainer(self, container):
 		

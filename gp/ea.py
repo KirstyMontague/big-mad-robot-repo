@@ -122,6 +122,10 @@ class EA():
 		
 		return population
 
+	def transferTrimmedFitnessScores(self, offspring, trimmed):
+		for i in range(len(offspring)):
+			offspring[i].fitness.values = trimmed[i].fitness.values
+
 	def evaluateNewPopulation(self, starting, generation, population):
 		
 		invalid_ind = [ind for ind in population if not ind.fitness.valid]
@@ -134,7 +138,9 @@ class EA():
 		invalid_ind = [ind for ind in population if not ind.fitness.valid]
 		invalid_new = len(invalid_ind)
 		
-		self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
+		trimmed = self.utilities.getTrimmedPopulation(invalid_ind, self.redundancy)
+		self.utilities.evaluate(self.assignPopulationFitness, trimmed)
+		self.transferTrimmedFitnessScores(invalid_ind, trimmed)
 		
 		if generation > 0 and generation % self.params.save_period == 0:
 			self.checkDuplicatesAreCorrect(invalid_ind)

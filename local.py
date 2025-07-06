@@ -105,6 +105,12 @@ class PrimitiveSetExtended(gp.PrimitiveSet):
 		self._add(prim)
 		self.actions_count += 1
 
+def genEmpty(pset, min_, max_, type_=None):
+	"""
+	For big mad robot repo
+	"""
+	return []
+
 def genFull(pset, min_, max_, type_=None):
     """
     From DEAP

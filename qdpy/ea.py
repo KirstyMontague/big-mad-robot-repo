@@ -137,6 +137,11 @@ class EA():
 
 		self._iteration_callback(generation, offspring, container)
 
+	def transferTrimmedFitnessScores(self, offspring, trimmed):
+		for i in range(len(offspring)):
+			offspring[i].fitness.values = trimmed[i].fitness.values
+			offspring[i].features = trimmed[i].features
+
 	def evaluateNewPopulation(self, container, generation, offspring, mode):
 
 		invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
@@ -148,7 +153,9 @@ class EA():
 		invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
 		invalid_new = len(invalid_ind)
 
-		self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
+		trimmed = self.utilities.getTrimmedPopulation(invalid_ind, self.redundancy)
+		self.utilities.evaluate(self.assignPopulationFitness, trimmed)
+		self.transferTrimmedFitnessScores(invalid_ind, trimmed)
 
 		for ind in invalid_ind:
 			self.archive.addToArchive(str(ind), tuple([ind.fitness.values[0]] + ind.features))
@@ -166,9 +173,9 @@ class EA():
 		self.utilities.removeDuplicates(offspring, container)
 
 		nb_updated = container.update(offspring, issue_warning = self.params.show_warnings)
-		
+
 		self.printOutput(generation, invalid_new, invalid_orig, matched)
-		
+
 		if (self.params.printContainer):
 			print ("\nPrint all individuals in container\n")
 			self.utilities.printContainer(container)
@@ -215,7 +222,7 @@ class EA():
 		output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
 		output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
 		
-		print (output_string)
+		if generation % 100 == 0 or invalid_new > 0: print (output_string)
 
 	def assignFitness(self, offspring, fitness):
 		offspring.fitness.values = (fitness[0],)
