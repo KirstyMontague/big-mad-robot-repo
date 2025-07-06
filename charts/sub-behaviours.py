@@ -13,6 +13,8 @@ redundancy = Redundancy()
 
 
 
+bins = 1 # 1, 2 or 4
+save = True
 
 
 
@@ -26,12 +28,17 @@ sub_behaviours = {"density" : "increaseDensity",
 x = 0
 y = 0
 z = 0
-bins = 2
 
-# with open('../txt/sub-behaviours.txt', 'w') as f:
-	# f.write("")
+suffix = bins * bins * bins
 
 def getQdRepertoire():
+
+	output_filename = "../repertoires/sub-behaviours-qd"+str(suffix)+"-1000gen.txt"
+	print(output_filename)
+
+	if save:
+		with open(output_filename, 'w') as f:
+			f.write("")
 
 	for objective in sub_behaviours:
 
@@ -39,9 +46,9 @@ def getQdRepertoire():
 
 		for seed in range(1,31):
 			
-			filename = "../qdpy/results/"+objective+"/"+str(seed)+"/seed"+str(seed)+"-iteration1000.p"
+			input_filename = "../qdpy/results/"+objective+"/"+str(seed)+"/seed"+str(seed)+"-iteration1000.p"
 			
-			with open(filename, "rb") as f:
+			with open(input_filename, "rb") as f:
 				data = pickle.load(f)
 			
 			for i in data:
@@ -78,82 +85,101 @@ def getQdRepertoire():
 						# output += str(len(trimmed))+"\n"
 						output += " "+str(trimmed)
 						# output += sub_behaviours[objective]+str(index)+" "+str(trimmed)+"\n"
-						# print (sub_behaviours[objective]+str(index)+" "+str(ind.fitness))
+						# output += sub_behaviours[objective]+str(index)+" "+str(ind.fitness)
 						# print (sub_behaviours[objective]+str(index)+" "+str(trimmed))
+						# output += "\n"
+
+						if save:
+							with open(output_filename, 'a') as f:
+								f.write(sub_behaviours[objective]+str(index)+" "+str(trimmed))
+								f.write("\n")
+
 						print (output)
+
 					else:
 						output += objective+str(index)+" not found"
-
-					# with open('../txt/sub-behaviours.txt', 'a') as f:
-						# f.write(sub_behaviours[objective]+str(index)+" "+str(trimmed))
-						# f.write("\n")
+						print(output)
 
 
-# sublist = ["food", "idensity", "inest"]
-# subset = "food-idensity-inest"
+sublists = [["food", "idensity", "inest"],
+			["density", "nest", "ifood"]]
 
-sublist = ["density", "nest", "ifood"]
-subset = "density-nest-ifood"
+subsets = ["food-idensity-inest", "density-nest-ifood"]
 
 def getMtRepertoire():
 
-	seeds = []
+	output_filename = "../repertoires/sub-behaviours-mt"+str(suffix)+"-1000gen.txt"
+	print(output_filename)
 
-	for seed in range(1,31):
+	if save:
+		with open(output_filename, 'w') as f:
+			f.write("")
 
-		filename = "../gp/results/"+subset+"/"+str(seed)+"/checkpoint-"+subset+"-"+str(seed)+"-1000.pkl"
-		with open(filename, "rb") as f:
-			checkpoint = pickle.load(f)
+	for combination in range(len(sublists)):
 
-		seeds.append(checkpoint["containers"])
+		subset = subsets[combination]
+		sublist = sublists[combination]
 
-	containers = {}
-	for objective in range(0,3):
-		containers[sublist[objective]] = []
-		for seed in range(0,30):
-			container = seeds[seed][objective]
-			containers[sublist[objective]].append(container)
+		seeds = []
+
+		for seed in range(1,31):
+
+			input_filename = "../gp/results/"+subset+"/"+str(seed)+"/checkpoint-"+subset+"-"+str(seed)+"-1000.pkl"
+			with open(input_filename, "rb") as f:
+				checkpoint = pickle.load(f)
+
+			seeds.append(checkpoint["containers"])
+
+		containers = {}
+		for objective in range(0,3):
+			containers[sublist[objective]] = []
+			for seed in range(0,30):
+				container = seeds[seed][objective]
+				containers[sublist[objective]].append(container)
 
 
-	for objective in sublist:
+		for objective in sublist:
 
-		for a in range(bins):
+			for a in range(bins):
 
-			xa = int(a*8/bins)
+				xa = int(a*8/bins)
 
-			for b in range(bins):
+				for b in range(bins):
 
-				yb = int(b*8/bins)
+					yb = int(b*8/bins)
 
-				for c in range(bins):
+					for c in range(bins):
 
-					zc = int(c*8/bins)
+						zc = int(c*8/bins)
 
-					index = a*bins*bins + b*bins + c + 1
+						index = a*bins*bins + b*bins + c + 1
 
-					output = ""
-					ind = analyse.getBestEverFromSubset(containers[objective], objective, xa, yb, zc, bins)
+						output = ""
+						ind = analyse.getBestEverFromSubset(containers[objective], objective, xa, yb, zc, bins)
 
-					if ind is not None:
+						if ind is not None:
 
-						trimmed = redundancy.removeRedundancy(str(ind))
-						trimmed = [creator.Individual.from_string(trimmed, analyse.pset)][0]
+							trimmed = redundancy.removeRedundancy(str(ind))
+							trimmed = [creator.Individual.from_string(trimmed, analyse.pset)][0]
 
-						output += sub_behaviours[objective]+str(index)
-						# output += " "+str(xa)+" "+str(yb)+" "+str(zc)
-						output += " "+str(trimmed)
-						# output += " "+str(len(trimmed))
-						# output += " "+str(ind.fitness)
-						print (output)
+							output += sub_behaviours[objective]+str(index)
+							# output += " "+str(xa)+" "+str(yb)+" "+str(zc)
+							output += " "+str(trimmed)
+							# output += " "+str(len(trimmed))
+							# output += "\n"+str(ind.fitness)
+							# output += "\n"
+							print (output)
 
-					else:
-						output += sub_behaviours[objective]+str(index)
-						output += " "+str(xa)+" "+str(yb)+" "+str(zc)
-						output += " not found"
+							if save:
+								with open(output_filename, 'a') as f:
+									f.write(sub_behaviours[objective]+str(index)+" "+str(trimmed))
+									f.write("\n")
 
-					# with open('../txt/sub-behaviours.txt', 'a') as f:
-						# f.write(sub_behaviours[objective]+str(index)+" "+str(trimmed))
-						# f.write("\n")
+						else:
+							output += sub_behaviours[objective]+str(index)
+							output += " "+str(xa)+" "+str(yb)+" "+str(zc)
+							output += " not found"
+
 
 
 getMtRepertoire()

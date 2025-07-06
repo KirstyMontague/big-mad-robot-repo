@@ -16,7 +16,7 @@ class Behaviours():
         self.params = params
 
         self.subBehaviourNodes = []
-        for i in range(8):
+        for i in range(self.params.repertoire_size):
             self.subBehaviourNodes.append("increaseDensity"+str(i+1))
             self.subBehaviourNodes.append("gotoNest"+str(i+1))
             self.subBehaviourNodes.append("gotoFood"+str(i+1))
