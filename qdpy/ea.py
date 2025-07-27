@@ -128,6 +128,8 @@ class EA():
 
 		self.utilities.saveDuration(start_time, end_time)
 
+		time.sleep(self.params.eaRunSleep)
+
 	def eaLoop(self, container, generation):
 
 		batch = self.toolbox.select(container, self.params.populationSize)
@@ -149,6 +151,7 @@ class EA():
 
 		matched = [0,0]
 		invalid_ind = self.archive.assignDuplicateFitness(invalid_ind, self.assignFitness, matched)
+		archive_ind = invalid_ind
 
 		invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
 		invalid_new = len(invalid_ind)
@@ -156,6 +159,9 @@ class EA():
 		trimmed = self.utilities.getTrimmedPopulation(invalid_ind, self.redundancy)
 		self.utilities.evaluate(self.assignPopulationFitness, trimmed)
 		self.transferTrimmedFitnessScores(invalid_ind, trimmed)
+
+		for ind in archive_ind:
+			self.archive.addToCompleteArchive(str(ind), tuple([ind.fitness.values[0]] + ind.features))
 
 		for ind in invalid_ind:
 			self.archive.addToArchive(str(ind), tuple([ind.fitness.values[0]] + ind.features))
