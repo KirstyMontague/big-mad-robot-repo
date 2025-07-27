@@ -1,0 +1,4 @@
+
+cd ../argos3/
+
+argos3 -c experiments/nn8.argos > ../cma-es/txt/result8.txt
