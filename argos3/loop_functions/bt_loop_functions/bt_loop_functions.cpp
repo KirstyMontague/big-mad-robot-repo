@@ -14,8 +14,10 @@
 using namespace std::chrono;
 
 CBTLoopFunctions::CBTLoopFunctions() :
-   m_pcFloor(NULL),
-   m_count(0) {
+    m_pcFloor(NULL),
+    m_count(0),
+    m_experimentLength(0)
+{
 	m_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
 	//std::cout << "start " << m_ms.count() << std::endl;
 }
@@ -46,10 +48,34 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 		GetNodeAttribute(tDistr, "index", index);
 	}
 
+	// get configuration from file
+	std::string configFilename = "../txt/configuration.txt";
+	std::ifstream configFile(configFilename);
+	std::string line = "";
+	int trialLength = 0;
+	while( getline(configFile, line) )
+	{
+		int delimiter = line.find(":");
+		std::string key = line.substr(0, delimiter);
+		std::string value = line.substr(delimiter + 1);
+
+		if (key == "experimentLength")
+		{
+			m_experimentLength = std::stoi(value) * 8; // eight ticks per second
+			trialLength = (std::stoi(value) * 8) / 5; // five trials per experiment
+		}
+	}
+    
+    if (m_experimentLength == 0)
+    {
+        std::cout << "experimentLength: " << std::to_string(m_experimentLength) << "\n";
+        return;
+    }
+
 	// get random seed and environmental parameters from file
 	std::cout << "../txt/seed"+std::to_string(index)+".txt" << std::endl;
 	std::ifstream seedFile("../txt/seed"+std::to_string(index)+".txt");
-	std::string line = "";
+	line = "";
 	int seed = -1;
 	while( getline(seedFile, line) )
 	{
@@ -59,13 +85,10 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 	}
 	m_pcRNG->SetSeed(seed);
 	m_pcRNG->Reset();
-	//std::cout << filename << std::endl;
-	//std::cout << std::to_string(index) << std::endl;
-	//std::cout << std::to_string(seed) << std::endl;
-	//std::cout << std::to_string(m_gap) << std::endl;
-		
+	
 	// read number of robots and chromosome from file
-    std::ifstream chromosomeFile("../txt/"+filename);      
+	std::ifstream chromosomeFile("../txt/"+filename); 
+	line = "";
 	int sqrtRobots = 0;
 	std::string chromosome;
     while( getline(chromosomeFile, line) )
@@ -216,8 +239,7 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 			CFootBotBT& controller = dynamic_cast<CFootBotBT&>(pcFB->GetControllableEntity().GetController());
 			controller.buildTree(tokens);
 			controller.createBlackBoard(sqrtRobots * sqrtRobots);
-			controller.setParams(m_gap);
-			//std::cout << filename << std::endl;
+			controller.setParams(m_gap, trialLength);
 			if (filename == "best.txt")
 			{
 				controller.setPlayback(true);
@@ -254,7 +276,7 @@ CColor CBTLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane)
 void CBTLoopFunctions::PostStep()
 {
 	m_count++;
-	if (m_count % 800 == 0) // evaluation time 160 for subbehaviours, 800 for foraging
+	if (m_count % (m_experimentLength / 5) == 0) // evaluation time 160 for subbehaviours, 800 for foraging
 	{      
 		//std::cout <s< "poststep " << m_count << std::endl;
 		for (CFootBotEntity* footbot : m_footbots)
@@ -287,5 +309,9 @@ void CBTLoopFunctions::PostStep()
 	}
 }
 
-	
+bool CBTLoopFunctions::IsExperimentFinished()
+{
+    return (m_count >= m_experimentLength);
+}
+
 REGISTER_LOOP_FUNCTIONS(CBTLoopFunctions, "bt_loop_functions");

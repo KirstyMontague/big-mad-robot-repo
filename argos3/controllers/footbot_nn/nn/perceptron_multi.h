@@ -10,7 +10,7 @@ public:
     CPerceptronMulti();
     virtual ~CPerceptronMulti();
 
-    void Init(TConfigurationNode& t_tree);
+    void Init(TConfigurationNode& t_tree, UInt32 numInputs, UInt32 numHidden, UInt32 numOutputs);
     void Load(const Real* chromosome, bool tracking);
     virtual void Destroy();
 

@@ -19,14 +19,16 @@ public:
 
     virtual void Init(TConfigurationNode& t_tree);
 
-    virtual CColor GetFloorColor(const CVector2& c_position_on_plane);
-    virtual void PostStep();
+    CColor GetFloorColor(const CVector2& c_position_on_plane) override;
+    bool IsExperimentFinished() override;
+    void PostStep() override;
 
 private:
 
     CFloorEntity* m_pcFloor;
     float m_gap;
     uint m_count;
+    uint m_experimentLength;
     CRandom::CRNG* m_pcRNG;
 
     std::vector<CFootBotEntity*> m_footbots;

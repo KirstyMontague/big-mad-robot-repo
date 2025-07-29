@@ -31,6 +31,7 @@ class EA():
 		self.params.is_qdpy = False
 		self.utilities = Utilities(params)
 		self.utilities.setupToolbox(self.selTournament)
+		self.utilities.saveConfigurationFile()
 
 		self.logs = Logs(self.params, self.utilities)
 		self.redundancy = Redundancy()

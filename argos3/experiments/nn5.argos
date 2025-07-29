@@ -3,9 +3,7 @@
 
   <framework>
     <system threads="0" />
-    <!-- // evaluation time -->
-    <experiment length="100"
-                ticks_per_second="8"
+    <experiment ticks_per_second="8"
                 random_seed="1" />
   </framework>
 
@@ -23,7 +21,7 @@
         <footbot_light implementation="rot_z_only" show_rays="false" />
         <footbot_motor_ground implementation="rot_z_only" />
       </sensors>
-      <params trackingID="1" velocity="5" verbose="true" num_inputs="9" num_outputs="2" />
+      <params trackingID="1" velocity="5" verbose="true" />
     </footbot_nn>
   </controllers>
   <loop_functions library="build/loop_functions/nn_loop_functions/libnn_loop_functions"

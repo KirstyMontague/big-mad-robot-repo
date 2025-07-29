@@ -30,7 +30,7 @@ public:
    
    void buildTree(std::vector<std::string> tokens);
    void createBlackBoard(int numRobots);
-   void setParams(float gap);
+   void setParams(float gap, int trialLength);
    void setPlayback(bool playback);
    
    
@@ -60,6 +60,7 @@ private:
 	CNode* m_rootNode;
 	CBlackBoard* m_blackBoard;
 	float m_params;
+    int m_trialLength;
 	int m_count;
 	int m_food;
 	int m_trackingID;

@@ -36,9 +36,9 @@ public:
     void Reset();
     void Destroy();
 
-    void InitNN(const Real* chromosome);
+    void InitNN(const Real* chromosome, UInt32 numInputs, UInt32 numHidden, UInt32 numOutputs);
     void createBlackBoard(int numRobots);
-    void setParams(float gap);
+    void setParams(float gap, int trialLength);
 
 private:
 
@@ -82,7 +82,8 @@ private:
 
     CBlackBoard* m_blackBoard;
 
-    float m_params = 0.5;
+    float m_params;
+    int m_trialLength;
 
     std::vector<std::vector<float>> m_scores;
     bool m_carryingFood = false;

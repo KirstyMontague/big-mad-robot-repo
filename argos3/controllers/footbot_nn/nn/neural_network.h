@@ -12,7 +12,7 @@ public:
     CNeuralNetwork();
     virtual ~CNeuralNetwork();
 
-    virtual void Init(TConfigurationNode& t_node);
+    virtual void Init(TConfigurationNode& t_node, UInt32 numInputs, UInt32 numOutputs);
     virtual void Reset();
     virtual void Destroy();
 

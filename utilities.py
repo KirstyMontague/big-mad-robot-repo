@@ -710,6 +710,12 @@ class Utilities():
 						 container.fitness_extrema[0],
 						 nbTicks=None)
 
+	def saveConfigurationFile(self):
+
+		experiment_length = 500 if self.params.description == "foraging" else 100
+		with open('../txt/configuration.txt', 'w') as f:
+			f.write("experimentLength:"+str(experiment_length))
+
 	def saveParams(self):
 
 		if self.params.saveOutput:

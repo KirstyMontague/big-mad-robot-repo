@@ -33,6 +33,9 @@ class EA():
         self.utilities.max_value = 1
         self.utilities.min_strategy = 0.5
         self.utilities.max_strategy = 3
+        self.utilities.num_inputs = 9
+        self.utilities.num_hidden = 10
+        self.utilities.num_outputs = 1
 
         mu, lambda_ = 25,25
         
@@ -61,6 +64,16 @@ class EA():
         self.archive.getArchives(self.seed)
         random.seed(self.seed)
 
+        experiment_length = 500 if self.utilities.objective == "foraging" else 100
+        with open('../txt/configuration.txt', 'w') as f:
+            f.write("numInputs:"+str(self.utilities.num_inputs))
+            f.write("\n")
+            f.write("numHidden:"+str(self.utilities.num_hidden))
+            f.write("\n")
+            f.write("numOutputs:"+str(self.utilities.num_outputs))
+            f.write("\n")
+            f.write("experimentLength:"+str(experiment_length))
+        
         toolbox = self.utilities.toolbox
         population = toolbox.population(n=mu)
 

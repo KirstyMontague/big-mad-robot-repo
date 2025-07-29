@@ -15,7 +15,8 @@ using namespace std::chrono;
 
 CNNLoopFunctions::CNNLoopFunctions() :
     m_pcFloor(NULL),
-    m_count(0)
+    m_count(0),
+    m_experimentLength(0)
 {
     m_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
 }
@@ -45,10 +46,51 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
         GetNodeAttribute(tDistr, "index", index);
     }
 
+     //get configuration from file
+    std::string configFilename = "../txt/configuration.txt";
+    std::ifstream configFile(configFilename);
+    std::string line = "";
+    int numInputs = 0;
+    int numHidden = 0;
+    int numOutputs = 0;
+    int trialLength = 0;
+    while( getline(configFile, line) )
+    {
+        int delimiter = line.find(":");
+        std::string key = line.substr(0, delimiter);
+        std::string value = line.substr(delimiter + 1);
+
+        if (key == "numInputs")
+        {
+            numInputs = std::stoi(value);
+        }
+        else if (key == "numHidden")
+        {
+            numHidden = std::stoi(value);
+        }
+        else if (key == "numOutputs")
+        {
+            numOutputs = std::stoi(value);
+        }
+        else if (key == "experimentLength")
+        {
+            m_experimentLength = std::stoi(value) * 8; // eight ticks per second
+            trialLength = (std::stoi(value) * 8) / 5; // five trials per experiment
+        }
+    }
+    
+    if (numInputs == 0 || numOutputs == 0 || m_experimentLength == 0)
+    {
+        std::cout << "numInputs: " << std::to_string(numInputs) << "\n";
+        std::cout << "numOutputs: " << std::to_string(numOutputs) << "\n";
+        std::cout << "experimentLength: " << std::to_string(m_experimentLength) << "\n";
+        return;
+    }
+
     // get random seed and environmental parameters from file
     std::string seedFilename = "../cma-es/txt/seed"+std::to_string(index)+".txt";
     std::ifstream seedFile(seedFilename);
-    std::string line = "";
+    line = "";
     int seed = -1;
     int sqrtRobots = -1;
     while( getline(seedFile, line) )
@@ -72,6 +114,7 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
 
     // read chromosome from file
     std::ifstream chromosomeFile("../cma-es/txt/"+filename);
+    line = "";
     Real* chromosome = new Real[GENOME_SIZE + 1];
     while( getline(chromosomeFile, line) )
     {
@@ -123,9 +166,9 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
 
             // create robot
             CFootBotNNController& controller = dynamic_cast<CFootBotNNController&>(pcFB->GetControllableEntity().GetController());
-            controller.InitNN(chromosome);
+            controller.InitNN(chromosome, numInputs, numHidden, numOutputs);
             controller.createBlackBoard(sqrtRobots * sqrtRobots);
-            controller.setParams(m_gap);
+            controller.setParams(m_gap, trialLength);
         }
     }
 }
@@ -157,8 +200,8 @@ CColor CNNLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane)
 void CNNLoopFunctions::PostStep()
 {
     m_count++;
-    if (m_count % 160 == 0) // evaluation time 160 for subbehaviours, 800 for foraging
-    {      
+    if (m_count % (m_experimentLength / 5) == 0)
+    {
         for (CFootBotEntity* footbot : m_footbots)
         {
             CVector3 cFBPos;
@@ -185,6 +228,11 @@ void CNNLoopFunctions::PostStep()
         
         }
     }
+}
+
+bool CNNLoopFunctions::IsExperimentFinished()
+{
+    return (m_count >= m_experimentLength);
 }
 
 REGISTER_LOOP_FUNCTIONS(CNNLoopFunctions, "nn_loop_functions")

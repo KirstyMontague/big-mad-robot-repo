@@ -15,7 +15,7 @@ CPerceptronMulti::CPerceptronMulti() :
     m_pfHiddenToOutputWeights(NULL),
     m_pfOutputBiases(NULL),
     m_pfOutputTaus(NULL),
-    m_numHidden(10),
+    m_numHidden(0),
     m_fTimeStep(0.1f)
 {}
 
@@ -36,9 +36,10 @@ CPerceptronMulti::~CPerceptronMulti()
 /****************************************/
 /****************************************/
 
-void CPerceptronMulti::Init(TConfigurationNode& t_tree)
+void CPerceptronMulti::Init(TConfigurationNode& t_tree, UInt32 numInputs, UInt32 numHidden, UInt32 numOutputs)
 {
-    CNeuralNetwork::Init(t_tree);
+    CNeuralNetwork::Init(t_tree, numInputs, numOutputs);
+    m_numHidden = numHidden;
     m_pfHidden = new Real[m_numHidden];
 }
 

@@ -18,7 +18,8 @@ CFootBotNNController::CFootBotNNController() :
     m_rWheelVelocity(5.0f),
     m_lWheelVelocity(5.0f),
     m_count(0),
-    m_params(0.5),
+    m_params(0.0),
+    m_trialLength(0),
     m_carryingFood(false),
     m_food(0)
 {}
@@ -64,16 +65,6 @@ void CFootBotNNController::Init(TConfigurationNode& t_node)
         THROW_ARGOSEXCEPTION_NESTED("Error initializing sensors/actuators", ex);
     }
 
-    /* Initialize the perceptron */
-    try
-    {
-        m_cPerceptron.Init(m_node);
-    }
-    catch(CARGoSException& ex)
-    {
-        THROW_ARGOSEXCEPTION_NESTED("Error initializing the perceptron network", ex);
-    }
-
     Real wheelVelocity;
     GetNodeAttributeOrDefault(t_node, "velocity", wheelVelocity, wheelVelocity);
     
@@ -110,8 +101,19 @@ void CFootBotNNController::Init(TConfigurationNode& t_node)
     m_scores.push_back(std::vector<float>());
 }
 
-void CFootBotNNController::InitNN(const Real* chromosome)
+void CFootBotNNController::InitNN(const Real* chromosome, UInt32 numInputs, UInt32 numHidden, UInt32 numOutputs)
 {
+    /* Initialize the perceptron */
+    try
+    {
+        m_cPerceptron.Init(m_node, numInputs, numHidden, numOutputs);
+        //m_cPerceptron.Init(m_node);
+    }
+    catch(CARGoSException& ex)
+    {
+        THROW_ARGOSEXCEPTION_NESTED("Error initializing the perceptron network", ex);
+    }
+
     m_cPerceptron.Load(chromosome, inTrackingIDs());
 }
 
@@ -120,9 +122,10 @@ void CFootBotNNController::createBlackBoard(int numRobots)
     m_blackBoard = new CBlackBoard(numRobots);
 }
 
-void CFootBotNNController::setParams(float gap)
+void CFootBotNNController::setParams(float gap, int trialLength)
 {
     m_params = gap;
+    m_trialLength = trialLength;
 }
 
 /****************************************/
@@ -394,7 +397,7 @@ void CFootBotNNController::ControlStep()
 
     m_count++;
 
-    if ((m_count % 160) == 1)
+    if ((m_count % m_trialLength) == 1)
     {
         sendInitialSignal();
         recordInitialPositions(tracking);
@@ -442,14 +445,14 @@ void CFootBotNNController::ControlStep()
         // if (tracking) std::cout << m_blackBoard->getMovement() << " " << m_blackBoard->getRotations() << std::endl;
     }
 
-    if ((m_count - 16) % 160 == 0)
+    if ((m_count - 16) % m_trialLength == 0)
     {
         m_blackBoard->setInitialDensity(tracking ? std::stoi(GetId()) : -1);
         m_blackBoard->setInitialDistanceFromNest(tracking ? std::stoi(GetId()) : -1);
         m_blackBoard->setInitialDistanceFromFood(tracking ? std::stoi(GetId()) : -1);
     }
 
-    if (m_count % 160 == 0)
+    if (m_count % m_trialLength == 0)
     {
         recordFinalPositions(tracking);
 

@@ -15,6 +15,8 @@ CFootBotBT::CFootBotBT() :
    m_pcRABS(NULL),
    m_rWheelVelocity(5.0f),
    m_lWheelVelocity(5.0f),
+   m_params(0.0),
+   m_trialLength(0),
    m_trackingID(0),
    m_count(0),
    m_food(0) {
@@ -110,9 +112,10 @@ void CFootBotBT::createBlackBoard(int numRobots)
 	m_blackBoard = new CBlackBoard(numRobots);
 }
 
-void CFootBotBT::setParams(float gap)
+void CFootBotBT::setParams(float gap, int trialLength)
 {
 	m_params = gap;
+	m_trialLength = trialLength;
 }
 
 void CFootBotBT::setPlayback(bool playback)
@@ -490,7 +493,7 @@ void CFootBotBT::ControlStep()
 	m_count++;
 	
 	//if (m_count == 1) // used for evostar etc, probably buggy
-	if ((m_count % 800) == 1)
+	if ((m_count % m_trialLength) == 1)
 	{
 		sendInitialSignal();
 		recordInitialPositions(tracking);
@@ -535,7 +538,7 @@ void CFootBotBT::ControlStep()
 	}
 	// end qdpy
 	
-	if ((m_count - 16) % 800 == 0)
+	if ((m_count - 16) % m_trialLength == 0)
 	{
 		//std::cout << "m_count - 16 % 160 == 0" << std::endl;
 		m_blackBoard->setInitialDensity(tracking ? std::stoi(GetId()) : -1);
@@ -543,12 +546,12 @@ void CFootBotBT::ControlStep()
 		m_blackBoard->setInitialDistanceFromFood(tracking ? std::stoi(GetId()) : -1);
 	}
 	
-	if ((m_count + 0) % 800 == 0) // evaluation time 160 for subbehaviours, 800 for foraging
+	if ((m_count + 0) % m_trialLength == 0)
 	{
 		recordFinalPositions(tracking);
 	}
 	
-	if (m_count % 800 == 0) // evaluation time 160 for subbehaviours, 800 for foraging
+	if (m_count % m_trialLength == 0)
 	{
 		//std::cout << "controlStep " << m_count << std::endl;
 		m_blackBoard->setFinalDensity(tracking ? std::stoi(GetId()) : -1);

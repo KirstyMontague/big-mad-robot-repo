@@ -3,15 +3,12 @@
 
   <framework>
     <system threads="0" />
-    <!-- // evaluation time 100 for subbehaviours 500 for foraging-->
-    <experiment length="500"
-                ticks_per_second="8"
+    <experiment ticks_per_second="8"
                 random_seed="1" />
   </framework>
 
   <controllers>
-    <footbot_bt_controller id="fswc"
-							 library="build/controllers/footbot_bt/libfootbot_bt">
+    <footbot_bt_controller id="fswc" library="build/controllers/footbot_bt/libfootbot_bt">
       <actuators>
         <differential_steering implementation="default" />
         <range_and_bearing implementation="default" />

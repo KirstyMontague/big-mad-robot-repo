@@ -23,31 +23,15 @@ CNeuralNetwork::~CNeuralNetwork()
 /****************************************/
 /****************************************/
 
-void CNeuralNetwork::Init(TConfigurationNode& t_node) {
-    // Get the number of inputs, and initialise the input vector
-    try
-    {
-        GetNodeAttribute(t_node, "num_inputs", m_unNumberOfInputs);
-    }
-    catch(CARGoSException& ex)
-    {
-        THROW_ARGOSEXCEPTION_NESTED("missing number of inputs for the neural network controller.", ex);
-    }
+void CNeuralNetwork::Init(TConfigurationNode& t_node, UInt32 numInputs, UInt32 numOutputs) {
 
+    // Set the number of inputs and initialise the input vector
+    m_unNumberOfInputs = numInputs;
     m_pfInputs = new Real[m_unNumberOfInputs];
     ::memset(m_pfInputs, 0, sizeof(Real) * m_unNumberOfInputs);
 
-    // Get the number of outputs, and initialise the output vector
-    try
-    {
-        GetNodeAttribute(t_node, "num_outputs", m_unNumberOfOutputs);
-    }
-    catch(CARGoSException& ex)
-    {
-        THROW_ARGOSEXCEPTION_NESTED("missing number of outputs for the neural network controller.", ex);
-    }
-
-    m_unNumberOfOutputs = 1;
+    // Set the number of outputs and initialise the output vector
+    m_unNumberOfOutputs = numOutputs;
     m_pfOutputs = new Real[m_unNumberOfOutputs];
     ::memset(m_pfOutputs, 0, sizeof(Real) * m_unNumberOfOutputs);
 }
