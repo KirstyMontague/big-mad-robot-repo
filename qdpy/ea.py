@@ -216,8 +216,8 @@ class EA():
 		avg = avg / len(self.container)
 		avg_string = str("%.1f" % avg)
 		
-		# no repro after this change because using RNG
-		best = self.utilities.getBestHDRandom(self.container, random.randint(0, self.params.features - 1))
+		# no repro after this change (29/7/25) because no longer using RNG
+		best = self.utilities.getBestHDRandom(self.container, 0)
 		best_length = str(len(best))
 		best_fitness = str("%.6f" % best.fitness.values[0])
 		derated = best.fitness.values[0] * self.utilities.deratingFactor(best)
