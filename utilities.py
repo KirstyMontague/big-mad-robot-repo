@@ -384,17 +384,15 @@ class Utilities():
 			vals += str("%.5f" % i)+"\t\t"
 		print (vals)
 
-	def getBestHDRandom(self, population, feature = -1):
+	def getBestHDRandom(self, population, feature = -1, derate = True):
 
 		if (feature == -1):
 			feature = random.randint(0, self.params.features - 1)
 
-		# get the best member of the population
-
 		for individual in population:
 
 			thisFitness = individual.fitness.getValues()[feature]
-			thisFitness *= self.deratingFactor(individual)
+			if derate: thisFitness *= self.deratingFactor(individual)
 
 			currentBest = False
 
@@ -414,11 +412,11 @@ class Utilities():
 
 		return best
 
-	def getBestAll(self, population):
+	def getBestAll(self, population, derate = True):
 
 		allBest = []
 		for feature in range(self.params.features):
-			allBest.append(self.getBestHDRandom(population, feature))
+			allBest.append(self.getBestHDRandom(population, feature, derate))
 		return allBest
 
 

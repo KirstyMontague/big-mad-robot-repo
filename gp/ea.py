@@ -153,8 +153,7 @@ class EA():
 		for ind in invalid_ind:
 			self.archive.addToArchive(str(ind), ind.fitness.values)
 		
-		best = self.utilities.getBestAll(population)
-		# self.printIndividuals(best, True)
+		best = self.utilities.getBestAll(population, False)
 		
 		scores = ""
 		for i in range(self.params.features):
