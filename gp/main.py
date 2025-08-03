@@ -26,8 +26,7 @@ if not params.stop:
 
 	from ea import EA
 
-	ea = EA()
-	ea.setParams(params)
+	ea = EA(params)
 
 	def parseArguments():
 		

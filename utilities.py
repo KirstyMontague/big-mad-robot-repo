@@ -41,8 +41,9 @@ class Utilities():
 	successNodes = ["successl", "successd", "f", "fr", "fl", "r", "rr", "rl", "stop"]
 	failureNodes = ["failurel", "failured"]
 	
-	def __init__(self, params):
+	def __init__(self, params, behaviours = None):
 		self.params = params
+		self.behaviours = behaviours
 	
 	def setupToolbox(self, tournament):
 
@@ -229,6 +230,16 @@ class Utilities():
 
 		return usage
 
+	def deratingFactorForForaging(self, individual):
+		
+		length = float(self.behaviours.unpack(individual))
+		
+		usage = length - 100 if length > 100 else 0
+		usage = usage / 9900 if length <= 10000 else 1
+		usage = 1 - usage
+		
+		return usage
+
 	def getTrimmedPopulation(self, offspring, redundancy):
 
 		primitivetree = gp.PrimitiveTree([])
@@ -392,7 +403,12 @@ class Utilities():
 		for individual in population:
 
 			thisFitness = individual.fitness.getValues()[feature]
-			if derate: thisFitness *= self.deratingFactor(individual)
+
+			if derate:
+				if self.params.description == "foraging":
+					thisFitness *= self.deratingFactorForForaging(individual)
+				else:
+					thisFitness *= self.deratingFactor(individual)
 
 			currentBest = False
 

@@ -26,10 +26,14 @@ import local
 
 class EA():
 
-	def setParams(self, params):
+	def __init__(self, params):
+
 		self.params = params
 		self.params.is_qdpy = False
-		self.utilities = Utilities(params)
+
+		self.behaviours = Behaviours(params, self.params.getRepertoireFilename())
+
+		self.utilities = Utilities(params, self.behaviours)
 		self.utilities.setupToolbox(self.selTournament)
 		self.utilities.saveConfigurationFile()
 
@@ -37,8 +41,6 @@ class EA():
 		self.redundancy = Redundancy()
 		self.archive = Archive(params, self.redundancy)
 		self.checkpoint = Checkpoint(params)
-
-		self.behaviours = Behaviours(params, self.params.getRepertoireFilename())
 		self.grid = QD(params, self.utilities)
 
 	def selTournament(self, individuals, k, tournsize, fit_attr="fitness"):		
@@ -158,8 +160,10 @@ class EA():
 		
 		scores = ""
 		for i in range(self.params.features):
-			# derated = best[i].fitness.values[i] * self.utilities.deratingFactor(best[i])
-			derated = best[i].fitness.values[i] * self.deratingFactorForForaging(best[i])
+			if self.params.description == "foraging":
+				derated = best[i].fitness.values[i] * self.utilities.deratingFactorForForaging(best[i])
+			else:
+				derated = best[i].fitness.values[i] * self.utilities.deratingFactor(best[i])
 			scores += str("%.7f" % derated) + " (" + str("%.7f" % best[i].fitness.values[i]) + ") \t"
 		
 		length = str(len(best[0]))+" ("+str(self.behaviours.unpack(best[0]))+")"
@@ -330,13 +334,3 @@ class EA():
 	def assignPopulationFitness(self, population, fitnesses):
 		for ind, fit in zip(population, fitnesses):
 			ind.fitness.values = fit
-
-	def deratingFactorForForaging(self, individual):
-		
-		length = float(self.behaviours.unpack(individual))
-		
-		usage = length - 100 if length > 100 else 0
-		usage = usage / 9900 if length <= 10000 else 1
-		usage = 1 - usage
-		
-		return usage
