@@ -5,21 +5,14 @@ import numpy
 
 to switch between foraging and sub-behaviours/baseline:
 
-footbot_bt.cpp 800 vs 160
-bt_loop_functions 800 vs 160
-all bt experiments 500 vs 100
-gp/ea.py derating factor
-params.py - population, tournament, features (multi-task version only)
-params.py - generations, save_period, csv_save_period (baseline only)
-params.py - using_repertoire (baseline and for writing repertoire files)
-params.py - description, indexes
+indexes
+generations, save_period, csv_save_period, using_repertoire (baseline only)
 
 
 to change repertoire
 
 params.py - update repertoire_size and repertoire_type
 archive.py - update archive path
-bt_loop_functions.cpp - update loop functions repertoire filename
 
 """
 
@@ -42,39 +35,40 @@ class eaParams():
 
 	sqrtRobots = 3
 	iterations = 5
-
-
 	num_threads = 8
 
-	populationSize = 25 # EA2
-	tournamentSize = 3 # EA2
-	features = 1 # EA2
-
-	objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
-	
-	# description = "density-nest-ifood" # EA2 # EA1
-	# indexes = [0,1,5]
-	
-	description = "foraging"
 	indexes = [6]
+	populationSize = 25
 
-	using_repertoire = True
-	repertoire_size = 64
-	repertoire_type = "mt"
-
-	stop = False
-	
 	start_gen = 0
 	generations = 100
-	
+
+	using_repertoire = True
+	repertoire_type = "qd"
+	bins_per_axis = 1
+
 	readCheckpoint = False
 	loadCheckpoint = False
 	saveOutput = False
 	saveCSV = False
-	
+
 	save_period = 100 # save checkpoint, check duplicates
 	csv_save_period = 100 # save csv, save archive
 	best_save_period = 10 # save best individual for each objective to current.txt
+
+	objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
+
+	description = ""
+	for index in indexes:
+		description += objectives[index]+"-"
+	description = description[0:-1]
+
+	populationSize *= len(indexes)
+	tournamentSize = 2 + len(indexes)
+	features = len(indexes)
+	repertoire_size = bins_per_axis ** characteristics
+
+	stop = False
 
 	if description != "foraging":
 		using_repertoire = False
@@ -160,11 +154,7 @@ class eaParams():
 					self.generations = 0
 
 	def getRepertoireFilename(self):
-		repertoire_file = "../repertoires/sub-behaviours-"
-		repertoire_file += str(self.repertoire_type)
-		repertoire_file += str(self.repertoire_size)
-		repertoire_file += "-1000gen.txt"
-		return repertoire_file
+		return "../repertoires/sub-behaviours.txt"
 
 	def getSubbehavioursFromFile(self):
 
@@ -186,7 +176,7 @@ class eaParams():
 			conditions = ["ifGotFood", "ifOnFood", "ifInNest"]
 			actions = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
 		else:
-			conditions = ["ifGotFood", "ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
+			conditions = ["ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
 			actions = ["stop", "f", "fl", "fr", "r", "rl", "rr"]
 		
 		robot = robotObject()

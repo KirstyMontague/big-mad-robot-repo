@@ -36,7 +36,7 @@ class EA():
 		self.utilities = Utilities(params)
 		self.utilities.setupToolbox(self.selTournament)
 		self.utilities.saveConfigurationFile()
-		self.redundancy = Redundancy()
+		self.redundancy = Redundancy(self.params.using_repertoire)
 		self.archive = Archive(params, self.redundancy)
 		self.logs = Logs(params, self.utilities)
 

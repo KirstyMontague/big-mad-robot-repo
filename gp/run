@@ -1,3 +1,5 @@
 
+python3 ../charts/sub-behaviours.py
+
 python3 ./main.py --seed 1 
 

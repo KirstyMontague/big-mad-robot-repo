@@ -11,7 +11,7 @@ class Behaviours():
 
     subBehaviourSizes = {}
 
-    def __init__(self, params, filename):
+    def __init__(self, params):
 
         self.params = params
 
@@ -24,10 +24,7 @@ class Behaviours():
             self.subBehaviourNodes.append("goAwayFromNest"+str(i+1))
             self.subBehaviourNodes.append("goAwayFromFood"+str(i+1))
 
-        pset = local.PrimitiveSetExtended("MAIN", 0)
-        self.params.addUnpackedNodes(pset)
-
-        f = open(filename, "r")
+        f = open(self.params.getRepertoireFilename(), "r")
 
         for line in f:
 

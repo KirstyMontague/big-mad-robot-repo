@@ -58,8 +58,9 @@ class Redundancy():
 	trailingList = [] # booleans to mark whether the node at the same index is redundant
 
 
-	def __init__(self):
+	def __init__(self, using_repertoire):
 		self.params = eaParams()
+		self.params.using_repertoire = using_repertoire
 		self.utilities = Utilities(self.params)
 		self.toolbox = base.Toolbox()
 		self.primitivetree = gp.PrimitiveTree([])

@@ -31,14 +31,14 @@ class EA():
 		self.params = params
 		self.params.is_qdpy = False
 
-		self.behaviours = Behaviours(params, self.params.getRepertoireFilename())
+		self.behaviours = Behaviours(params)
 
 		self.utilities = Utilities(params, self.behaviours)
 		self.utilities.setupToolbox(self.selTournament)
 		self.utilities.saveConfigurationFile()
 
 		self.logs = Logs(self.params, self.utilities)
-		self.redundancy = Redundancy()
+		self.redundancy = Redundancy(self.params.using_repertoire)
 		self.archive = Archive(params, self.redundancy)
 		self.checkpoint = Checkpoint(params)
 		self.grid = QD(params, self.utilities)

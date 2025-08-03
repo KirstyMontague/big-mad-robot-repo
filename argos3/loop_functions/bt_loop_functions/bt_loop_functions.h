@@ -12,7 +12,7 @@ public:
    CBTLoopFunctions();
    ~CBTLoopFunctions();
 
-   virtual void Init(TConfigurationNode& t_tree);
+   void Init(TConfigurationNode& t_tree) override;
    
    CColor GetFloorColor(const CVector2& c_position_on_plane) override;
    bool IsExperimentFinished() override;

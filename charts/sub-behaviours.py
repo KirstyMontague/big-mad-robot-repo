@@ -3,183 +3,231 @@ import pickle
 
 from deap import creator
 
-from analysis import Analysis
+import sys
+sys.path.insert(0, '..')
+import local
+
 from redundancy import Redundancy
+from params import eaParams
 
-analyse = Analysis()
-analyse.setupDeapToolbox()
+class SubBehaviours():
 
-redundancy = Redundancy()
+    def __init__(self):
 
+        self.save = True
+        self.runs = 30
 
+        self.pset = local.PrimitiveSetExtended("MAIN", 0)
+        self.params = eaParams()
+        self.params.addUnpackedNodes(self.pset)
 
-bins = 1 # 1, 2 or 4
-save = True
+        self.redundancy = Redundancy(False)
 
+        self.bins = self.params.bins_per_axis
 
+        self.sub_behaviours = {"density" : "increaseDensity",
+                               "nest" : "gotoNest",
+                               "food" : "gotoFood",
+                               "idensity" : "reduceDensity",
+                               "inest" : "goAwayFromNest",
+                               "ifood" : "goAwayFromFood"}
 
-sub_behaviours = {"density" : "increaseDensity",
-				  "nest" : "gotoNest",
-				  "food" : "gotoFood",
-				  "idensity" : "reduceDensity",
-				  "inest" : "goAwayFromNest",
-				  "ifood" : "goAwayFromFood"}
-			
-x = 0
-y = 0
-z = 0
+        self.sublists = [["food", "idensity", "inest"],
+                         ["density", "nest", "ifood"]]
 
-suffix = bins * bins * bins
+        self.subsets = ["food-idensity-inest", "density-nest-ifood"]
 
-def getQdRepertoire():
+        self.input_path = ".."
+        self.input_dir = "results"
+        self.output_filename = "../repertoires/sub-behaviours.txt"
 
-	output_filename = "../repertoires/sub-behaviours-qd"+str(suffix)+"-1000gen.txt"
-	print(output_filename)
+    def run(self):
 
-	if save:
-		with open(output_filename, 'w') as f:
-			f.write("")
+        self.params.configure()
+        if self.params.description == "foraging" and self.params.stop == False:
 
-	for objective in sub_behaviours:
+            if self.save:
+                with open(self.output_filename, 'w') as f:
+                    f.write("")
 
-		containers = []
+            if self.params.repertoire_type == "mt": self.getMtRepertoire()
+            else: self.getQdRepertoire()
 
-		for seed in range(1,31):
-			
-			input_filename = "../qdpy/results/"+objective+"/"+str(seed)+"/seed"+str(seed)+"-iteration1000.p"
-			
-			with open(input_filename, "rb") as f:
-				data = pickle.load(f)
-			
-			for i in data:
-				if str(i) == "container":
-					container = data[i]
+    def getQdRepertoire(self):
 
-			containers.append(container)
-		
-		for a in range(bins):
-			
-			xa = int(a*8/bins)
-		
-			for b in range(bins):
-		
-				yb = int(b*8/bins)
-				
-				for c in range(bins):
-			
-					zc = int(c*8/bins)
-				
-					index = a*bins*bins + b*bins + c + 1
-				
-					output = ""
-					ind = analyse.getBestEverFromSubset(containers, objective, xa, yb, zc, bins)
-			
-					# output += "analyse.getBestEverFromSubset("+objective+", "+str(xa)+", "+str(yb)+", "+str(zc)+")\n"
+        for objective in self.sub_behaviours:
 
-					if ind is not None:
-						trimmed = redundancy.removeRedundancy(str(ind))
-						trimmed = [creator.Individual.from_string(trimmed, analyse.pset)][0]
+            containers = []
 
-						output += sub_behaviours[objective]+str(index)
-						# output += " was "+str(len(ind)) + " now "
-						# output += str(len(trimmed))+"\n"
-						output += " "+str(trimmed)
-						# output += sub_behaviours[objective]+str(index)+" "+str(trimmed)+"\n"
-						# output += sub_behaviours[objective]+str(index)+" "+str(ind.fitness)
-						# print (sub_behaviours[objective]+str(index)+" "+str(trimmed))
-						# output += "\n"
+            for seed in range(1, self.runs + 1):
 
-						if save:
-							with open(output_filename, 'a') as f:
-								f.write(sub_behaviours[objective]+str(index)+" "+str(trimmed))
-								f.write("\n")
+                input_filename = self.input_path+"/qdpy/"+self.input_dir+"/"+objective+"/"+str(seed)+"/seed"+str(seed)+"-iteration1000.p"
 
-						print (output)
+                with open(input_filename, "rb") as f:
+                    data = pickle.load(f)
 
-					else:
-						output += objective+str(index)+" not found"
-						print(output)
+                for i in data:
+                    if str(i) == "container":
+                        container = data[i]
 
+                containers.append(container)
 
-sublists = [["food", "idensity", "inest"],
-			["density", "nest", "ifood"]]
+            for a in range(self.bins):
 
-subsets = ["food-idensity-inest", "density-nest-ifood"]
+                xa = int(a*8/self.bins)
 
-def getMtRepertoire():
+                for b in range(self.bins):
 
-	output_filename = "../repertoires/sub-behaviours-mt"+str(suffix)+"-1000gen.txt"
-	print(output_filename)
+                    yb = int(b*8/self.bins)
 
-	if save:
-		with open(output_filename, 'w') as f:
-			f.write("")
+                    for c in range(self.bins):
 
-	for combination in range(len(sublists)):
+                        zc = int(c*8/self.bins)
 
-		subset = subsets[combination]
-		sublist = sublists[combination]
+                        index = a*self.bins*self.bins + b*self.bins + c + 1
 
-		seeds = []
+                        output = ""
+                        ind = self.getBestEverFromSubset(containers, objective, xa, yb, zc, self.bins)
 
-		for seed in range(1,31):
+                        if ind is not None:
+                            trimmed = self.redundancy.removeRedundancy(str(ind))
+                            trimmed = [creator.Individual.from_string(trimmed, self.pset)][0]
 
-			input_filename = "../gp/results/"+subset+"/"+str(seed)+"/checkpoint-"+subset+"-"+str(seed)+"-1000.pkl"
-			with open(input_filename, "rb") as f:
-				checkpoint = pickle.load(f)
+                            output += self.sub_behaviours[objective]+str(index)
+                            output += " "+str(trimmed)
+                            print (output)
 
-			seeds.append(checkpoint["containers"])
+                            if self.save:
+                                with open(self.output_filename, 'a') as f:
+                                    f.write(self.sub_behaviours[objective]+str(index)+" "+str(trimmed))
+                                    f.write("\n")
 
-		containers = {}
-		for objective in range(0,3):
-			containers[sublist[objective]] = []
-			for seed in range(0,30):
-				container = seeds[seed][objective]
-				containers[sublist[objective]].append(container)
+                        else:
+                            output += objective+str(index)+" not found"
+                            print(output)
+
+    def getMtRepertoire(self):
+
+        for combination in range(len(self.sublists)):
+
+            subset = self.subsets[combination]
+            sublist = self.sublists[combination]
+
+            seeds = []
+            for seed in range(1, self.runs + 1):
+
+                input_filename = self.input_path+"/gp/"+self.input_dir+"/"+subset+"/"+str(seed)+"/checkpoint-"+subset+"-"+str(seed)+"-1000.pkl"
+                with open(input_filename, "rb") as f:
+                    checkpoint = pickle.load(f)
+
+                seeds.append(checkpoint["containers"])
+
+            containers = {}
+            for objective in range(0, 3):
+                containers[sublist[objective]] = []
+                for seed in range(0, self.runs):
+                    container = seeds[seed][objective]
+                    containers[sublist[objective]].append(container)
 
 
-		for objective in sublist:
+            for objective in sublist:
 
-			for a in range(bins):
+                for a in range(self.bins):
 
-				xa = int(a*8/bins)
+                    xa = int(a*8/self.bins)
 
-				for b in range(bins):
+                    for b in range(self.bins):
 
-					yb = int(b*8/bins)
+                        yb = int(b*8/self.bins)
 
-					for c in range(bins):
+                        for c in range(self.bins):
 
-						zc = int(c*8/bins)
+                            zc = int(c*8/self.bins)
 
-						index = a*bins*bins + b*bins + c + 1
+                            index = a*self.bins*self.bins + b*self.bins + c + 1
 
-						output = ""
-						ind = analyse.getBestEverFromSubset(containers[objective], objective, xa, yb, zc, bins)
+                            output = ""
+                            ind = self.getBestEverFromSubset(containers[objective], objective, xa, yb, zc, self.bins)
 
-						if ind is not None:
+                            if ind is not None:
 
-							trimmed = redundancy.removeRedundancy(str(ind))
-							trimmed = [creator.Individual.from_string(trimmed, analyse.pset)][0]
+                                trimmed = self.redundancy.removeRedundancy(str(ind))
+                                trimmed = [creator.Individual.from_string(trimmed, self.pset)][0]
 
-							output += sub_behaviours[objective]+str(index)
-							# output += " "+str(xa)+" "+str(yb)+" "+str(zc)
-							output += " "+str(trimmed)
-							# output += " "+str(len(trimmed))
-							# output += "\n"+str(ind.fitness)
-							# output += "\n"
-							print (output)
+                                output += self.sub_behaviours[objective]+str(index)
+                                output += " "+str(trimmed)
+                                print (output)
 
-							if save:
-								with open(output_filename, 'a') as f:
-									f.write(sub_behaviours[objective]+str(index)+" "+str(trimmed))
-									f.write("\n")
+                                if self.save:
+                                    with open(self.output_filename, 'a') as f:
+                                        f.write(self.sub_behaviours[objective]+str(index)+" "+str(trimmed))
+                                        f.write("\n")
 
-						else:
-							output += sub_behaviours[objective]+str(index)
-							output += " "+str(xa)+" "+str(yb)+" "+str(zc)
-							output += " not found"
+                            else:
+                                output += self.sub_behaviours[objective]+str(index)
+                                output += " "+str(xa)+" "+str(yb)+" "+str(zc)
+                                output += " not found"
 
+    def deratingFactor(self, individual):
 
+        length = float(len(individual))
+        usage = length - 10 if length > 10 else 0
+        usage = usage / 990 if length <= 1000 else 1
+        usage = 1 - usage
 
-getMtRepertoire()
+        return usage
+
+    def getBestFromBin(self, container, index):
+
+        if len(container.solutions[index]) == 0:
+            return None
+
+        best = container.solutions[index][0]
+        for ind in container.solutions[index]:
+            ind_fitness = ind.fitness.values[0] * self.deratingFactor(ind)
+            best_fitness = best.fitness.values[0] * self.deratingFactor(best)
+            if ind_fitness > best_fitness:
+                best = ind
+
+        return best
+
+    def getBestFromSubset(self, container, x, y, z, bins):
+
+        best = None
+        limit = int(8/bins)
+
+        for i in range(x, x+limit):
+            for j in range(y, y+limit):
+                for k in range(z, z+limit):
+                    ind = self.getBestFromBin(container, (i,j,k))
+                    if best == None:
+                        best = ind
+                    elif not ind == None:
+                        ind_fitness = ind.fitness.values[0] * self.deratingFactor(ind)
+                        best_fitness = best.fitness.values[0] * self.deratingFactor(best)
+                        if ind_fitness > best_fitness:
+                            best = ind
+
+        return best
+
+    def getBestEverFromSubset(self, containers, objective, x, y, z, bins):
+
+        best = None
+
+        for container in containers:
+
+            ind = self.getBestFromSubset(container, x, y, z, bins)
+
+            if best == None:
+                best = ind
+
+            elif not ind == None:
+                ind_fitness = ind.fitness.values[0] * self.deratingFactor(ind)
+                best_fitness = best.fitness.values[0] * self.deratingFactor(best)
+                if ind_fitness > best_fitness:
+                    best = ind
+
+        return best
+
+sub_behaviours = SubBehaviours()
+sub_behaviours.run()
