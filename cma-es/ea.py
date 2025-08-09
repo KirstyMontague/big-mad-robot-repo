@@ -3,6 +3,8 @@ import time
 
 from utilities import Utilities
 from archive import Archive
+from params import Params
+
 
 
 class EA():
@@ -11,89 +13,66 @@ class EA():
 
         start_time = round(time.time() * 1000)
 
-        self.utilities = Utilities()
-
-        self.utilities.population_size = 8
-        self.utilities.elites = 3
-        self.utilities.sigma = 5.0
-
-        num_inputs = 9
-        num_hidden = 5
-        num_outputs = 1
-
-        self.utilities.seed = 1
-        self.generations = 3
-        self.sqrtRobots = 3
-        self.saveOutput = False
-        self.saveCSV = False
-        self.utilities.objective = "density"
-        self.utilities.indexes = [0]
-        self.utilities.num_threads = 8
-        self.cancelled = False
-        self.csv = "./test/"+self.utilities.objective+"/results.csv"
+        self.params = Params()
+        self.utilities = Utilities(self.params)
+        self.archive = Archive(self.utilities, self.params)
 
         self.configure()
-        if self.cancelled: return
+        if self.params.cancelled: return
 
-        if self.utilities.seed == 0: self.utilities.seed = self.utilities.parseArguments()
-        if self.utilities.seed == None:
+        if self.params.seed == 0: self.params.seed = self.utilities.parseArguments()
+        if self.params.seed == None:
             print("no seed")
             return
 
-        self.utilities.num_inputs = num_inputs
-        self.utilities.num_hidden = num_hidden
-        self.utilities.num_outputs = num_outputs
-        self.utilities.ind_size = (num_inputs * num_hidden) + num_hidden + (num_hidden * num_outputs) + num_outputs
-        self.utilities.setupToolbox()
-
-        self.archive = Archive(self.utilities)
+        self.utilities.setSeed()
         self.archive.loadArchives()
 
-        experiment_length = 500 if self.utilities.objective == "foraging" else 100
+        experiment_length = 500 if self.params.objective == "foraging" else 100
         with open('../txt/configuration.txt', 'w') as f:
-            f.write("numInputs:"+str(self.utilities.num_inputs))
+            f.write("numInputs:"+str(self.params.num_inputs))
             f.write("\n")
-            f.write("numHidden:"+str(self.utilities.num_hidden))
+            f.write("numHidden:"+str(self.params.num_hidden))
             f.write("\n")
-            f.write("numOutputs:"+str(self.utilities.num_outputs))
+            f.write("numOutputs:"+str(self.params.num_outputs))
             f.write("\n")
             f.write("experimentLength:"+str(experiment_length))
             f.write("\n")
-            f.write("sqrtRobots:"+str(self.sqrtRobots))
+            f.write("sqrtRobots:"+str(self.params.sqrt_robots))
 
         population = self.eaLoop()
 
         end_time = round(time.time() * 1000)
         self.utilities.printDuration(start_time, end_time)
-        
+
         best = self.utilities.getBest(population)[0]
         bestFitness = best.fitness.getValues()[0]
         print(bestFitness)
 
         with open('../txt/best.txt', 'w') as f:
-            f.write(str(self.utilities.ind_size))
+            f.write(str(self.params.ind_size))
             for s in best:
                 f.write(" ")
                 f.write(str(s))
-        
-        if self.saveOutput:
+
+        if self.params.saveOutput:
             self.archive.saveArchive()
-        
-        csv_string = str(self.utilities.objective) +","
-        csv_string += str(self.utilities.seed) +","
-        csv_string += str(self.generations) +","
+
+        csv_string = str(self.params.objective) +","
+        csv_string += str(self.params.seed) +","
+        csv_string += str(self.params.generations) +","
         csv_string += str(bestFitness) +","
         for c in best:
             csv_string += str(c) + " "
         csv_string = csv_string[0:-1]
         csv_string += "\n"
         print(csv_string)
-        
-        if self.saveCSV:
-            with open(self.csv, 'a') as f:
+
+        if self.params.saveCSV:
+            with open(self.params.csv, 'a') as f:
                 f.write(csv_string)
 
-        # if self.cancelled == False: time.sleep(30.0)
+        # if self.params.cancelled == False: time.sleep(30.0)
 
 
     def eaLoop(self):
@@ -103,11 +82,11 @@ class EA():
         self.utilities.toolbox.update_first_gen(population)
 
         gen = 0
-        while gen < self.generations:
+        while gen < self.params.generations:
 
             gen += 1
 
-            elites = self.utilities.getBest(population, self.utilities.elites)
+            elites = self.utilities.getBest(population, self.params.elites)
 
             population = self.utilities.toolbox.generate()
             population = elites + population
@@ -120,7 +99,7 @@ class EA():
         return population
 
     def evaluateNewPopulation(self, generation, population):
-        
+
         invalid_ind = [ind for ind in population if not ind.fitness.valid]
         invalid_orig = len(invalid_ind)
 
@@ -130,23 +109,23 @@ class EA():
 
         invalid_ind = [ind for ind in population if not ind.fitness.valid]
         invalid_new = len(invalid_ind)
-        
+
         self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
     
         for ind in invalid_ind:
             self.archive.addToArchive(ind)
-        
+
         for ind in archive_ind:
             self.archive.addToCompleteArchive(ind)
 
         best = self.utilities.getBest(population)[0]
-        
+
         scores = ""
         for i in range(1): # should come from params (features)
             scores += str("%.7f" % best.fitness.getValues()[i]) + "\t"
-        
+
         if (generation % 1 == 0 or invalid_new > 0):
-            print ("\t"+str(self.utilities.seed)+" - "+str(generation)+" - "+str(scores)+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
+            print ("\t"+str(self.params.seed)+" - "+str(generation)+" - "+str(scores)+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 
     def assignFitness(self, offspring, fitness):
         offspring.fitness.values = fitness
@@ -162,12 +141,12 @@ class EA():
             if len(data) > 0:
                 for d in data:
                     print(d)
-                if data[0] == "generations": self.generations = int(data[1])
-                if data[0] == "saveOutput": self.saveOutput = False if data[1] == "False" else True
-                if data[0] == "saveCSV": self.saveCSV = False if data[1] == "False" else True
+                if data[0] == "generations": self.params.generations = int(data[1])
+                if data[0] == "saveOutput": self.params.saveOutput = False if data[1] == "False" else True
+                if data[0] == "saveCSV": self.params.saveCSV = False if data[1] == "False" else True
                 if data[0] == "cancel":
-                    self.saveOutput = False
-                    self.saveCSV = False
-                    self.generations = 0
-                    self.cancelled = True
-        
+                    self.params.saveOutput = False
+                    self.params.saveCSV = False
+                    self.params.generations = 0
+                    self.params.cancelled = True
+

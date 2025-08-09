@@ -14,6 +14,10 @@ import argparse
 
 class Utilities():
 
+    def __init__(self, params):
+        self.params = params
+        self.setupToolbox()
+
     def setupToolbox(self):
 
         toolbox = base.Toolbox()
@@ -21,15 +25,13 @@ class Utilities():
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
         creator.create("Individual", list, fitness=creator.FitnessMax)
 
-        numpy.random.seed(self.seed)
-
         toolbox.register("evaluate", self.evaluateRobot)
 
-        strategy = cma.Strategy(centroid=[0.0]*self.ind_size, sigma=self.sigma, lambda_=self.population_size - self.elites)
+        strategy = cma.Strategy(centroid=[0.0]*self.params.ind_size, sigma=self.params.sigma, lambda_=self.params.population_size - self.params.elites)
         toolbox.register("generate", strategy.generate, creator.Individual)
         toolbox.register("update", strategy.update)
 
-        initial_strategy = cma.Strategy(centroid=[0.0]*self.ind_size, sigma=self.sigma, lambda_=self.population_size)
+        initial_strategy = cma.Strategy(centroid=[0.0]*self.params.ind_size, sigma=self.params.sigma, lambda_=self.params.population_size)
         toolbox.register("generate_first_gen", initial_strategy.generate, creator.Individual)
         toolbox.register("update_first_gen", initial_strategy.update)
 
@@ -40,26 +42,29 @@ class Utilities():
 
         self.toolbox = toolbox
 
+    def setSeed(self):
+        numpy.random.seed(self.params.seed)
+
     def evaluateRobot(self, individual, thread_index):
         
         # save number of robots and chromosome to file
         with open('../txt/chromosome'+str(thread_index)+'.txt', 'w') as f:
-            f.write(str(self.ind_size))
+            f.write(str(self.params.ind_size))
             for s in individual:
                 f.write(" ")
                 f.write(str(s))
-        
+
         totals = [0.0]
-        
+
         fitness = []
         features = []
         robots = {}
         seed = 0
-        
+
         sqrtRobots = 3 # should come from params (sqrtRobots)
-        
+
         for i in [0.5, 0.7]: # should come from params (arena params)
-            
+
             # write seed to file
             seed += 1
             with open('../txt/seed'+str(thread_index)+'.txt', 'w') as f:
@@ -69,10 +74,10 @@ class Utilities():
 
             # run argos
             subprocess.call(["/bin/bash", "./evaluate"+str(thread_index), "", "./"])
-            
+
             # result from file
             f = open("../txt/result"+str(thread_index)+".txt", "r")
-            
+
             # print ("")
             for line in f:
                 first = line[0:line.find(" ")]
@@ -83,26 +88,26 @@ class Utilities():
                     robots[robotId] = []
                     for j in range(7):
                         for k in range(5): # should come from params (iterations)
-                            if j in self.indexes:
+                            if j in self.params.indexes:
                                 index = (j * 5) + k + 2 # should come from params (j * self.params.iterations) + k + 2
                                 robots[robotId].append(float(lines[index]))
-            
+
             # get scores for each robot and add to cumulative total
             totals[0] += self.collectFitnessScore(robots, 0)
-            
+
         # divide to get average per seed and arena configuration then apply derating factor
         deratingFactor = 1.0
         features = []
-        
+
         for i in range(1): # should come from params (features)
             fitness.append(self.getAvgAndDerate(totals[i], deratingFactor))
-        
+
         return fitness
 
     def collectFitnessScore(self, robots, feature, maxScore = 1.0):
 
         thisFitness = 0.0
-        
+
         # get food collected by each robot and add to cumulative total
         for r in (range(len(robots))):
             for i in range(5): # should come from params (iterations)
@@ -111,7 +116,7 @@ class Utilities():
         # divide to get average for this iteration, normalise and add to running total
         thisFitness /= 3*3 # should come from params (sqrtRobots)
         thisFitness /= maxScore
-        
+
         return thisFitness
 
     def getAvgAndDerate(self, score, deratingFactor):
@@ -170,17 +175,17 @@ class Utilities():
     def split(self, assign_fitness, population):
 
         pop = []
-        for i in range(self.num_threads):
+        for i in range(self.params.num_threads):
             pop.append([])
 
         for i in range(len(population)):
-            for j in range(self.num_threads):
-                if i % self.num_threads == j:
+            for j in range(self.params.num_threads):
+                if i % self.params.num_threads == j:
                     pop[j].append(population[i])
                     continue
 
         threads = []
-        for i in range(self.num_threads):
+        for i in range(self.params.num_threads):
             threads.append(threading.Thread(target=self.evaluation_functions[i], args=(assign_fitness, [pop[i]], getattr(self.toolbox, "evaluate"+str(i+1)))))
 
         for thread in threads:
