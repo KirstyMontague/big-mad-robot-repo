@@ -8,7 +8,7 @@ from params import Params
 
 
 class EA():
-
+    
     def __init__(self):
 
         start_time = round(time.time() * 1000)
@@ -110,8 +110,10 @@ class EA():
         invalid_ind = [ind for ind in population if not ind.fitness.valid]
         invalid_new = len(invalid_ind)
 
-        self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
-    
+        trimmed = self.utilities.trimPopulationPrecision(invalid_ind)
+        self.utilities.evaluate(self.assignPopulationFitness, trimmed)
+        self.transferTrimmedFitnessScores(invalid_ind, trimmed)
+
         for ind in invalid_ind:
             self.archive.addToArchive(ind)
 
@@ -126,6 +128,10 @@ class EA():
 
         if (generation % 1 == 0 or invalid_new > 0):
             print ("\t"+str(self.params.seed)+" - "+str(generation)+" - "+str(scores)+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
+
+    def transferTrimmedFitnessScores(self, invalid_ind, trimmed):
+        for i in range(len(invalid_ind)):
+            invalid_ind[i].fitness.values = trimmed[i].fitness.values
 
     def assignFitness(self, offspring, fitness):
         offspring.fitness.values = fitness

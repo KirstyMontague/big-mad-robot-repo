@@ -165,6 +165,28 @@ class Utilities():
         if args.seed != None:
             return args.seed
 
+    def trimPopulationPrecision(self, population):
+
+        trimmed = [creator.Individual(a) for a in numpy.zeros((len(population), self.params.ind_size))]
+
+        for i in range(len(population)):
+            trimmed[i] = self.trimIndividualPrecision(population[i])
+
+        return trimmed
+
+    def trimIndividualPrecision(self, ind):
+
+        trimmed_ind = creator.Individual(numpy.zeros((self.params.ind_size)))
+
+        if self.params.precision != 0:
+            for i in range(self.params.ind_size):
+                trimmed_ind[i] = round(ind[i], self.params.precision)
+        else:
+            for i in range(self.params.ind_size):
+                trimmed_ind[i] = ind[i]
+
+        return trimmed_ind
+
     def evaluate(self, assign_fitness, invalid_ind):
 
         # fitnesses = self.toolbox.map(self.toolbox.evaluate, invalid_ind)

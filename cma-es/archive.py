@@ -81,7 +81,8 @@ class Archive():
 
     def addToArchive(self, ind):
 
-        chromosome_string = self.getChromosomeString(ind)
+        trimmed = self.utilities.trimIndividualPrecision(ind)
+        chromosome_string = self.getChromosomeString(trimmed)
         
         if chromosome_string in self.getArchive():
             # should only be true if chromosome is new but duplicated in this generation, otherwise would have been caught by assignDuplicateFitnessScores
@@ -97,7 +98,8 @@ class Archive():
 
     def addToCompleteArchive(self, ind):
 
-        chromosome_string = self.getChromosomeString(ind)
+        trimmed = self.utilities.trimIndividualPrecision(ind)
+        chromosome_string = self.getChromosomeString(trimmed)
         
         if chromosome_string not in self.complete_archive:
             self.complete_archive.update({str(chromosome_string) : ind.fitness.values[0]})
@@ -105,7 +107,8 @@ class Archive():
 
     def assignDuplicateFitness(self, offspring, assign_fitness, matched):
 
-        offspring_strings = self.getChromosomeStrings(offspring)
+        trimmed = self.utilities.trimPopulationPrecision(offspring)
+        offspring_strings = self.getChromosomeStrings(trimmed)
         
         archive = self.getArchive()
         cumulative_archive = self.getCumulativeArchive()
