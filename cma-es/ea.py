@@ -1,68 +1,53 @@
-# from deap
-from operator import attrgetter
 
-# from main
-import random
-
-# from bmrr
-from deap import algorithms
-from deap import creator
-from deap import tools
-
-# from bmrr
 import time
 
 from utilities import Utilities
 from archive import Archive
 
-# to evaluate one chromosome
-import subprocess
 
 class EA():
-    
-    def eaInit(self, cxpb, mutpb):
+
+    def __init__(self):
 
         start_time = round(time.time() * 1000)
-        
+
         self.utilities = Utilities()
-        
-        self.description = "action nodes - min/max val -1 to 1 and 10 hidden nodes"
 
-        self.utilities.ind_size = 111
-        self.utilities.min_value = -1
-        self.utilities.max_value = 1
-        self.utilities.min_strategy = 0.5
-        self.utilities.max_strategy = 3
-        self.utilities.num_inputs = 9
-        self.utilities.num_hidden = 10
-        self.utilities.num_outputs = 1
+        self.utilities.population_size = 8
+        self.utilities.elites = 3
+        self.utilities.sigma = 5.0
 
-        mu, lambda_ = 25,25
-        
-        self.seed = 0
-        self.generations = 0
+        num_inputs = 9
+        num_hidden = 5
+        num_outputs = 1
+
+        self.utilities.seed = 1
+        self.generations = 3
         self.sqrtRobots = 3
         self.saveOutput = False
         self.saveCSV = False
         self.utilities.objective = "density"
         self.utilities.indexes = [0]
-        
-        #  self.evaluateOneIndividual()
-        #  return
-
-        self.precision = 4
-
-        self.csv = "./test/"+self.utilities.objective+"/results.csv"
-        
-        if self.seed == 0: self.seed = self.utilities.parseArguments()
+        self.utilities.num_threads = 8
         self.cancelled = False
-        
-        self.utilities.setupToolbox(self.selTournament, self.precision)
+        self.csv = "./test/"+self.utilities.objective+"/results.csv"
+
+        self.configure()
+        if self.cancelled: return
+
+        if self.utilities.seed == 0: self.utilities.seed = self.utilities.parseArguments()
+        if self.utilities.seed == None:
+            print("no seed")
+            return
+
+        self.utilities.num_inputs = num_inputs
+        self.utilities.num_hidden = num_hidden
+        self.utilities.num_outputs = num_outputs
+        self.utilities.ind_size = (num_inputs * num_hidden) + num_hidden + (num_hidden * num_outputs) + num_outputs
+        self.utilities.setupToolbox()
+
         self.archive = Archive(self.utilities)
-        
-        
-        self.archive.getArchives(self.seed)
-        random.seed(self.seed)
+        self.archive.loadArchives()
 
         experiment_length = 500 if self.utilities.objective == "foraging" else 100
         with open('../txt/configuration.txt', 'w') as f:
@@ -73,33 +58,29 @@ class EA():
             f.write("numOutputs:"+str(self.utilities.num_outputs))
             f.write("\n")
             f.write("experimentLength:"+str(experiment_length))
-        
-        toolbox = self.utilities.toolbox
-        population = toolbox.population(n=mu)
+            f.write("\n")
+            f.write("sqrtRobots:"+str(self.sqrtRobots))
 
-        self.evaluateNewPopulation(0, population)
+        population = self.eaLoop()
 
-        pop = self.eaLoop(population, toolbox, mu, lambda_, cxpb, mutpb)
-        
         end_time = round(time.time() * 1000)
         self.utilities.printDuration(start_time, end_time)
         
-            
-        best = self.utilities.getBest(population)
+        best = self.utilities.getBest(population)[0]
         bestFitness = best.fitness.getValues()[0]
         print(bestFitness)
 
-        with open('./chromosome.txt', 'w') as f:
-            f.write("20")
+        with open('../txt/best.txt', 'w') as f:
+            f.write(str(self.utilities.ind_size))
             for s in best:
                 f.write(" ")
                 f.write(str(s))
         
         if self.saveOutput:
-            self.archive.saveArchive(self.seed)
+            self.archive.saveArchive()
         
         csv_string = str(self.utilities.objective) +","
-        csv_string += str(self.seed) +","
+        csv_string += str(self.utilities.seed) +","
         csv_string += str(self.generations) +","
         csv_string += str(bestFitness) +","
         for c in best:
@@ -109,61 +90,34 @@ class EA():
         print(csv_string)
         
         if self.saveCSV:
-            
             with open(self.csv, 'a') as f:
                 f.write(csv_string)
 
         # if self.cancelled == False: time.sleep(30.0)
 
-        return pop
 
+    def eaLoop(self):
 
-    def eaLoop(self, population, toolbox, mu, lambda_, cxpb, mutpb):
-
-        toolbox = self.utilities.toolbox
-
-        #  with open(self.csv, 'w') as f:
-            #  f.write("")
+        population = self.utilities.toolbox.generate_first_gen()
+        self.evaluateNewPopulation(0, population)
+        self.utilities.toolbox.update_first_gen(population)
 
         gen = 0
         while gen < self.generations:
-            
+
             gen += 1
+
+            elites = self.utilities.getBest(population, self.utilities.elites)
+
+            population = self.utilities.toolbox.generate()
+            population = elites + population
+
+            self.evaluateNewPopulation(gen, population)
+            self.utilities.toolbox.update(population)
+
             self.configure()
-            
-            # ===================
-                
-            best = self.utilities.getBest(population)
-            bestFitness = best.fitness.getValues()[0]
 
-            # ===================
-                
-            elites = []
-            for i in range(1): # should come from params (features)
-                elites.append(self.utilities.getBest(population))
-            
-            offspring = []
-            for ind in population:
-                if ind not in elites:
-                    offspring.append(ind)
-            
-            offspring = algorithms.varOr(offspring, toolbox, lambda_, cxpb, mutpb)
-
-            if self.precision != 0:
-                for ind in offspring:
-                    for i in range(self.utilities.ind_size):
-                        ind[i] = round(ind[i], self.precision)
-                    
-
-            self.evaluateNewPopulation(gen, elites + offspring)
-            
-            # hard coded for only one elite
-            elites[0] = self.utilities.getBest(elites + offspring)
-
-            population[:] = elites + toolbox.select(offspring, mu - len(elites))
-            
         return population
-
 
     def evaluateNewPopulation(self, generation, population):
         
@@ -185,30 +139,21 @@ class EA():
         for ind in archive_ind:
             self.archive.addToCompleteArchive(ind)
 
-        best = self.utilities.getBest(population)
+        best = self.utilities.getBest(population)[0]
         
         scores = ""
         for i in range(1): # should come from params (features)
             scores += str("%.7f" % best.fitness.getValues()[i]) + "\t"
         
         if (generation % 1 == 0 or invalid_new > 0):
-            print ("\t"+str(generation)+" - "+str(scores)+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
-            
-        return population
-            
+            print ("\t"+str(self.utilities.seed)+" - "+str(generation)+" - "+str(scores)+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
+
     def assignFitness(self, offspring, fitness):
         offspring.fitness.values = fitness
 
     def assignPopulationFitness(self, population, fitnesses):
         for ind, fit in zip(population, fitnesses):
             ind.fitness.values = fit
-
-    def selTournament(self, individuals, k, tournsize, fit_attr="fitness"):
-        chosen = []
-        for i in range(k):
-            aspirants = tools.selRandom(individuals, tournsize)
-            chosen.append(max(aspirants, key=attrgetter(fit_attr)))
-        return chosen
 
     def configure(self):
         f = open("../config.txt", "r")
@@ -226,65 +171,3 @@ class EA():
                     self.generations = 0
                     self.cancelled = True
         
-    def evaluateOneIndividual(self):
-        
-        # evaluates the individual in ./chromosome.txt and prints its fitness score
-        
-        thread_index = 1
-        
-        with open('./chromosome.txt', 'r') as f:
-            for line in f:
-                chromosome = line
-        
-        with open('./txt/chromosome'+str(thread_index)+'.txt', 'w') as f:
-            f.write(line)
-
-        totals = [0.0]
-        
-        fitness = []
-        features = []
-        robots = {}
-        seed = 0
-        
-        sqrtRobots = 3 # should come from params (sqrtRobots)
-        
-        for i in [0.5, 0.7]: # should come from params (arena params)
-            
-            # write seed to file
-            seed += 1
-            with open('./txt/seed'+str(thread_index)+'.txt', 'w') as f:
-                f.write(str(seed))
-                f.write("\n")
-                f.write(str(sqrtRobots))
-                f.write("\n")
-                f.write(str(i))
-
-            # run argos
-            subprocess.call(["/bin/bash", "./evaluate"+str(thread_index), "", "./"])
-            
-            # result from file
-            f = open("./txt/result"+str(thread_index)+".txt", "r")
-            
-            for line in f:
-                first = line[0:line.find(" ")]
-                if (first == "result"):
-                    lines = line.split()
-                    robotId = int(float(lines[1]))
-                    robots[robotId] = []
-                    for j in range(7):
-                        for k in range(5): # should come from params (iterations)
-                            if j in self.utilities.indexes:
-                                index = (j * 5) + k + 2 # should come from params (j * self.params.iterations) + k + 2
-                                robots[robotId].append(float(lines[index]))
-            
-            # get scores for each robot and add to cumulative total
-            totals[0] += self.utilities.collectFitnessScore(robots, 0)
-            
-        # divide to get average per seed and arena configuration then apply derating factor
-        deratingFactor = 1.0
-        features = []
-        
-        for i in range(1): # should come from params (features)
-            fitness.append(self.utilities.getAvgAndDerate(totals[i], deratingFactor))
-        
-        print(fitness)

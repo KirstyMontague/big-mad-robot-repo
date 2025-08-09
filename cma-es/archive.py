@@ -1,9 +1,6 @@
 
 import os
 import pickle
-#  import re
-
-
 
 class Archive():
 
@@ -36,16 +33,17 @@ class Archive():
     def getCompleteArchive(self):
         return self.complete_archive
 
-    def getArchives(self, seed):
+    def loadArchives(self):
 
         archive = self.getArchive()
         cumulative_archive = self.getCumulativeArchive()
+        complete_archive = self.getCompleteArchive()
 
         use_temp_archive = (self.input_path == "test")
 
         for i in range(15):
             archive_path = "./"+self.input_path+"/"+self.input_directory+"/"
-            if not use_temp_archive or seed != i + 1:
+            if not use_temp_archive or self.utilities.seed != i + 1:
                 if os.path.exists(archive_path+"archive"+str(i+1)+".pkl"):
                     with open(archive_path+"archive"+str(i+1)+".pkl", "rb") as archive_file:
                         cumulative_archive.update(pickle.load(archive_file))
@@ -53,14 +51,15 @@ class Archive():
                 print ("disregarding "+str(i + 1))
 
         temp_archive = {}
-        if use_temp_archive and os.path.exists(self.output_directory+"/archive"+str(seed)+".pkl"):
-            with open(self.output_directory+"/archive"+str(seed)+".pkl", "rb") as archive_file:
+        if use_temp_archive and os.path.exists(self.output_directory+"/archive"+str(self.utilities.seed)+".pkl"):
+            with open(self.output_directory+"/archive"+str(self.utilities.seed)+".pkl", "rb") as archive_file:
                 temp_archive = pickle.load(archive_file)
 
         i = 0
         for chromosome, scores in temp_archive.items():
             if i < len(temp_archive) - 0:
                 archive.update({str(chromosome) : scores})
+                complete_archive.update({str(chromosome) : scores})
                 i += 1
 
         self.setArchive(archive)
@@ -68,7 +67,7 @@ class Archive():
         print("archive length "+str(len(archive)))
         print("cumulative archive length "+str(len(cumulative_archive)))
 
-    def saveArchive(self, seed):
+    def saveArchive(self):
 
         archive = self.getCompleteArchive()
         archive_string = ""
@@ -76,7 +75,7 @@ class Archive():
         for chromosome, scores in archive.items():
             archive_dict.update({chromosome : scores})
 
-        with open(self.output_directory+"/archive"+str(seed)+".pkl", "wb") as archive_file:
+        with open(self.output_directory+"/archive"+str(self.utilities.seed)+".pkl", "wb") as archive_file:
              pickle.dump(archive_dict, archive_file)
 
     def addToArchive(self, ind):

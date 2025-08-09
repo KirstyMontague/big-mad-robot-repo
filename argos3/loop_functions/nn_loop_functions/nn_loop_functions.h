@@ -5,9 +5,6 @@
 #include <argos3/core/simulator/loop_functions.h>
 #include <chrono>
 
-// Weights = (Inputs * Hidden) + Hidden + (Hidden * Outputs) + Outputs = (9 * 10) + 10 + (10 * 1) + 1 = 111
-static const size_t GENOME_SIZE = 111;
-
 using namespace argos;
 
 class CNNLoopFunctions : public CLoopFunctions {
@@ -17,7 +14,7 @@ public:
     CNNLoopFunctions();
     ~CNNLoopFunctions();
 
-    virtual void Init(TConfigurationNode& t_tree);
+    void Init(TConfigurationNode& t_tree) override;
 
     CColor GetFloorColor(const CVector2& c_position_on_plane) override;
     bool IsExperimentFinished() override;

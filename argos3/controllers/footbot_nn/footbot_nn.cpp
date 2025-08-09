@@ -107,7 +107,6 @@ void CFootBotNNController::InitNN(const Real* chromosome, UInt32 numInputs, UInt
     try
     {
         m_cPerceptron.Init(m_node, numInputs, numHidden, numOutputs);
-        //m_cPerceptron.Init(m_node);
     }
     catch(CARGoSException& ex)
     {

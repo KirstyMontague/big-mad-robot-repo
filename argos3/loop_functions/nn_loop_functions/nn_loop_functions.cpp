@@ -16,7 +16,8 @@ using namespace std::chrono;
 CNNLoopFunctions::CNNLoopFunctions() :
     m_pcFloor(NULL),
     m_count(0),
-    m_experimentLength(0)
+    m_experimentLength(0),
+    m_gap(0.0)
 {
     m_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
 }
@@ -46,7 +47,7 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
         GetNodeAttribute(tDistr, "index", index);
     }
 
-     //get configuration from file
+     // get configuration from file
     std::string configFilename = "../txt/configuration.txt";
     std::ifstream configFile(configFilename);
     std::string line = "";
@@ -54,6 +55,7 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
     int numHidden = 0;
     int numOutputs = 0;
     int trialLength = 0;
+    int sqrtRobots = 0;
     while( getline(configFile, line) )
     {
         int delimiter = line.find(":");
@@ -77,31 +79,33 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
             m_experimentLength = std::stoi(value) * 8; // eight ticks per second
             trialLength = (std::stoi(value) * 8) / 5; // five trials per experiment
         }
+        else if (key == "sqrtRobots")
+        {
+            sqrtRobots = std::stoi(value);
+        }
     }
-    
-    if (numInputs == 0 || numOutputs == 0 || m_experimentLength == 0)
+
+    if (numInputs == 0 || numOutputs == 0 || m_experimentLength == 0 || sqrtRobots == 0)
     {
         std::cout << "numInputs: " << std::to_string(numInputs) << "\n";
         std::cout << "numOutputs: " << std::to_string(numOutputs) << "\n";
         std::cout << "experimentLength: " << std::to_string(m_experimentLength) << "\n";
+        std::cout << "sqrtRobots: " << std::to_string(sqrtRobots) << "\n";
         return;
     }
 
+    size_t genomeSize = (numInputs * numHidden) + numHidden + (numHidden * numOutputs) + numOutputs;
+
     // get random seed and environmental parameters from file
-    std::string seedFilename = "../cma-es/txt/seed"+std::to_string(index)+".txt";
+    std::string seedFilename = "../txt/seed"+std::to_string(index)+".txt";
     std::ifstream seedFile(seedFilename);
     line = "";
     int seed = -1;
-    int sqrtRobots = -1;
     while( getline(seedFile, line) )
     {
         if (seed == -1)
         {
             seed = std::stoi(line);
-        }
-        else if (sqrtRobots == -1)
-        {
-            sqrtRobots = std::stoi(line);
         }
         else
         {
@@ -109,13 +113,20 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
         }
     }
 
+    if (seed == -1 || m_gap == 0.0)
+    {
+        std::cout << "seed: " << std::to_string(seed) << "\n";
+        std::cout << "m_gap: " << std::to_string(m_gap) << "\n";
+        return;
+    }
+
     m_pcRNG->SetSeed(seed);
     m_pcRNG->Reset();
 
     // read chromosome from file
-    std::ifstream chromosomeFile("../cma-es/txt/"+filename);
+    std::ifstream chromosomeFile("../txt/"+filename);
     line = "";
-    Real* chromosome = new Real[GENOME_SIZE + 1];
+    Real* chromosome = new Real[genomeSize + 1];
     while( getline(chromosomeFile, line) )
     {
         {

@@ -1,4 +1,4 @@
 
 cd ../argos3/
 
-argos3 -c experiments/nn3.argos > ../cma-es/txt/result3.txt
+argos3 -c experiments/nn3.argos > ../txt/result3.txt

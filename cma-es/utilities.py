@@ -1,11 +1,12 @@
 
+import numpy
 import subprocess
-import time
 import threading
 
 from deap import tools
 from deap import base
 from deap import creator
+from deap import cma
 
 import array
 import random
@@ -13,63 +14,36 @@ import argparse
 
 class Utilities():
 
-    def setupToolbox(self, tournament, precision):
-
-        IND_SIZE = self.ind_size
-        MIN_VALUE = self.min_value
-        MAX_VALUE= self.max_value
-        MIN_STRATEGY= self.min_strategy
-        MAX_STRATEGY= self.max_strategy
+    def setupToolbox(self):
 
         toolbox = base.Toolbox()
 
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-        creator.create("Individual", array.array, typecode="d", fitness=creator.FitnessMax, strategy=None)
-        creator.create("Strategy", array.array, typecode="d")
+        creator.create("Individual", list, fitness=creator.FitnessMax)
 
-        def generateES(icls, scls, size, imin, imax, smin, smax):
-            ind = icls(random.uniform(imin, imax) for _ in range(size))
-            ind.strategy = scls(random.uniform(smin, smax) for _ in range(size))
-            if precision != 0:
-                for i in range(IND_SIZE):
-                    ind[i] = round(ind[i], precision)
-            return ind
+        numpy.random.seed(self.seed)
 
-        def checkStrategy(minstrategy):
-            def decorator(func):
-                def wrappper(*args, **kargs):
-                    children = func(*args, **kargs)
-                    for child in children:
-                        for i, s in enumerate(child.strategy):
-                            if s < minstrategy:
-                                child.strategy[i] = minstrategy
-                    return children
-                return wrappper
-            return decorator
-
-        toolbox = base.Toolbox()
-        toolbox.register("individual", generateES, creator.Individual, creator.Strategy, IND_SIZE, MIN_VALUE, MAX_VALUE, MIN_STRATEGY, MAX_STRATEGY)
-        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-        toolbox.register("mate", tools.cxESBlend, alpha=0.1)
-        toolbox.register("mutate", tools.mutESLogNormal, c=1.0, indpb=0.03)
-        toolbox.register("select", tournament, tournsize=3)
         toolbox.register("evaluate", self.evaluateRobot)
+
+        strategy = cma.Strategy(centroid=[0.0]*self.ind_size, sigma=self.sigma, lambda_=self.population_size - self.elites)
+        toolbox.register("generate", strategy.generate, creator.Individual)
+        toolbox.register("update", strategy.update)
+
+        initial_strategy = cma.Strategy(centroid=[0.0]*self.ind_size, sigma=self.sigma, lambda_=self.population_size)
+        toolbox.register("generate_first_gen", initial_strategy.generate, creator.Individual)
+        toolbox.register("update_first_gen", initial_strategy.update)
 
         self.evaluation_functions = []
         for i in range(1,9):
             toolbox.register("evaluate"+str(i), self.evaluateRobot, thread_index=i)
             self.evaluation_functions.append(self.makeEvaluationFunction("evaluate"+str(i)))
 
-        toolbox.decorate("mate", checkStrategy(MIN_STRATEGY))
-        toolbox.decorate("mutate", checkStrategy(MIN_STRATEGY))
-        
         self.toolbox = toolbox
 
     def evaluateRobot(self, individual, thread_index):
         
         # save number of robots and chromosome to file
-        with open('./txt/chromosome'+str(thread_index)+'.txt', 'w') as f:
-            #  f.write("20")
+        with open('../txt/chromosome'+str(thread_index)+'.txt', 'w') as f:
             f.write(str(self.ind_size))
             for s in individual:
                 f.write(" ")
@@ -88,10 +62,8 @@ class Utilities():
             
             # write seed to file
             seed += 1
-            with open('./txt/seed'+str(thread_index)+'.txt', 'w') as f:
+            with open('../txt/seed'+str(thread_index)+'.txt', 'w') as f:
                 f.write(str(seed))
-                f.write("\n")
-                f.write(str(sqrtRobots))
                 f.write("\n")
                 f.write(str(i))
 
@@ -99,7 +71,7 @@ class Utilities():
             subprocess.call(["/bin/bash", "./evaluate"+str(thread_index), "", "./"])
             
             # result from file
-            f = open("./txt/result"+str(thread_index)+".txt", "r")
+            f = open("../txt/result"+str(thread_index)+".txt", "r")
             
             # print ("")
             for line in f:
@@ -148,14 +120,22 @@ class Utilities():
         fitness /= deratingFactor
         return fitness
 
-    def getBest(self, population):
-        
-        best = None
-        bestFitness = 0.0
-        for i in population:
-            if i.fitness.getValues()[0] > bestFitness or best == None:
-                best = i
-                bestFitness = i.fitness.getValues()[0]
+    def getBest(self, population, qty = 1):
+
+        best = []
+        for ind in population:
+            if len(best) < qty:
+                best.append(ind)
+            else:
+                worst = 9999.0
+                worstIndex = qty
+                for i in range(qty):
+                    if best[i].fitness.values[0] < worst:
+                        worst = best[i].fitness.values[0]
+                        worstIndex = i
+
+                if ind.fitness.values[0] > worst:
+                    best[worstIndex] = ind
         return best
 
     def printPopulationFitness(self, population):
@@ -164,14 +144,12 @@ class Utilities():
             print(i.fitness.getValues()[0])
         print()
 
-
     def printDuration(self, start_time, end_time):
 
         duration = end_time - start_time
         minutes = (duration / 1000) / 60
         minutes_str = str("%.2f" % minutes)
         print("\nDuration " +minutes_str+" minutes\n")
-
 
     def parseArguments(self):
         
@@ -182,32 +160,27 @@ class Utilities():
         if args.seed != None:
             return args.seed
 
-
-
     def evaluate(self, assign_fitness, invalid_ind):
 
-        # fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+        # fitnesses = self.toolbox.map(self.toolbox.evaluate, invalid_ind)
         # assign_fitness(invalid_ind, fitnesses)
 
         self.split(assign_fitness, invalid_ind)
 
-
     def split(self, assign_fitness, population):
 
-        num_threads = 8
-
         pop = []
-        for i in range(num_threads):
+        for i in range(self.num_threads):
             pop.append([])
 
         for i in range(len(population)):
-            for j in range(num_threads):
-                if i % num_threads == j:
+            for j in range(self.num_threads):
+                if i % self.num_threads == j:
                     pop[j].append(population[i])
                     continue
 
         threads = []
-        for i in range(num_threads):
+        for i in range(self.num_threads):
             threads.append(threading.Thread(target=self.evaluation_functions[i], args=(assign_fitness, [pop[i]], getattr(self.toolbox, "evaluate"+str(i+1)))))
 
         for thread in threads:
@@ -215,7 +188,6 @@ class Utilities():
 
         for thread in threads:
             thread.join()
-
 
     def makeEvaluationFunction(self, name):
 
