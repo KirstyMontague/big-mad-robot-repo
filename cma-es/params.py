@@ -3,8 +3,9 @@ class Params():
 
     def __init__(self):
 
-        self.objective = "density"
-        self.indexes = [0]
+        self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
+
+        self.objective_index = 0
         self.generations = 10
         self.saveOutput = False
         self.saveCSV = False
@@ -23,8 +24,6 @@ class Params():
         self.arena_params = [0.5, 0.7]
         self.arena_iterations = 5
 
-        self.csv = "./test/"+self.objective+"/results.csv"
-
         self.seed = 1
         self.cancelled = False
         self.num_threads = 8
@@ -34,3 +33,6 @@ class Params():
         self.num_outputs = num_outputs
         self.ind_size = (num_inputs * num_hidden) + num_hidden + (num_hidden * num_outputs) + num_outputs
 
+        self.objective = self.objectives[self.objective_index]
+
+        self.csv = "./test/"+self.objective+"/results.csv"

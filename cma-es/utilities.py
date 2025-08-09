@@ -46,7 +46,7 @@ class Utilities():
         numpy.random.seed(self.params.seed)
 
     def evaluateRobot(self, individual, thread_index):
-        
+
         # save number of robots and chromosome to file
         with open('../txt/chromosome'+str(thread_index)+'.txt', 'w') as f:
             f.write(str(self.params.ind_size))
@@ -54,16 +54,11 @@ class Utilities():
                 f.write(" ")
                 f.write(str(s))
 
-        totals = [0.0]
-
-        fitness = []
-        features = []
+        fitness = 0.0
         robots = {}
         seed = 0
 
-        sqrtRobots = 3 # should come from params (sqrtRobots)
-
-        for i in [0.5, 0.7]: # should come from params (arena params)
+        for i in self.params.arena_params:
 
             # write seed to file
             seed += 1
@@ -86,44 +81,34 @@ class Utilities():
                     lines = line.split()
                     robotId = int(float(lines[1]))
                     robots[robotId] = []
-                    for j in range(7):
-                        for k in range(5): # should come from params (iterations)
-                            if j in self.params.indexes:
-                                index = (j * 5) + k + 2 # should come from params (j * self.params.iterations) + k + 2
+                    for j in range(len(self.params.objectives)):
+                        for k in range(self.params.arena_iterations):
+                            if j == self.params.objective_index:
+                                index = (j * self.params.arena_iterations) + k + 2
                                 robots[robotId].append(float(lines[index]))
 
-            # get scores for each robot and add to cumulative total
-            totals[0] += self.collectFitnessScore(robots, 0)
+            # average the robots' scores and add to cumulative total
+            fitness += self.avgFitnessScore(robots)
 
-        # divide to get average per seed and arena configuration then apply derating factor
-        deratingFactor = 1.0
-        features = []
+        # divide to get average per seed and arena configuration
+        fitness /= self.params.arena_iterations
+        fitness /= len(self.params.arena_params)
 
-        for i in range(1): # should come from params (features)
-            fitness.append(self.getAvgAndDerate(totals[i], deratingFactor))
+        return (fitness,)
 
-        return fitness
-
-    def collectFitnessScore(self, robots, feature, maxScore = 1.0):
+    def avgFitnessScore(self, robots):
 
         thisFitness = 0.0
 
-        # get food collected by each robot and add to cumulative total
+        # get food collected by each robot and add to running total
         for r in (range(len(robots))):
-            for i in range(5): # should come from params (iterations)
+            for i in range(self.params.arena_iterations):
                 thisFitness += float(robots[r][i])
 
-        # divide to get average for this iteration, normalise and add to running total
-        thisFitness /= 3*3 # should come from params (sqrtRobots)
-        thisFitness /= maxScore
+        # divide to get average for this iteration
+        thisFitness /= self.params.sqrt_robots * self.params.sqrt_robots
 
         return thisFitness
-
-    def getAvgAndDerate(self, score, deratingFactor):
-        fitness = score / 5 # should come from params (iterations)
-        fitness = fitness / len([0.5, 0.7]) # should come from params (arenaParams)
-        fitness /= deratingFactor
-        return fitness
 
     def getBest(self, population, qty = 1):
 
