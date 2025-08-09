@@ -150,6 +150,10 @@ class EA():
                 if data[0] == "generations": self.params.generations = int(data[1])
                 if data[0] == "saveOutput": self.params.saveOutput = False if data[1] == "False" else True
                 if data[0] == "saveCSV": self.params.saveCSV = False if data[1] == "False" else True
+                if data[0] == "stop":
+                    self.params.saveCSV = False
+                    self.params.generations = 0
+                    self.params.cancelled = True
                 if data[0] == "cancel":
                     self.params.saveOutput = False
                     self.params.saveCSV = False

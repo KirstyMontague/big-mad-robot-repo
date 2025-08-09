@@ -111,14 +111,14 @@ class EA():
 
 		self.evaluateNewPopulation(self.container, 0, init_batch, "w")
 
-		max_gen = self.params.generations + 1
-		generation = self.start_gen + 1
+		max_gen = self.params.generations
+		generation = self.start_gen
 		
 		while (generation < max_gen):
-			self.params.configure()
-			max_gen = self.params.generations + 1
-			self.eaLoop(self.container, generation)
 			generation += 1
+			self.eaLoop(self.container, generation)
+			self.params.configure()
+			max_gen = self.params.generations
 
 		print("\nEnd the generational process\n")
 		print ("\n\n")

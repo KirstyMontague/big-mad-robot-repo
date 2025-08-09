@@ -146,7 +146,13 @@ class eaParams():
 				if data[0] == "save_period": self.save_period = int(data[1])
 				if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
 				if data[0] == "best_save_period": self.best_save_period = int(data[1])
-				if data[0] == "stop": self.stop = False if len(data) > 1 and data[1] == "False" else True
+				if data[0] == "stop":
+					if len(data) > 1 and data[1] == "False":
+						self.stop = False
+					else:
+						self.stop = True
+						self.saveCSV = False
+						self.generations = 0
 				if data[0] == "cancel":
 					self.stop = True
 					self.saveOutput = False

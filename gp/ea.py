@@ -230,7 +230,7 @@ class EA():
 		self.utilities.saveParams()
 		
 		# begin evolution
-		self.eaLoop(population, self.params.start_gen, self.params.generations, stats)
+		self.eaLoop(population, stats)
 
 		# get the best individual at the end of the evolutionary run
 		best = self.utilities.getBestAll(population)
@@ -248,18 +248,14 @@ class EA():
 
 		return population
 
-	def eaLoop(self, population, start_gen, ngen, stats=None, verbose=__debug__):
+	def eaLoop(self, population, stats=None, verbose=__debug__):
 
-		max_gen = ngen
-		gen = start_gen
-		
-		# for gen in range(start_gen + 1, max_gen + 1):
+		max_gen = self.params.generations
+		gen = self.params.start_gen
+
 		while (gen < max_gen):
-			
+
 			gen += 1
-		
-			self.params.configure()
-			max_gen = self.params.generations
 
 			time.sleep(self.params.genSleep)
 		
@@ -275,12 +271,7 @@ class EA():
 			population[:] = newPop
 			
 			self.evaluateNewPopulation(False, gen, population)
-			
-			
 
-			# best = self.getBestHDAll(population)
-			# self.logFitness(best)
-			
 			self.printScores(elites, self.params.printEliteScores)
 			self.printScores(offspring, self.params.printFitnessScores)
 			self.printIndividuals(self.utilities.getBestAll(population), self.params.printBestIndividuals)
@@ -290,6 +281,8 @@ class EA():
 			if gen % self.params.csv_save_period == 0: self.archive.saveArchive(self.redundancy)
 			if gen % self.params.best_save_period == 0: self.utilities.saveBestIndividuals(population)
 
+			self.params.configure()
+			max_gen = self.params.generations
 
 	def checkDuplicatesAreCorrect(self, population):
 		
