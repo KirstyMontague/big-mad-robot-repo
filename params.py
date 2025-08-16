@@ -1,5 +1,4 @@
 import numpy
-# import random
 
 """
 
@@ -12,7 +11,8 @@ generations, save_period, csv_save_period, using_repertoire (baseline only)
 to change repertoire
 
 params.py - update repertoire_size and repertoire_type
-archive.py - update archive path
+archive.py - update archive path for re-running old experiments
+update foraging results directory
 
 """
 
@@ -160,7 +160,7 @@ class eaParams():
 					self.generations = 0
 
 	def getRepertoireFilename(self):
-		return "../repertoires/sub-behaviours.txt"
+		return "../gp/test/"+self.description+"/sub-behaviours.txt"
 
 	def getSubbehavioursFromFile(self):
 

@@ -53,6 +53,7 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 	std::ifstream configFile(configFilename);
 	std::string line = "";
 	int trialLength = 0;
+	std::string repertoireFilename = "";
 	while( getline(configFile, line) )
 	{
 		int delimiter = line.find(":");
@@ -64,11 +65,16 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 			m_experimentLength = std::stoi(value) * 8; // eight ticks per second
 			trialLength = (std::stoi(value) * 8) / 5; // five trials per experiment
 		}
+		if (key == "repertoireFilename")
+		{
+			repertoireFilename = value;
+		}
 	}
     
-    if (m_experimentLength == 0)
+    if (m_experimentLength == 0 || repertoireFilename == "")
     {
         std::cout << "experimentLength: " << std::to_string(m_experimentLength) << "\n";
+        std::cout << "repertoireFilename: " << repertoireFilename << "\n";
         return;
     }
 
@@ -114,7 +120,7 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 	
 	// unpack sub-behaviours
 	
-	std::ifstream subBehavioursFile("../repertoires/sub-behaviours.txt");
+	std::ifstream subBehavioursFile(repertoireFilename);
 	std::vector<std::string> subBehaviourTrees;
     while( getline(subBehavioursFile, line) )
 	{

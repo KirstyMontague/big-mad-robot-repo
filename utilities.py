@@ -730,7 +730,8 @@ class Utilities():
 
 		experiment_length = 500 if self.params.description == "foraging" else 100
 		with open('../txt/configuration.txt', 'w') as f:
-			f.write("experimentLength:"+str(experiment_length))
+			f.write("experimentLength:"+str(experiment_length)+"\n")
+			f.write("repertoireFilename:"+self.params.getRepertoireFilename()+"\n")
 
 	def saveParams(self):
 
@@ -760,7 +761,7 @@ class Utilities():
 
 	def evaluate(self, assign_fitness, invalid_ind):
 
-		# fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+		# fitnesses = self.toolbox.map(self.toolbox.evaluate, invalid_ind)
 		# assign_fitness(invalid_ind, fitnesses)
 
 		self.split(assign_fitness, invalid_ind)

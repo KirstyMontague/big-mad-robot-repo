@@ -39,7 +39,7 @@ class SubBehaviours():
 
         self.input_path = ".."
         self.input_dir = "results"
-        self.output_filename = "../repertoires/sub-behaviours.txt"
+        self.output_filename = "../gp/test/"+self.params.description+"/sub-behaviours.txt"
 
     def run(self):
 
