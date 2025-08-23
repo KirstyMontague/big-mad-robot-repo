@@ -166,7 +166,10 @@ class EA():
 				derated = best[i].fitness.values[i] * self.utilities.deratingFactor(best[i])
 			scores += str("%.7f" % derated) + " (" + str("%.7f" % best[i].fitness.values[i]) + ") \t"
 		
-		length = str(len(best[0]))+" ("+str(self.behaviours.unpack(best[0]))+")"
+		if self.params.using_repertoire:
+			length = str(len(best[0]))+" ("+str(self.behaviours.unpack(best[0]))+")"
+		else:
+			length = str(len(best[0]))+" "
 		
 		if generation % 100 == 0 or invalid_new > 0:
 			print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")

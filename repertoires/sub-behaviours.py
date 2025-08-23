@@ -44,7 +44,7 @@ class SubBehaviours():
     def run(self):
 
         self.params.configure()
-        if self.params.description == "foraging" and self.params.stop == False:
+        if self.params.description == "foraging" and self.params.using_repertoire and self.params.stop == False:
 
             if self.save:
                 with open(self.output_filename, 'w') as f:

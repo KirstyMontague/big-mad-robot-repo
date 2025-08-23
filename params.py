@@ -5,7 +5,7 @@ import numpy
 to switch between foraging and sub-behaviours/baseline:
 
 indexes
-generations, save_period, csv_save_period, using_repertoire (baseline only)
+generations, using_repertoire (baseline only)
 
 
 to change repertoire
@@ -52,8 +52,8 @@ class eaParams():
 	saveOutput = False
 	saveCSV = False
 
-	save_period = 100 # save checkpoint, check duplicates
-	csv_save_period = 100 # save csv, save archive
+	stop = False
+
 	best_save_period = 10 # save best individual for each objective to current.txt
 
 	objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
@@ -68,7 +68,11 @@ class eaParams():
 	features = len(indexes)
 	repertoire_size = bins_per_axis ** characteristics
 
-	stop = False
+	save_period = 1000 # save checkpoint, check duplicates
+	csv_save_period = 1000 # save csv, save archive
+	if description == "foraging" and not using_repertoire:
+		save_period = 2200
+		csv_save_period = 2200
 
 	if description != "foraging":
 		using_repertoire = False
@@ -182,7 +186,10 @@ class eaParams():
 			conditions = ["ifGotFood", "ifOnFood", "ifInNest"]
 			actions = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
 		else:
-			conditions = ["ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
+			if self.description == "foraging":
+				conditions = ["ifGotFood", "ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
+			else:
+				conditions = ["ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
 			actions = ["stop", "f", "fl", "fr", "r", "rl", "rr"]
 		
 		robot = robotObject()

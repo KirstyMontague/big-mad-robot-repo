@@ -15,6 +15,9 @@ class Behaviours():
 
         self.params = params
 
+        if not self.params.using_repertoire:
+            return
+
         self.subBehaviourNodes = []
         for i in range(self.params.repertoire_size):
             self.subBehaviourNodes.append("increaseDensity"+str(i+1))
@@ -40,9 +43,11 @@ class Behaviours():
 
     def unpack(self, individual):
         
-        packed_size = len(individual)
         unpacked_size = len(individual)
         
+        if not self.params.using_repertoire:
+            return unpacked_size
+
         for node in individual:
             for sub_behaviour in self.subBehaviourNodes:
                 if node.name == sub_behaviour:
