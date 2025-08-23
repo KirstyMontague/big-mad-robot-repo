@@ -16,6 +16,8 @@ using namespace std::chrono;
 CBTLoopFunctions::CBTLoopFunctions() :
     m_pcFloor(NULL),
     m_count(0),
+    m_nest(0.0),
+    m_gap(0.0),
     m_experimentLength(0)
 {
 	m_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
@@ -69,12 +71,17 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 		{
 			repertoireFilename = value;
 		}
+		if (key == "nestRadius")
+		{
+			m_nest = std::stof(value);
+		}
 	}
     
-    if (m_experimentLength == 0 || repertoireFilename == "")
+    if (m_experimentLength == 0 || repertoireFilename == "" || m_nest == 0.0)
     {
         std::cout << "experimentLength: " << std::to_string(m_experimentLength) << "\n";
         std::cout << "repertoireFilename: " << repertoireFilename << "\n";
+        std::cout << "nestRadius: " << std::to_string(m_nest) << "\n";
         return;
     }
 
@@ -245,7 +252,7 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 			CFootBotBT& controller = dynamic_cast<CFootBotBT&>(pcFB->GetControllableEntity().GetController());
 			controller.buildTree(tokens);
 			controller.createBlackBoard(sqrtRobots * sqrtRobots);
-			controller.setParams(m_gap, trialLength);
+			controller.setParams(m_nest, m_gap, trialLength);
 			if (filename == "best.txt")
 			{
 				controller.setPlayback(true);
@@ -267,7 +274,7 @@ CColor CBTLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane)
 	{
       return CColor::GRAY80; // tile edges
 	}
-	else if (r < 0.5f) 
+	else if (r < m_nest)
    {
 		return CColor::GRAY50; // nest
    }
@@ -307,6 +314,8 @@ void CBTLoopFunctions::PostStep()
 				// place robot
 				if (MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot))
 				{
+					CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
+					controller.setColour();
 					break;
 				}
 			}

@@ -732,6 +732,7 @@ class Utilities():
 		with open('../txt/configuration.txt', 'w') as f:
 			f.write("experimentLength:"+str(experiment_length)+"\n")
 			f.write("repertoireFilename:"+self.params.getRepertoireFilename()+"\n")
+			f.write("nestRadius:"+str(self.params.nest)+"\n")
 
 	def saveParams(self):
 

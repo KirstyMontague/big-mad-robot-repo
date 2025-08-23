@@ -101,6 +101,7 @@ class eaParams():
 	trialSleep = 0.0
 	
 	# evaluation parameters for evolving and testing
+	nest = 0.5
 	arenaParams = [.5, .7]
 	unseenIterations = 10
 	unseenParams = [.3, .4, .5, .6, .7, .8, .9, 1.0]

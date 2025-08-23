@@ -22,6 +22,7 @@ public:
 private:
 
    CFloorEntity* m_pcFloor;
+   float m_nest;
    float m_gap;
    uint m_experimentLength;
    uint m_count;

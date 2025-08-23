@@ -15,7 +15,8 @@ CFootBotBT::CFootBotBT() :
    m_pcRABS(NULL),
    m_rWheelVelocity(5.0f),
    m_lWheelVelocity(5.0f),
-   m_params(0.0),
+   m_nest(0.0),
+   m_gap(0.0),
    m_trialLength(0),
    m_trackingID(0),
    m_count(0),
@@ -112,9 +113,30 @@ void CFootBotBT::createBlackBoard(int numRobots)
 	m_blackBoard = new CBlackBoard(numRobots);
 }
 
-void CFootBotBT::setParams(float gap, int trialLength)
+void CFootBotBT::setColour()
 {
-	m_params = gap;
+	// position data
+	const CCI_PositioningSensor::SReading& pos = m_pcPosition->GetReading();
+	Real x = pos.Position.GetX();
+	Real y = pos.Position.GetY();
+
+	// distance from the centre of the arena
+	double r = sqrt((x * x) + (y * y));
+
+	if (r >= .5 + m_gap)
+	{
+		m_pcLEDs->SetAllColors(inTrackingIDs() ? CColor::ORANGE : CColor::GREEN);
+	}
+	else
+	{
+		m_pcLEDs->SetAllColors(inTrackingIDs() ? CColor::YELLOW : CColor::BLACK);
+	}
+}
+
+void CFootBotBT::setParams(float nest, float gap, int trialLength)
+{
+	m_nest = nest;
+	m_gap = gap;
 	m_trialLength = trialLength;
 }
 
@@ -134,11 +156,11 @@ void CFootBotBT::sendInitialSignal()
 	double r = sqrt((x * x) + (y * y));
 	
 	// update the blackboard to reflect whether the robot is in the food region
-	m_blackBoard->setDetectedFood(m_count, r >= .5 + m_params);
+	m_blackBoard->setDetectedFood(m_count, r >= .5 + m_gap);
 	
 	// update the blackboard to reflect whether the robot is in the nest region
-	m_blackBoard->setInNest(m_count, r < 0.5);
-	m_blackBoard->incrementTimeInNest(r < 0.5);
+	m_blackBoard->setInNest(m_count, r < m_nest);
+	m_blackBoard->incrementTimeInNest(r < m_nest);
 	
 	// send an initial range and bearing signal so the
 	// distances don't get thrown off by empty values
@@ -166,7 +188,7 @@ void CFootBotBT::recordInitialPositions(bool tracking)
 	Real y = pos.Position.GetY();
 	
 	double radius = sqrt((x * x) + (y * y));
-	double threshold = 0.5 + m_params;
+	double threshold = 0.5 + m_gap;
 	
 	m_blackBoard->setInitialAbsoluteDistanceFromFood(radius, threshold, tracking ? std::stoi(GetId()) : -1);
 }
@@ -178,7 +200,7 @@ void CFootBotBT::recordFinalPositions(bool tracking)
 	Real y = pos.Position.GetY();
 	
 	double radius = sqrt((x * x) + (y * y));
-	double threshold = 0.5 + m_params;
+	double threshold = 0.5 + m_gap;
 	
 	m_blackBoard->setFinalAbsoluteDistanceFromFood(radius, threshold, tracking ? std::stoi(GetId()) : -1);
 }
@@ -243,20 +265,20 @@ double CFootBotBT::position(bool tracking)
 	double r = sqrt((x * x) + (y * y));
 	
 	// update the blackboard to reflect whether the robot is in the food region
-	m_blackBoard->setDetectedFood(m_count, r >= .5 + m_params, (tracking ? std::stoi(GetId()) : -1));
-	m_blackBoard->setCarryingFood(m_blackBoard->getCarryingFood() || r >= .5 + m_params);
+	m_blackBoard->setDetectedFood(m_count, r >= .5 + m_gap, (tracking ? std::stoi(GetId()) : -1));
+	m_blackBoard->setCarryingFood(m_blackBoard->getCarryingFood() || r >= .5 + m_gap);
 	// update the blackboard to reflect whether the robot is in the nest region
-	m_blackBoard->setInNest(m_count, r < 0.5, (tracking ? std::stoi(GetId()) : -1));
-	m_blackBoard->incrementTimeInNest(r < 0.5);
+	m_blackBoard->setInNest(m_count, r < m_nest, (tracking ? std::stoi(GetId()) : -1));
+	m_blackBoard->incrementTimeInNest(r < m_nest);
 	
-	if (r < .5 && m_blackBoard->getCarryingFood())
+	if (r < m_nest && m_blackBoard->getCarryingFood())
 	{
 		m_food++;
 		m_blackBoard->setCarryingFood(false);
 		m_pcLEDs->SetAllColors(tracking ? CColor::YELLOW : CColor::RED);
 	}
 	
-	if (r >= .5 + m_params)
+	if (r >= .5 + m_gap)
 	{
 		m_pcLEDs->SetAllColors(tracking ? CColor::ORANGE : CColor::GREEN);
 	}
@@ -264,7 +286,7 @@ double CFootBotBT::position(bool tracking)
 	if (m_count == 1)
 	{
 		// record absolute position
-		m_blackBoard->setInitialAbsoluteDistanceFromFood(r, 0.5 + m_params, tracking ? std::stoi(GetId()) : -1);
+		m_blackBoard->setInitialAbsoluteDistanceFromFood(r, 0.5 + m_gap, tracking ? std::stoi(GetId()) : -1);
 	}
 		
 	
@@ -280,8 +302,8 @@ void CFootBotBT::rangeAndBearing(double r, bool tracking)
 	
 	// map for density of robots and defaults for distance to food or nest
 	std::map<int, double> IDs;
-	float nestRange = (r < .5) ? 0 : 500;
-	float foodRange = (r < .5 + m_params) ? 500 : 0;
+	float nestRange = (r < m_nest) ? 0 : 500;
+	float foodRange = (r < .5 + m_gap) ? 500 : 0;
 	CRadians closestNestDirection;
 	CRadians closestFoodDirection;
 	CRadians closestNeighbourDirection;
@@ -563,7 +585,7 @@ void CFootBotBT::ControlStep()
 		m_scores[2].push_back(m_blackBoard->getDifferenceInDistanceFromFood());
 		m_scores[3].push_back(m_blackBoard->getDifferenceInDensityInverse());
 		m_scores[4].push_back(m_blackBoard->getDifferenceInDistanceFromNestInverse());
-		m_scores[5].push_back(m_blackBoard->getAbsoluteDifferenceInDistanceFromFoodInverse(0.5 + m_params, tracking ? std::stoi(GetId()) : -1));
+		m_scores[5].push_back(m_blackBoard->getDifferenceInDistanceFromFoodInverse(tracking ? std::stoi(GetId()) : -1));
 		
 		// foraging
 		m_scores[6].push_back(static_cast<float>(m_food));
