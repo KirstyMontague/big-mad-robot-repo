@@ -2,34 +2,42 @@ from analysis import Analysis
 
 analyse = Analysis()
 
-objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
-features = 3
-feature = 0
-mtc_index = 0
-mti_index = 0
-generation = 1000
-
-# objectives = ["foraging"]
-# features = 1
-# feature = 0
-# generation = 1000
-
-runs = 10
-
 gp_algorithms = []
-
-# gp_algorithms.append(analyse.algorithms["foraging_baseline"])
-# gp_algorithms.append(analyse.algorithms["foraging_qd1"])
-# gp_algorithms.append(analyse.algorithms["foraging_mt1"])
-# gp_algorithms.append(analyse.algorithms["foraging_qd8"])
-# gp_algorithms.append(analyse.algorithms["foraging_mt8"])
-
-gp_algorithms.append(analyse.algorithms["gp"])
-gp_algorithms.append(analyse.algorithms["mti"])
-gp_algorithms.append(analyse.algorithms["mtc"])
-
 qdpy_algorithms = []
-qdpy_algorithms.append(analyse.algorithms["qdpy"])
 
-analyse.drawBestOneGeneration(feature, objectives[feature], gp_algorithms, qdpy_algorithms, generation, features, runs, mtc_index, mti_index)
+def getMtcIndex(objective):
+    if objective in [0, 2]: mtc_index = 0
+    if objective in [1, 3]: mtc_index = 1
+    if objective in [4, 5]: mtc_index = 2
+    if objective == 6: mtc_index = -1
+    return mtc_index
+
+def getMtiIndex(objective):
+    if objective in [0, 3]: mti_index = 0
+    if objective in [1, 4]: mti_index = 1
+    if objective in [2, 5]: mti_index = 2
+    if objective == 6: mti_index = -1
+    return mti_index
+
+
+objective = 0
+generation = 1000
+runs = 30
+
+# gp_algorithms.append(analyse.algorithms.info["foraging_baseline"])
+# gp_algorithms.append(analyse.algorithms.info["foraging_qd1"])
+# gp_algorithms.append(analyse.algorithms.info["foraging_qd8"])
+# gp_algorithms.append(analyse.algorithms.info["foraging_qd64"])
+# gp_algorithms.append(analyse.algorithms.info["foraging_mt1"])
+# gp_algorithms.append(analyse.algorithms.info["foraging_mt8"])
+
+gp_algorithms.append(analyse.algorithms.info["gp"])
+gp_algorithms.append(analyse.algorithms.info["mtc"])
+gp_algorithms.append(analyse.algorithms.info["mti"])
+
+qdpy_algorithms.append(analyse.algorithms.info["qdpy"])
+
+analyse.drawOneGeneration(analyse.queries.info["best"], objective, analyse.objectives.index[objective], gp_algorithms, qdpy_algorithms, generation, runs, getMtcIndex(objective), getMtiIndex(objective))
+analyse.drawOneGeneration(analyse.queries.info["qd-score"], objective, analyse.objectives.index[objective], gp_algorithms, qdpy_algorithms, generation, runs, getMtcIndex(objective), getMtiIndex(objective))
+analyse.drawOneGeneration(analyse.queries.info["coverage"], objective, analyse.objectives.index[objective], gp_algorithms, qdpy_algorithms, generation, runs, getMtcIndex(objective), getMtiIndex(objective))
 

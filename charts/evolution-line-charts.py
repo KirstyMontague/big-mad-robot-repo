@@ -26,9 +26,10 @@ y = {
 
 objective = "density"
 query = "best"
-runs = 10
-generations = 2000
+runs = 30
+generations = 1000
 
-analyse.drawLineGraphFromQdpy(analyse.objectives_info[objective], analyse.queries[query], generations, runs, y[objective][query])
-# analyse.drawLineGraphFromDeap(analyse.objectives_info[objective], analyse.queries[query], generations, runs, y[objective][query])
-# analyse.drawLineGraphFromMT(analyse.objectives_info[objective], analyse.queries[query], generations, runs, y[objective][query])
+analyse.drawLineGraph(analyse.objectives.info[objective], "qdpy", "qdpy_url", analyse.queries.info[query], generations, runs, y[objective][query])
+analyse.drawLineGraph(analyse.objectives.info[objective], "gp", "gp_url", analyse.queries.info[query], generations, runs, y[objective][query])
+analyse.drawLineGraph(analyse.objectives.info[objective], "mtc", "mtc_url", analyse.queries.info[query], generations, runs, y[objective][query])
+analyse.drawLineGraph(analyse.objectives.info[objective], "mti", "mti_url", analyse.queries.info[query], generations, runs, y[objective][query])
