@@ -3,18 +3,13 @@ import sys
 sys.path.insert(0, '..')
 
 import matplotlib.pyplot as plt
-# from pathlib import Path
 
 from scipy.stats import ttest_ind
 from scipy.stats import shapiro
 from scipy.stats import mannwhitneyu
 import statistics
 
-# import os
-# import numpy
 import pickle
-
-# from containers import *
 
 from deap import base, creator, tools, gp
 
@@ -39,7 +34,9 @@ class Analysis():
 
 	def getData(self, query, deap_algorithms, qdpy_algorithms, objective, generation, feature, runs, mtc_index, mti_index):
 
-		# hard coded for one or three features
+		# getData is currently only used for drawing one generation so we use that as the interval
+		interval = generation
+		index = int(generation/interval)
 
 		deap = []
 		for algorithm in deap_algorithms:
@@ -48,20 +45,20 @@ class Analysis():
 			if "mti" in algorithm["name"]: feature = mti_index
 			if "mtc" in algorithm["name"]: feature = mtc_index
 
-			data = self.getDataFromCSV(query, algorithm["file_index"], generation, objective, runs, objective[algorithm["name"]+"_url"])
-			data = data[feature][generation] if "mt" in algorithm["name"] else data[0][generation]
+			data = self.getDataFromCSV(query, algorithm["file_index"], generation, interval, objective, runs, objective[algorithm["name"]+"_url"])
+			data = data[feature][index] if "mt" in algorithm["name"] else data[0][index]
 			deap.append(data)
 
 		features = 1
 		qdpy = []
 		for algorithm in qdpy_algorithms:
-			data = self.getDataFromCSV(query, algorithm["file_index"], generation, objective, runs, objective[algorithm["name"]+"_url"])
-			data = data[feature][generation] if "mt" in algorithm["name"] else data[0][generation]
+			data = self.getDataFromCSV(query, algorithm["file_index"], generation, interval, objective, runs, objective[algorithm["name"]+"_url"])
+			data = data[feature][index] if "mt" in algorithm["name"] else data[0][index]
 			qdpy.append(data)
 
 		return deap + qdpy
 
-	def getDataFromCSV(self, query, file_index, generations, objective, runs, filename):
+	def getDataFromCSV(self, query, file_index, generations, interval, objective, runs, filename):
 
 		# returns scores for every seed per generation for each feature converted from
 		# [seed][gen][feature] in horizontal_data to [feature][gen][seed] in vertical_data
@@ -70,6 +67,7 @@ class Analysis():
 
 		f = open(filename, "r")
 
+		indexes = []
 		horizontal_data = []
 
 		for line in f:
@@ -77,28 +75,33 @@ class Analysis():
 			data = []
 			columns = line.split(",")
 
-			if columns[0] != "Type":
+			if columns[0] == "Type":
+				for i in range(9, len(columns)):
+					if columns[i].isdigit() and int(columns[i]) <= generations and int(columns[i]) % interval == 0:
+						indexes.append(i)
+
+			elif columns[0] != "Type" and len(indexes) > 0 and len(horizontal_data) < runs:
 				for i in range(generations+1):
-
-					if query["name"] == "coverage":
-						# coverage is represented by only one value even for MT 
-						score = columns[i+9]
-						if score[0] == "[":
-							# adjustment for qdpy output format for coverage
-							score = float(score[1:-1])
+					index = i + 9
+					if index in indexes:
+						if query["name"] == "coverage":
+							# coverage is represented by only one value even for MT 
+							score = columns[index]
+							if score[0] == "[":
+								# adjustment for qdpy output format for coverage
+								score = float(score[1:-1])
+							else:
+								score = float(score)
+							data.append([score])
 						else:
-							score = float(score)
-						data.append([score])
-					else:
-						scores = columns[i+9]
-						scoresList = scores.split(" ")
-						if (scoresList[-1] == ""):
-							data.append(scoresList[0:-1])
-						else:
-							data.append(scoresList)
+							scores = columns[index]
+							scoresList = scores.split(" ")
+							if (scoresList[-1] == ""):
+								data.append(scoresList[0:-1])
+							else:
+								data.append(scoresList)
 
-				if len(horizontal_data) < runs:
-					horizontal_data.append(data)
+				horizontal_data.append(data)
 		
 		# print ("")
 		# print(len(horizontal_data))
@@ -149,7 +152,9 @@ class Analysis():
 		objective = self.objectives.info[objective_name]
 		data = self.getData(query, deap_algorithms, qdpy_algorithms, objective, generation, feature_index, runs, mtc_index, mti_index)
 
-		if len(data) == 2: ttest = self.checkHypothesis(data[0], data[1])
+		if len(data) == 2:
+			if len(data[0]) > 2 and len(data[1]) > 2:
+				ttest = self.checkHypothesis(data[0], data[1])
 		
 		if len(data) > 2:
 			print ("")
@@ -165,10 +170,10 @@ class Analysis():
 		if "foraging" not in algorithm["name"]: filename = "./"+query["name"]+"/gen"+str(generation)+"/"+objective["name"]+"-"+filename+".png"
 		else: filename = "./"+query["name"]+"/foraging/"+filename+".png"
 		
-		title = objective["description"]+"\n"
+		suptitle = objective["description"]+"\n"
 		# if "foraging" not in algorithm["name"]: title += str(generation * 25)+" evaluations per objective\n"
 		# if len(data) == 2: title += "pvalue = " +str("%.4f" % ttest.pvalue)+"\n\n"
-		title += query["ylabel"]+" at "+str(generation)+" generations over "+str(runs)+" seeds\n"
+		title = query["ylabel"]+" at "+str(generation)+" generations over "+str(runs)+" runs\n"
 		
 		labels = []
 		for algorithm in deap_algorithms + qdpy_algorithms:
@@ -186,10 +191,10 @@ class Analysis():
 			elif num != len(d): consistent = False
 		
 		ylabel = ""
-		if consistent: ylabel = query["ylabel"]+' over '+str(len(data[0]))+' runs'
-		else: ylabel = query["ylabel"]+' over a mixed number of runs'
+		if consistent: ylabel = query["ylabel"]+' at '+str(generation)+' generations over '+str(len(data[0]))+' runs'
+		else: ylabel = query["ylabel"]+' at '+str(generation)+' generations over a mixed number of runs'
 		
-		self.drawPlotsBigLabels(data, title, labels, ylabel, "foraging" in algorithm["name"], len(deap_algorithms) == 3, filename)
+		self.drawPlotsBigLabels(data, suptitle, title, labels, ylabel, "foraging" in algorithm["name"], len(deap_algorithms) == 3, filename)
 
 	def drawPlotsForaging(self, data, title, labels, ylabel, foraging, mt, filename):
 
@@ -215,35 +220,31 @@ class Analysis():
 		print(filename)
 		plt.show()
 
-	def drawPlotsBigLabels(self, data, title, labels, ylabel, foraging, mt, filename):
+	def drawPlotsBigLabels(self, data, suptitle, title, labels, ylabel, foraging, mt, filename):
 
 		plot_width = 4 + len(data)	
 		
 		fig, ax = plt.subplots(figsize=(plot_width, 6))
-		plt.subplots_adjust(wspace=.3, hspace=0.4, bottom=0.1, top=0.85, left=0.15)
+		plt.subplots_adjust(wspace=.3, hspace=0.4, bottom=0.1, top=0.85, left=0.2)
 		
 		plots = ax.boxplot(data, medianprops=dict(color='#000000'), patch_artist=True, labels=labels)
-		
-		if len(data) == 4: colors = ['white', 'pink', 'lightblue', 'white']
-		if len(data) == 3: colors = ['white', 'pink', 'white']
-		if len(data) == 3 or len(data) == 4:
-			for patch, color in zip(plots['boxes'], colors):
-				patch.set_facecolor(color)
-		else:
-			for patch in plots['boxes']:
-				patch.set_facecolor('white')
+
+		for patch in plots['boxes']:
+			patch.set_facecolor('lightblue')
+
+		fig.suptitle(suptitle,fontsize=15,x=0.57)
 
 		ax.set_title(title,fontsize=13)
 		ax.title.set_position([0.5,2.0])
 
-		ax.set_ylabel(ylabel, color='#222222', fontsize=15)
+		ax.set_ylabel(ylabel, color='#222222', fontsize=12)
 		
 		if foraging:
 			ax.xaxis.set_label_coords(0.5,-.125)
 		else:
 			ax.xaxis.set_label_coords(0.5,-0.09)
 		
-		ax.yaxis.set_label_coords(-0.15,0.5)
+		ax.yaxis.set_label_coords(-0.2,0.5)
 
 		ax.tick_params(axis='x', labelsize=15)
 		ax.tick_params(axis='y', labelsize=14)
@@ -260,12 +261,12 @@ class Analysis():
 		raw_data = None
 
 		features = 3 if algorithm["type"] in ["MTC", "MTI"] else 1
-		raw_data = self.getDataFromCSV(query, max_gen, max_gen, objective, runs, url)
+		raw_data = self.getDataFromCSV(query, max_gen, max_gen, increment, objective, runs, url)
 		raw_data = raw_data[objective["index"]] if algorithm["type"] in ["MTC", "MTI"] else raw_data[0]
 
 		data = []
 		for i in range(len(raw_data)):
-			if (i >= min_gen and i <= max_gen and i % increment == 0):
+			if (i >= min_gen and i <= max_gen):
 				one_generation = []
 				for j in range(len(raw_data[i])):
 					one_generation.append(raw_data[i][j])
@@ -289,17 +290,19 @@ class Analysis():
 		fig.suptitle(title, y=.925, fontsize=16, color='#333333')
 
 		c = "#222222"
-		ax.boxplot(data,
-				   vert=True,
-				   patch_artist=False,
-				   labels=labels,
-				   boxprops=dict(color=c),
-				   # boxprops=dict(facecolor=c, color=c),
-				   capprops=dict(color=c),
-				   whiskerprops=dict(color=c),
-				   flierprops=dict(color=c, markeredgecolor=c),
-				   medianprops=dict(color=c))
+		plots = ax.boxplot(data,
+						   vert=True,
+						   patch_artist=True,
+						   labels=labels,
+						   boxprops=dict(color=c),
+						   # boxprops=dict(facecolor=c, color=c),
+						   capprops=dict(color=c),
+						   whiskerprops=dict(color=c),
+						   flierprops=dict(color=c, markeredgecolor=c),
+						   medianprops=dict(color=c))
 
+		for patch in plots['boxes']:
+			patch.set_facecolor('lightblue')
 		ax.title.set_position([0.5,1.05])
 		ax.yaxis.grid(True)
 		ax.set_ylim(query["ylim"][objective["index"]])

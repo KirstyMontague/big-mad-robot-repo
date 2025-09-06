@@ -29,27 +29,28 @@ class Logs():
 
         return parameters
 
-    def logFitness(self, best):
+    def logFitness(self, generation, best):
+        if generation % self.params.csv_save_interval == 0:
+            for i in range(self.params.features):
+                self.best += str("%.6f" % best[i].fitness.values[i])+" "
+            self.best += ","
 
-        for i in range(self.params.features):
-            self.best += str("%.6f" % best[i].fitness.values[i])+" "
-        self.best += ","
+    def logQdScore(self, generation, qd_scores):
+        if generation % self.params.csv_save_interval == 0:
+            for i in range(self.params.features):
+                self.qd_scores += str(qd_scores[i])+" "
+            self.qd_scores += ","
 
-    def logQdScore(self, qd_scores):
-        for i in range(self.params.features):
-            self.qd_scores += str(qd_scores[i])+" "
-        self.qd_scores += ","
-
-    def logCoverage(self, coverage):
-        self.coverage += str(coverage)+","
+    def logCoverage(self, generation, coverage):
+        if generation % self.params.csv_save_interval == 0:
+            self.coverage += str(coverage)+","
 
     def getHeadings(self, generation):
 
         headings = "Type,Time,Seed,Robots,Pop,Tourn,Iterations,Params,,"
-        for i in range(generation + 1):
+        for i in range(0, generation + 1, self.params.csv_save_interval):
             headings += str(i)+","
         headings += ",Chromosome,,Nodes\n"
-
         return headings
 
     def getChromosomes(self, population):

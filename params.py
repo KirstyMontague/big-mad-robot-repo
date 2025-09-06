@@ -70,6 +70,7 @@ class eaParams():
 
 	save_period = 1000 # save checkpoint, check duplicates
 	csv_save_period = 1000 # save csv, save archive
+	csv_save_interval = 1
 	if description == "foraging" and not using_repertoire:
 		save_period = 2200
 		csv_save_period = 2200

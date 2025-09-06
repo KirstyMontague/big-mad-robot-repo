@@ -176,9 +176,9 @@ class EA():
 		
 		# print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+str(len(best[0]))+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 
-		self.logs.logFitness(best)
-		self.logs.logQdScore(self.grid.getQDScores())
-		self.logs.logCoverage(self.utilities.getCoverage(self.grid.grids[0]))
+		self.logs.logFitness(generation, best)
+		self.logs.logQdScore(generation, self.grid.getQDScores())
+		self.logs.logCoverage(generation, self.utilities.getCoverage(self.grid.grids[0]))
 
 		return matched
 

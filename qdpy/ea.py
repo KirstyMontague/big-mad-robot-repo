@@ -196,9 +196,9 @@ class EA():
 			print("")
 
 		if self.params.saveCSV: # all seeds
-			self.logs.logFitness(self.utilities.getBestMax(container))
-			self.logs.logQdScore([self.utilities.getQDScore(container)])
-			self.logs.logCoverage(self.utilities.getCoverage(container))
+			self.logs.logFitness(generation, self.utilities.getBestMax(container))
+			self.logs.logQdScore(generation, [self.utilities.getQDScore(container)])
+			self.logs.logCoverage(generation, self.utilities.getCoverage(container))
 
 		if self.params.saveOutput: # one seed
 			self.utilities.saveQDScore(container, generation, mode)
