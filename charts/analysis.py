@@ -46,14 +46,14 @@ class Analysis():
 			if "mtc" in algorithm["name"]: feature = mtc_index
 
 			data = self.getDataFromCSV(query, algorithm["file_index"], generation, interval, objective, runs, objective[algorithm["name"]+"_url"])
-			data = data[feature][index] if "mt" in algorithm["name"] else data[0][index]
+			data = data[feature][index] if "mt" in algorithm["name"] and query["name"] != "coverage" else data[0][index]
 			deap.append(data)
 
 		features = 1
 		qdpy = []
 		for algorithm in qdpy_algorithms:
 			data = self.getDataFromCSV(query, algorithm["file_index"], generation, interval, objective, runs, objective[algorithm["name"]+"_url"])
-			data = data[feature][index] if "mt" in algorithm["name"] else data[0][index]
+			data = data[0][index]
 			qdpy.append(data)
 
 		return deap + qdpy
@@ -163,17 +163,20 @@ class Analysis():
 				ttest = ttest_ind(data[0], data[i])
 			print ("")
 
-		filename = ""
-		for algorithm in deap_algorithms + qdpy_algorithms:
-			filename += algorithm["name"]+"-vs-"
-		filename = filename[0:-4]
-		if "foraging" not in algorithm["name"]: filename = "./"+query["name"]+"/gen"+str(generation)+"/"+objective["name"]+"-"+filename+".png"
-		else: filename = "./"+query["name"]+"/foraging/"+filename+".png"
-		
+		consistent = True
+		for d in data:
+			if len(d) != len(data[0]):
+				consistent = False
+
+		if objective["name"] == "foraging": filename = "./"+query["name"]+"/foraging/temp.png"
+		else:
+			if query["name"] == "best": filename = "./"+query["name"]+"/sub-behaviours/"+objective["name"]+".png"
+			else: filename = "./"+query["name"]+"/"+objective["name"]+".png"
+
 		suptitle = objective["description"]+"\n"
-		# if "foraging" not in algorithm["name"]: title += str(generation * 25)+" evaluations per objective\n"
 		# if len(data) == 2: title += "pvalue = " +str("%.4f" % ttest.pvalue)+"\n\n"
-		title = query["ylabel"]+" at "+str(generation)+" generations over "+str(runs)+" runs\n"
+		if consistent: title = query["ylabel"]+' at '+str(generation)+' generations over '+str(len(data[0]))+' runs\n'
+		else: title = query["ylabel"]+' at '+str(generation)+' generations over a mixed number of runs\n'
 		
 		labels = []
 		for algorithm in deap_algorithms + qdpy_algorithms:
@@ -184,19 +187,12 @@ class Analysis():
 					label += "\n("+str(generation)+" generations)\n"
 			labels.append(label)
 
-		num = -1
-		consistent = True
-		for d in data:
-			if (num == -1): num = len(d)
-			elif num != len(d): consistent = False
-		
-		ylabel = ""
-		if consistent: ylabel = query["ylabel"]+' at '+str(generation)+' generations over '+str(len(data[0]))+' runs'
-		else: ylabel = query["ylabel"]+' at '+str(generation)+' generations over a mixed number of runs'
-		
-		self.drawPlotsBigLabels(data, suptitle, title, labels, ylabel, "foraging" in algorithm["name"], len(deap_algorithms) == 3, filename)
+		if objective["name"] == "foraging":
+			self.drawPlotsForaging(data, suptitle, title, labels, query["ylabel"], filename)
+		else:
+			self.drawPlotsBigLabels(data, suptitle, title, labels, query["ylabel"], filename)
 
-	def drawPlotsForaging(self, data, title, labels, ylabel, foraging, mt, filename):
+	def drawPlotsForaging(self, data, suptitle, title, labels, ylabel, filename):
 
 		plot_width = 8 + len(data)
 
@@ -220,33 +216,28 @@ class Analysis():
 		print(filename)
 		plt.show()
 
-	def drawPlotsBigLabels(self, data, suptitle, title, labels, ylabel, foraging, mt, filename):
+	def drawPlotsBigLabels(self, data, suptitle, title, labels, ylabel, filename):
 
-		plot_width = 4 + len(data)	
-		
+		plot_width = 4 + len(data)
+
 		fig, ax = plt.subplots(figsize=(plot_width, 6))
-		plt.subplots_adjust(wspace=.3, hspace=0.4, bottom=0.1, top=0.85, left=0.2)
-		
+		plt.subplots_adjust(wspace=.3, hspace=0.4, bottom=0.1, top=0.85, left=0.15)
+
 		plots = ax.boxplot(data, medianprops=dict(color='#000000'), patch_artist=True, labels=labels)
 
 		for patch in plots['boxes']:
 			patch.set_facecolor('lightblue')
 
-		fig.suptitle(suptitle,fontsize=15,x=0.57)
+		fig.suptitle(suptitle,fontsize=15,x=0.53, y=0.97)
+		ax.set_title(title,fontsize=14)
+		ax.title.set_position([0.5,1.0])
 
-		ax.set_title(title,fontsize=13)
-		ax.title.set_position([0.5,2.0])
+		ax.set_ylabel(ylabel, color='#222222', fontsize=15)
 
-		ax.set_ylabel(ylabel, color='#222222', fontsize=12)
-		
-		if foraging:
-			ax.xaxis.set_label_coords(0.5,-.125)
-		else:
-			ax.xaxis.set_label_coords(0.5,-0.09)
-		
-		ax.yaxis.set_label_coords(-0.2,0.5)
+		ax.yaxis.set_label_coords(-0.14,0.5)
+		ax.xaxis.set_label_coords(0.5,-0.09)
 
-		ax.tick_params(axis='x', labelsize=15)
+		ax.tick_params(axis='x', labelsize=14)
 		ax.tick_params(axis='y', labelsize=14)
 
 		# plt.savefig(filename)
