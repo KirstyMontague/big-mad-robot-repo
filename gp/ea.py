@@ -144,9 +144,6 @@ class EA():
 		trimmed = self.utilities.getTrimmedPopulation(invalid_ind, self.redundancy)
 		self.utilities.evaluate(self.assignPopulationFitness, trimmed)
 		self.transferTrimmedFitnessScores(invalid_ind, trimmed)
-		
-		if generation > 0 and generation % self.params.save_period == 0:
-			self.checkDuplicatesAreCorrect(invalid_ind)
 
 		self.grid.addPopulation(population)
 
@@ -171,7 +168,7 @@ class EA():
 		else:
 			length = str(len(best[0]))+" "
 		
-		if generation % 100 == 0 or invalid_new > 0:
+		if generation == self.params.generations or generation % 100 == 0 or invalid_new > 0:
 			print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 		
 		# print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+str(len(best[0]))+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
@@ -225,7 +222,8 @@ class EA():
 			return population
 
 		elif self.params.loadCheckpoint:
-			population, self.logs.best, self.logs.qd_scores, self.logs.coverage, self.grid.grids = self.checkpoint.load()
+			self.archive.setCompleteArchive(self.archive.getArchive())
+			population = self.checkpoint.load(self.logs, self.grid)
 
 		else:
 			population = self.startWithNewPopulation()
@@ -239,7 +237,7 @@ class EA():
 		best = self.utilities.getBestAll(population)
 		self.printIndividuals(best, True)
 		
-		self.checkpoint.save(self.params.generations, population, self.grid.grids)
+		self.checkpoint.save(self.params.generations, population, self.grid.grids, self.logs)
 		self.archive.saveArchive(self.redundancy)
 
 		self.grid.save()
@@ -279,7 +277,7 @@ class EA():
 			self.printScores(offspring, self.params.printFitnessScores)
 			self.printIndividuals(self.utilities.getBestAll(population), self.params.printBestIndividuals)
 			
-			self.checkpoint.save(gen, population, self.grid.grids)
+			self.checkpoint.save(gen, population, self.grid.grids, self.logs)
 			self.logs.saveCSV(gen, population)
 			if gen % self.params.csv_save_period == 0: self.archive.saveArchive(self.redundancy)
 			if gen % self.params.best_save_period == 0: self.utilities.saveBestIndividuals(population)

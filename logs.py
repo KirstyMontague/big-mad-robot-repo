@@ -33,12 +33,14 @@ class Logs():
         if generation % self.params.csv_save_interval == 0:
             for i in range(self.params.features):
                 self.best += str("%.6f" % best[i].fitness.values[i])+" "
+            self.best = self.best[0:-1]
             self.best += ","
 
     def logQdScore(self, generation, qd_scores):
         if generation % self.params.csv_save_interval == 0:
             for i in range(self.params.features):
                 self.qd_scores += str(qd_scores[i])+" "
+            self.qd_scores = self.qd_scores[0:-1]
             self.qd_scores += ","
 
     def logCoverage(self, generation, coverage):

@@ -34,6 +34,9 @@ class Archive():
 	def getCompleteArchive(self):
 		return self.complete_archive
 
+	def setCompleteArchive(self, archive):
+		self.complete_archive = archive
+
 	def getArchives(self, redundancy):
 
 		archive = self.getArchive()
@@ -42,11 +45,13 @@ class Archive():
 		algorithm = "qdpy" if self.params.is_qdpy else "gp"
 
 		directory_path = ".."
-		results_directory = "test"
-		use_temp_archive = (directory_path == ".." and results_directory == "test")
+		results_directory = "test/"+self.params.description
+		use_temp_archive = (directory_path == ".." and results_directory == "test/"+self.params.description)
+
+		print()
 
 		for i in range(30):
-			archive_path = directory_path+"/gp/"+results_directory+"/"+self.params.description+"/"+str(i+1)+"/"
+			archive_path = directory_path+"/gp/"+results_directory+"/"+str(i+1)+"/"
 			if not use_temp_archive or archive_path != "../"+algorithm+"/"+self.params.path():
 				if os.path.exists(archive_path+"archive.pkl"):
 					with open(archive_path+"archive.pkl", "rb") as archive_file:
@@ -55,7 +60,7 @@ class Archive():
 				print ("disregarding "+archive_path)
 
 		for i in range(30):
-			archive_path = directory_path+"/qdpy/"+results_directory+"/"+self.params.description+"/"+str(i+1)+"/"
+			archive_path = directory_path+"/qdpy/"+results_directory+"/"+str(i+1)+"/"
 			if not use_temp_archive or archive_path != "../"+algorithm+"/"+self.params.path():
 				if os.path.exists(archive_path+"archive.pkl"):
 					with open(archive_path+"archive.pkl", "rb") as archive_file:
@@ -68,18 +73,16 @@ class Archive():
 			with open(self.params.path()+"archive.pkl", "rb") as archive_file:
 				temp_archive = pickle.load(archive_file)
 
-		print (len(temp_archive))
-		i = 0
 		for chromosome, scores in temp_archive.items():
-			if i < len(temp_archive) - 0:
-				archive.update({str(chromosome) : scores})
-				i += 1
+			archive.update({str(chromosome) : scores})
 
 		self.setArchive(archive)
 		self.setCumulativeArchive(cumulative_archive)
+		self.setCompleteArchive(temp_archive)
 
 		print("archive length "+str(len(archive)))
 		print("cumulative archive length "+str(len(cumulative_archive)))
+		print()
 
 	def saveArchive(self, redundancy):
 
