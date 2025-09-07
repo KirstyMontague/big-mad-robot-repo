@@ -15,38 +15,52 @@ from qdpy.utils import is_iterable
 import matplotlib
 import matplotlib as mpl
 
-def getGpData():
+analyse = Analysis()
 
-    seed = 1
-    objective = "density"
 
-    analyse = Analysis()
-    path = analyse.objectives.info[objective]["gp_url"]
-    checkpoint_input_filename = path+str(seed)+"/checkpoint-"+objective+"-"+str(seed)+"-1000.pkl"
+
+def getGpData(objective_name, seed):
+
+    path = analyse.objectives.info[objective_name]["gp_url"]
+    checkpoint_input_filename = path+str(seed)+"/checkpoint-"+objective_name+"-"+str(seed)+"-1000.pkl"
 
     with open(checkpoint_input_filename, "rb") as checkpoint_file:
         checkpoint = pickle.load(checkpoint_file)
-    containers = checkpoint["containers"]
-    grid = containers[0]
-    population = grid.quality_array[..., 0]
+    return checkpoint["containers"][0]
 
-    return rotateGrid(population)
+def getMtData(objective, objective_name, seed, compatible_objectives):
 
-def getQdpyData():
+    algorithm_type = "mtc" if compatible_objectives else "mti"
+    grid_index = analyse.getMtcIndex(objective) if compatible_objectives else analyse.getMtiIndex(objective)
+    objectives = analyse.getObjectivesCombination(objective, compatible_objectives)
 
-    seed = 1
-    objective = "density"
+    path = analyse.objectives.info[objective_name][algorithm_type+"_url"]
+    checkpoint_input_filename = path+str(seed)+"/checkpoint-"+objectives+"-"+str(seed)+"-1000.pkl"
 
-    analyse = Analysis()
-    path = analyse.objectives.info[objective]["qdpy_url"]
+    with open(checkpoint_input_filename, "rb") as checkpoint_file:
+        checkpoint = pickle.load(checkpoint_file)
+    return checkpoint["containers"][grid_index]
+
+def getQdpyData(objective_name, seed):
+
+    path = analyse.objectives.info[objective_name]["qdpy_url"]
     checkpoint_input_filename = path+str(seed)+"/seed"+str(seed)+"-iteration1000.p"
 
     with open(checkpoint_input_filename, "rb") as checkpoint_file:
         checkpoint = pickle.load(checkpoint_file)
-    container = checkpoint["container"]
-    population = container.quality_array[..., 0]
+    return checkpoint["container"]
 
-    return rotateGrid(population)
+def getCsvData(algorithm_name, objective, seed):
+
+    objective_name = analyse.objectives.index[objective]
+
+    if algorithm_name == "gp": data = getGpData(objective_name, seed)
+    if algorithm_name == "mtc": data = getMtData(objective, objective_name, seed, True)
+    if algorithm_name == "mti": data = getMtData(objective, objective_name, seed, False)
+    if algorithm_name == "qd": data = getQdpyData(objective_name, seed)
+
+    return rotateGrid(data.quality_array[..., 0])
+
 
 def rotateGrid(population):
     
@@ -70,40 +84,50 @@ def drawColourBar(fig, ax, cax, figure_size):
     cbar = fig.colorbar(cax, cax=colour_bar_axes, format="%.1f")
     cbar.ax.tick_params(labelsize=12)
 
-def drawHeatmap():
+def drawHeatmap(algorithms, objective, seed):
 
-    data = getQdpyData()
-    
+    all_data = []
+    for algorithm in algorithms:
+        all_data.append(getCsvData(algorithm, objective, seed))
+
+    fitness_min = 1.0
+    fitness_max = 0.0
+    for data in all_data:
+        fitness_min = np.min([fitness_min, np.nanmin(data)])
+        fitness_max = np.max([fitness_max, np.nanmax(data)])
+
     colour_map="YlGnBu"
     colour_bar_label="Fitness"
     features_domain = [(0.0, 1.0), (-40.0, 40.0), (-40.0, 40.0)]
-    fitness_domain = (np.nanmin(data), np.nanmax(data))
+    fitness_domain = (fitness_min, fitness_max)
     ticks = 4
-    bin_size_inches = 0.30
+    bin_size_inches = 0.2
 
-    bins = None
-    if len(data.shape) % 2 == 1:
-        data = data.reshape((data.shape[0], 1) + data.shape[1:])
-        features_domain = (features_domain[0], (0., 0.)) + tuple(features_domain[1:]) 
-        if bins != None:
-            bins = (bins[0], 1) + bins[1:]
-    if not bins:
-        bins = data.shape
+    if len(all_data[0].shape) % 2 == 1:
+        for i in range(len(all_data)):
+            all_data[i] = all_data[i].reshape((all_data[i].shape[0], 1) + all_data[i].shape[1:])
+        features_domain = (features_domain[0], (0., 0.)) + tuple(features_domain[1:])
+    bins = all_data[0].shape
 
     horizontal_bins = bins[::2]
     vertical_bins = bins[1::2]
     horizontal_bins_total = reduce(mul, horizontal_bins, 1)
     vertical_bins_total = reduce(mul, vertical_bins, 1)
+    vertical_bins_total *= len(all_data)
 
-    figure_size = [2.1 + horizontal_bins_total * bin_size_inches, 1. + vertical_bins_total * bin_size_inches]
+    figure_size = [3.1 + horizontal_bins_total * bin_size_inches, 1. + vertical_bins_total * bin_size_inches]
 
-    fig, ax = plt.subplots(nrows=bins[1], ncols=bins[0], figsize=figure_size)
+    fig, ax = plt.subplots(nrows=len(all_data), ncols=bins[0], figsize=figure_size)
 
     for x in range(bins[0]):
-        for y in range(bins[1]):
-            ax = plt.subplot(bins[1], bins[0], (bins[1] - y - 1) * bins[0] + x + 1)
+        for y in range(len(all_data)):
+            data = all_data[y]
+            ax = plt.subplot(len(all_data), bins[0], y * bins[0] + x + 1)
+            if x == 0:
+                ax.set_ylabel(algorithms[y].upper(), fontsize=15, rotation='horizontal')
+                ax.yaxis.set_label_coords(-0.5,0.4)
             cax = drawSubplot(ax,
-                              data[x, y, 0:bins[2], 0:bins[3]],
+                              data[x, 0, 0:bins[2], 0:bins[3]],
                               colour_map=colour_map,
                               features_domain=features_domain[-2:],
                               fitness_domain=fitness_domain[-2:],
@@ -182,4 +206,10 @@ def drawSubplot(ax, data, colour_map, features_domain, fitness_domain, bins=None
 
 
 
-drawHeatmap()
+algorithms = ["gp", "mtc", "mti", "qd"]
+objective = 0
+seed = 1
+
+drawHeatmap(algorithms, objective, seed)
+
+

@@ -32,7 +32,7 @@ class Analysis():
 		self.objectives = Objectives()
 		self.queries = Queries()
 
-	def getData(self, query, deap_algorithms, qdpy_algorithms, objective, generation, feature, runs, mtc_index, mti_index):
+	def getData(self, query, deap_algorithms, qdpy_algorithms, objective, generation, runs):
 
 		# getData is currently only used for drawing one generation so we use that as the interval
 		interval = generation
@@ -42,11 +42,10 @@ class Analysis():
 		for algorithm in deap_algorithms:
 
 			features = 3 if "mt" in algorithm["name"] else 1
-			if "mti" in algorithm["name"]: feature = mti_index
-			if "mtc" in algorithm["name"]: feature = mtc_index
+			csv_index = self.getCsvIndex(objective, algorithm["name"])
 
 			data = self.getDataFromCSV(query, algorithm["file_index"], generation, interval, objective, runs, objective[algorithm["name"]+"_url"])
-			data = data[feature][index] if "mt" in algorithm["name"] and query["name"] != "coverage" else data[0][index]
+			data = data[csv_index][index] if "mt" in algorithm["name"] and query["name"] != "coverage" else data[0][index]
 			deap.append(data)
 
 		features = 1
@@ -147,15 +146,15 @@ class Analysis():
 
 		return ttest
 
-	def drawOneGeneration(self, query, feature_index, objective_name, deap_algorithms, qdpy_algorithms, generation, runs, mtc_index, mti_index):
-		
+	def drawOneGeneration(self, query, objective_name, deap_algorithms, qdpy_algorithms, generation, runs):
+
 		objective = self.objectives.info[objective_name]
-		data = self.getData(query, deap_algorithms, qdpy_algorithms, objective, generation, feature_index, runs, mtc_index, mti_index)
+		data = self.getData(query, deap_algorithms, qdpy_algorithms, objective, generation, runs)
 
 		if len(data) == 2:
 			if len(data[0]) > 2 and len(data[1]) > 2:
 				ttest = self.checkHypothesis(data[0], data[1])
-		
+
 		if len(data) > 2:
 			print ("")
 			for i in range(1, len(data)):
@@ -251,9 +250,11 @@ class Analysis():
 
 		raw_data = None
 
+		csv_index = self.getCsvIndex(objective, algorithm["name"])
 		features = 3 if algorithm["type"] in ["MTC", "MTI"] else 1
+
 		raw_data = self.getDataFromCSV(query, max_gen, max_gen, increment, objective, runs, url)
-		raw_data = raw_data[objective["index"]] if algorithm["type"] in ["MTC", "MTI"] else raw_data[0]
+		raw_data = raw_data[csv_index]
 
 		data = []
 		for i in range(len(raw_data)):
@@ -305,8 +306,6 @@ class Analysis():
 		# plt.savefig(filename)
 		plt.show()
 
-
-
 	def rotateData2D(self, csv_data):
 		data = []
 		for i in range(len(csv_data[0])):
@@ -326,6 +325,7 @@ class Analysis():
 	def drawLineGraph(self, objective, algorithm_name, algorithm_url, query, generations, runs, ylim):
 
 		csv_data = []
+		csv_index = self.getCsvIndex(objective, algorithm_name)
 
 		input_file = objective[algorithm_url]+query["name"]+str(generations)+".csv"
 		f = open(input_file, "r")
@@ -336,7 +336,7 @@ class Analysis():
 					data = []
 					for scores in columns[9:generations+10]:
 						score = scores.split(" ")
-						data.append(float(score[objective["index"]]))
+						data.append(float(score[csv_index]))
 					csv_data.append(data)
 			else:
 				if columns[0] == objective["name"]:
@@ -382,3 +382,35 @@ class Analysis():
 		# plt.savefig(output_file)
 
 		plt.show()
+
+
+
+
+	def getCsvIndex(self, objective, algorithm_name):
+		if algorithm_name == "mtc":
+			return self.getMtcIndex(objective["index"])
+		elif algorithm_name == "mti":
+			return self.getMtiIndex(objective["index"])
+		else:
+			return 0
+
+	def getMtcIndex(self, objective):
+		if objective in [0, 2]: return 0
+		if objective in [1, 3]: return 1
+		if objective in [4, 5]: return 2
+		else: return -1
+
+	def getMtiIndex(self, objective):
+		if objective in [0, 3]: return 0
+		if objective in [1, 4]: return 1
+		if objective in [2, 5]: return 2
+		else: return -1
+
+	def getObjectivesCombination(self, objective, compatible):
+		if compatible:
+			if objective in [0, 1, 5]: return "density-nest-ifood"
+			if objective in [2, 3, 4]: return "food-idensity-inest"
+		else:
+			if objective in [0, 1, 2]: return "density-nest-food"
+			if objective in [3, 4, 5]: return "idensity-inest-ifood"
+
