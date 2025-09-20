@@ -10,11 +10,10 @@ class Params():
         self.saveOutput = False
         self.saveCSV = False
 
-        self.population_size = 8
-        self.elites = 3
+        self.population_size = 25
 
         self.precision = 0
-        self.sigma = 5.0
+        self.sigma = 1.0
 
         num_inputs = 9
         num_hidden = 5
@@ -24,7 +23,7 @@ class Params():
         self.arena_params = [0.5, 0.7]
         self.arena_iterations = 5
 
-        self.seed = 1
+        self.seed = 0
         self.cancelled = False
         self.num_threads = 8
 

@@ -27,13 +27,9 @@ class Utilities():
 
         toolbox.register("evaluate", self.evaluateRobot)
 
-        strategy = cma.Strategy(centroid=[0.0]*self.params.ind_size, sigma=self.params.sigma, lambda_=self.params.population_size - self.params.elites)
+        strategy = cma.Strategy(centroid=[0.0]*self.params.ind_size, sigma=self.params.sigma, lambda_=self.params.population_size)
         toolbox.register("generate", strategy.generate, creator.Individual)
         toolbox.register("update", strategy.update)
-
-        initial_strategy = cma.Strategy(centroid=[0.0]*self.params.ind_size, sigma=self.params.sigma, lambda_=self.params.population_size)
-        toolbox.register("generate_first_gen", initial_strategy.generate, creator.Individual)
-        toolbox.register("update_first_gen", initial_strategy.update)
 
         self.evaluation_functions = []
         for i in range(1,9):
@@ -71,21 +67,21 @@ class Utilities():
             subprocess.call(["/bin/bash", "./evaluate"+str(thread_index), "", "./"])
 
             # result from file
-            f = open("../txt/result"+str(thread_index)+".txt", "r")
+            with open("../txt/result"+str(thread_index)+".txt", 'r') as f:
 
-            # print ("")
-            for line in f:
-                first = line[0:line.find(" ")]
-                if (first == "result"):
-                    #  print (line[0:-1])
-                    lines = line.split()
-                    robotId = int(float(lines[1]))
-                    robots[robotId] = []
-                    for j in range(len(self.params.objectives)):
-                        for k in range(self.params.arena_iterations):
-                            if j == self.params.objective_index:
-                                index = (j * self.params.arena_iterations) + k + 2
-                                robots[robotId].append(float(lines[index]))
+                # print ("")
+                for line in f:
+                    first = line[0:line.find(" ")]
+                    if (first == "result"):
+                        #  print (line[0:-1])
+                        lines = line.split()
+                        robotId = int(float(lines[1]))
+                        robots[robotId] = []
+                        for j in range(len(self.params.objectives)):
+                            for k in range(self.params.arena_iterations):
+                                if j == self.params.objective_index:
+                                    index = (j * self.params.arena_iterations) + k + 2
+                                    robots[robotId].append(float(lines[index]))
 
             # average the robots' scores and add to cumulative total
             fitness += self.avgFitnessScore(robots)

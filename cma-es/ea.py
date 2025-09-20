@@ -1,10 +1,12 @@
 
 import time
 
-from utilities import Utilities
 from archive import Archive
 from params import Params
+from utilities import Utilities
 
+import warnings
+warnings.filterwarnings("error")
 
 
 class EA():
@@ -16,9 +18,11 @@ class EA():
         self.params = Params()
         self.utilities = Utilities(self.params)
         self.archive = Archive(self.utilities, self.params)
+        self.best = None
 
         self.configure()
-        if self.params.cancelled: return
+        if self.params.cancelled:
+            return
 
         if self.params.seed == 0: self.params.seed = self.utilities.parseArguments()
         if self.params.seed == None:
@@ -42,16 +46,19 @@ class EA():
 
         population = self.eaLoop()
 
+        self.eaFinish(start_time, population)
+
+        # if self.params.cancelled == False: time.sleep(30.0)
+
+    def eaFinish(self, start_time, population):
+
         end_time = round(time.time() * 1000)
         self.utilities.printDuration(start_time, end_time)
 
-        best = self.utilities.getBest(population)[0]
-        bestFitness = best.fitness.getValues()[0]
-        print(bestFitness)
 
         with open('../txt/best.txt', 'w') as f:
             f.write(str(self.params.ind_size))
-            for s in best:
+            for s in self.best:
                 f.write(" ")
                 f.write(str(s))
 
@@ -61,8 +68,8 @@ class EA():
         csv_string = str(self.params.objective) +","
         csv_string += str(self.params.seed) +","
         csv_string += str(self.params.generations) +","
-        csv_string += str(bestFitness) +","
-        for c in best:
+        csv_string += str(self.best.fitness.getValues()[0]) +","
+        for c in self.best:
             csv_string += str(c) + " "
         csv_string = csv_string[0:-1]
         csv_string += "\n"
@@ -72,29 +79,27 @@ class EA():
             with open(self.params.csv, 'a') as f:
                 f.write(csv_string)
 
-        # if self.params.cancelled == False: time.sleep(30.0)
-
-
     def eaLoop(self):
 
-        population = self.utilities.toolbox.generate_first_gen()
-        self.evaluateNewPopulation(0, population)
-        self.utilities.toolbox.update_first_gen(population)
+        generation = 0
 
-        gen = 0
-        while gen < self.params.generations:
+        while generation <= self.params.generations:
 
-            gen += 1
+            try:
+                population = self.utilities.toolbox.generate()
+                self.evaluateNewPopulation(generation, population)
+                self.utilities.toolbox.update(population)
 
-            elites = self.utilities.getBest(population, self.params.elites)
-
-            population = self.utilities.toolbox.generate()
-            population = elites + population
-
-            self.evaluateNewPopulation(gen, population)
-            self.utilities.toolbox.update(population)
+            except:
+                self.params.generations = 0
+                self.params.saveCSV = False
+                self.params.cancelled = True
+                with open('../config.txt', 'a') as f:
+                    f.write("stop\n")
+                print("\n\nFAILED\n\n")
 
             self.configure()
+            generation += 1
 
         return population
 
@@ -122,12 +127,17 @@ class EA():
 
         best = self.utilities.getBest(population)[0]
 
-        scores = ""
-        for i in range(1): # should come from params (features)
-            scores += str("%.7f" % best.fitness.getValues()[i]) + "\t"
+        if self.best == None or best.fitness.getValues()[0] > self.best.fitness.getValues()[0]:
+            self.best = best
 
-        if (generation % 1 == 0 or invalid_new > 0):
-            print ("\t"+str(self.params.seed)+" - "+str(generation)+" - "+str(scores)+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
+        if (generation % 10 == 0 or invalid_new > 0):
+            output = "\t"+str(self.params.seed)+" - "
+            output += str(generation)+" - "
+            output += str("%.7f" % best.fitness.getValues()[0]) + "\t"
+            output += str("%.7f" % self.best.fitness.getValues()[0]) + "\t"
+            output += "invalid "+str(invalid_new)+" / "+str(invalid_orig)+" "
+            output += "(matched "+str(matched[0])+" & "+str(matched[1])+")"
+            print(output)
 
     def transferTrimmedFitnessScores(self, invalid_ind, trimmed):
         for i in range(len(invalid_ind)):
@@ -141,22 +151,20 @@ class EA():
             ind.fitness.values = fit
 
     def configure(self):
-        f = open("../config.txt", "r")
-        for line in f:
-            data = line.split()
-            if len(data) > 0:
-                for d in data:
-                    print(d)
-                if data[0] == "generations": self.params.generations = int(data[1])
-                if data[0] == "saveOutput": self.params.saveOutput = False if data[1] == "False" else True
-                if data[0] == "saveCSV": self.params.saveCSV = False if data[1] == "False" else True
-                if data[0] == "stop":
-                    self.params.saveCSV = False
-                    self.params.generations = 0
-                    self.params.cancelled = True
-                if data[0] == "cancel":
-                    self.params.saveOutput = False
-                    self.params.saveCSV = False
-                    self.params.generations = 0
-                    self.params.cancelled = True
+        with open("../config.txt", 'r') as f:
+            for line in f:
+                data = line.split()
+                if len(data) > 0:
+                    if data[0] == "generations": self.params.generations = int(data[1])
+                    if data[0] == "saveOutput": self.params.saveOutput = False if data[1] == "False" else True
+                    if data[0] == "saveCSV": self.params.saveCSV = False if data[1] == "False" else True
+                    if data[0] == "stop":
+                        self.params.saveCSV = False
+                        self.params.generations = 0
+                        self.params.cancelled = True
+                    if data[0] == "cancel":
+                        self.params.saveOutput = False
+                        self.params.saveCSV = False
+                        self.params.generations = 0
+                        self.params.cancelled = True
 
