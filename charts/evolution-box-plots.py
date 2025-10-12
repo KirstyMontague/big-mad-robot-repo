@@ -25,7 +25,10 @@ max_gen = 1000
 increment = 10
 x_axis_increment = 100
 
-drawEvolution("gp", "density", runs, min_gen, max_gen, increment, x_axis_increment)
+algorithm = "foraging_qd64_06"
+objective = "foraging"
+
+drawEvolution(algorithm, objective, runs, min_gen, max_gen, increment, x_axis_increment)
 
 
 

@@ -10,6 +10,7 @@ from scipy.stats import mannwhitneyu
 import statistics
 
 import pickle
+import numpy
 
 from deap import base, creator, tools, gp
 
@@ -173,8 +174,7 @@ class Analysis():
 			else: filename = "./"+query["name"]+"/"+objective["name"]+".png"
 
 		suptitle = objective["description"]+"\n"
-		# if len(data) == 2: title += "pvalue = " +str("%.4f" % ttest.pvalue)+"\n\n"
-		if consistent: title = query["ylabel"]+' at '+str(generation)+' generations over '+str(len(data[0]))+' runs\n'
+		if consistent: title = str(len(data[0]))+' runs at '+str(generation)+' generations\n'
 		else: title = query["ylabel"]+' at '+str(generation)+' generations over a mixed number of runs\n'
 		
 		labels = []
@@ -186,10 +186,7 @@ class Analysis():
 					label += "\n("+str(generation)+" generations)\n"
 			labels.append(label)
 
-		if objective["name"] == "foraging":
-			self.drawPlotsForaging(data, suptitle, title, labels, query["ylabel"], filename)
-		else:
-			self.drawPlotsBigLabels(data, suptitle, title, labels, query["ylabel"], filename)
+		self.drawPlotsBigLabels(data, suptitle, title, labels, query["ylabel"], filename)
 
 	def drawPlotsForaging(self, data, suptitle, title, labels, ylabel, filename):
 
@@ -217,31 +214,124 @@ class Analysis():
 
 	def drawPlotsBigLabels(self, data, suptitle, title, labels, ylabel, filename):
 
-		plot_width = 4 + len(data)
+		# plot_width = 4 + len(data) # by nest
+		plot_width = 6 + len(data) # by algorithm
 
 		fig, ax = plt.subplots(figsize=(plot_width, 6))
 		plt.subplots_adjust(wspace=.3, hspace=0.4, bottom=0.1, top=0.85, left=0.15)
 
 		plots = ax.boxplot(data, medianprops=dict(color='#000000'), patch_artist=True, labels=labels)
 
+		if len(data) == 4:
+			colors = ['lightgray', 'pink', 'lightblue', 'lightgray']
+			for patch, color in zip(plots['boxes'], colors):
+				patch.set_facecolor(color)
+
 		for patch in plots['boxes']:
 			patch.set_facecolor('lightblue')
 
-		fig.suptitle(suptitle,fontsize=15,x=0.53, y=0.97)
-		ax.set_title(title,fontsize=14)
+		# fig.suptitle(suptitle,fontsize=15,x=0.53, y=0.97)
+		ax.set_title(title,fontsize=18)
 		ax.title.set_position([0.5,1.0])
 
-		ax.set_ylabel(ylabel, color='#222222', fontsize=15)
+		ax.set_ylabel(ylabel, color='#222222', fontsize=18)
 
 		ax.yaxis.set_label_coords(-0.14,0.5)
 		ax.xaxis.set_label_coords(0.5,-0.09)
 
-		ax.tick_params(axis='x', labelsize=14)
-		ax.tick_params(axis='y', labelsize=14)
+		ax.tick_params(axis='x', labelsize=15) # by algorithm
+		# ax.tick_params(axis='x', labelsize=16) # by nest
+		ax.tick_params(axis='y', labelsize=16)
 
 		# plt.savefig(filename)
 		print(filename)
 		plt.show()
+
+	def drawOneGenerationCombo(self, query, objective_name, deap_algorithms, qdpy_algorithms, generation, runs):
+
+		objective = self.objectives.info[objective_name]
+		data = self.getData(query, deap_algorithms, qdpy_algorithms, objective, generation, runs)
+
+		if len(data) > 2:
+			print ("")
+			for i in range(1, len(data)):
+				self.checkHypothesis(data[0], data[i])
+				ttest = ttest_ind(data[0], data[i])
+			print ("")
+
+		consistent = True
+		for d in data:
+			if len(d) != len(data[0]):
+				consistent = False
+
+		filename = "./"+query["name"]+"/no-labels/foraging/temp.png"
+
+		suptitle = objective["description"]+"\n"
+		if consistent: title = str(len(data[0]))+' runs at '+str(generation)+' generations\n'
+		else: title = query["ylabel"]+' at '+str(generation)+' generations over a mixed number of runs\n'
+
+		labels = ["Baseline  ", "QD1", "QD8", "QD64"]
+
+		fig, ax = plt.subplots(figsize=(11, 6), sharey=True)
+		plt.subplots_adjust(wspace=.25, hspace=0.4, bottom=0.1, top=0.9, left=0.1, right=0.95)
+
+		ax.yaxis.grid(True)
+		ax.tick_params(axis='both',
+					   which='both',
+					   bottom=False,
+					   labelleft=False,
+					   labelbottom=False,
+					   left=False,
+					   grid_alpha=0.5)
+
+		vertical_min = numpy.nanmin(data)
+		vertical_max = numpy.nanmax(data) + 0.1
+
+		# max fitness from max-fitness-calculator.py for nests with radius 40cm,
+		# 50cm and 60cm and food boundary at 100cm and 120cm from arena centre
+		self.normaliseFitness(data[0:4], 2.3745)
+		self.normaliseFitness(data[4:8], 2.6032)
+		self.normaliseFitness(data[8:12], 2.8811)
+
+		self.drawSubPlot(data[0:4], 1, "80cm\n", labels, vertical_min, vertical_max)
+		self.drawSubPlot(data[4:8], 2, "100cm\n", labels, vertical_min, vertical_max)
+		self.drawSubPlot(data[8:12], 3, "120cm\n", labels, vertical_min, vertical_max)
+
+		# plt.savefig(filename)
+		print(filename)
+		plt.show()
+
+	def drawSubPlot(self, data, index, title, labels, vertical_min, vertical_max):
+
+		ax = plt.subplot(1, 3, index, frameon=False)
+		plots = ax.boxplot(data, medianprops=dict(color='#000000'), patch_artist=True, labels=labels, widths=0.8)
+
+		if index == 1:
+			ax.tick_params(
+				axis='y',
+				which='both',
+				labelsize=13)
+			ax.set_ylabel("Best fitness", color='#222222', fontsize=18, rotation='vertical')
+			ax.yaxis.set_label_coords(-0.2,0.5)
+
+		else:
+			ax.tick_params(
+				axis='y',
+				which='both',
+				labelleft=False,
+				left=False)
+
+		for patch in plots['boxes']:
+			patch.set_facecolor('lightblue')
+
+		ax.set_title(title,fontsize=18)
+		ax.title.set_position([0.5,1.0])
+
+		# ax.set_ylim([0, vertical_max])
+		ax.set_ylim([0, 0.9])
+
+		ax.tick_params(axis='x', labelsize=13)
+		ax.xaxis.set_label_coords(0.5,0.09)
 
 	def drawEvolution(self, algorithm, query, objective_name, runs, min_gen, max_gen, increment, x_axis_increment):
 
@@ -342,7 +432,7 @@ class Analysis():
 				if columns[0] == objective["name"]:
 					csv_data.append(columns[9:generations+10])
 
-		xlabel = "Generations (population size 25)"
+		xlabel = "Generations"
 
 		data = self.rotateData2D(csv_data)
 		vals = self.getMinMaxMed(data)
@@ -353,7 +443,11 @@ class Analysis():
 
 		ylabel = query["ylabel"]
 		title = objective["description"]+" - "+algorithm["name"]+" algorithm over "+str(runs)+" runs\n"
-		title += "Minimum, median and maximum " + query["description"]+"\n"
+		if objective["name"] == "foraging":
+			title = "Foraging with 64 of each sub-behaviour ("+algorithm["code"]+")\n\n"
+		else:
+			title = objective["description"]+" over "+str(runs)+" runs\n\n"
+		title += "Minimum, median and maximum " + query["description"]
 
 		labels = []
 		for i in range(len(vals[0])):
@@ -376,7 +470,10 @@ class Analysis():
 
 		ax.set_ylim(ylim)
 
-		output_file = "./"+query["name"]+"/line-charts/"+objective["name"]+"-"+algorithm["name"]+".png"
+		if objective["name"] == "foraging":
+			output_file = "./"+query["name"]+"/line-charts/foraging/"+algorithm["code"]+".png"
+		else:
+			output_file = "./"+query["name"]+"/line-charts/sub-behaviours/"+objective["name"]+"-"+algorithm["code"]+".png"
 		print("output_file")
 		print(output_file)
 		# plt.savefig(output_file)
@@ -385,6 +482,13 @@ class Analysis():
 
 
 
+
+	def normaliseFitness(self, data, max_fitness):
+
+		for i in range(len(data)):
+			for j in range(len(data[i])):
+				fitness = data[i][j]
+				data[i][j] = fitness / max_fitness
 
 	def getCsvIndex(self, objective, algorithm_name):
 		if algorithm_name == "mtc":
@@ -395,16 +499,18 @@ class Analysis():
 			return 0
 
 	def getMtcIndex(self, objective):
-		if objective in [0, 2]: return 0
-		if objective in [1, 3]: return 1
-		if objective in [4, 5]: return 2
-		else: return -1
+		mtc_index = -1
+		if objective in [0, 2]: mtc_index = 0
+		if objective in [1, 3]: mtc_index = 1
+		if objective in [4, 5]: mtc_index = 2
+		return mtc_index
 
 	def getMtiIndex(self, objective):
-		if objective in [0, 3]: return 0
-		if objective in [1, 4]: return 1
-		if objective in [2, 5]: return 2
-		else: return -1
+		mti_index = -1
+		if objective in [0, 3]: mti_index = 0
+		if objective in [1, 4]: mti_index = 1
+		if objective in [2, 5]: mti_index = 2
+		return mti_index
 
 	def getObjectivesCombination(self, objective, compatible):
 		if compatible:

@@ -32,6 +32,7 @@ def getMtData(objective, objective_name, seed, compatible_objectives):
 
     algorithm_type = "mtc" if compatible_objectives else "mti"
     grid_index = analyse.getMtcIndex(objective) if compatible_objectives else analyse.getMtiIndex(objective)
+
     objectives = analyse.getObjectivesCombination(objective, compatible_objectives)
 
     path = analyse.objectives.info[objective_name][algorithm_type+"_url"]
@@ -81,7 +82,7 @@ def drawColourBar(fig, ax, cax, figure_size):
 
     fig.subplots_adjust(right=0.9, wspace=0.40)
     colour_bar_axes = fig.add_axes([0.92, 0.3, 0.01, 0.4])
-    cbar = fig.colorbar(cax, cax=colour_bar_axes, format="%.1f")
+    cbar = fig.colorbar(cax, cax=colour_bar_axes, format="%.2f")
     cbar.ax.tick_params(labelsize=12)
 
 def drawHeatmap(algorithms, objective, seed):
@@ -136,6 +137,10 @@ def drawHeatmap(algorithms, objective, seed):
 
     plt.tight_layout()
     drawColourBar(fig, ax, cax, figure_size)
+
+    outputFilename = "./heatmaps/density.png"
+    # fig.savefig(outputFilename)
+
     plt.show()
 
 def drawSubplot(ax, data, colour_map, features_domain, fitness_domain, bins=None, ticks = 4):

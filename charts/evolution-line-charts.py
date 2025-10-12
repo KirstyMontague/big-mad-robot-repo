@@ -21,6 +21,24 @@ y = {
 		"qd-score" : [0.0,0.5],
 		"coverage" : [0.0,0.65],
 	},
+	"idensity" : {
+		"best" : [0.5,0.55],
+		"qd-score" : [0.0,0.35],
+		"coverage" : [0.0,0.65],
+	},
+	"inest" : {
+		"best" : [0.6,0.9],
+		"qd-score" : [0.0,0.45],
+		"coverage" : [0.0,0.65],
+	},
+	"ifood" : {
+		"best" : [0.5,0.75],
+		"qd-score" : [0.0,0.4],
+		"coverage" : [0.0,0.65],
+	},
+	"foraging" : {
+		"best" : [0.0,2.1],
+	},
 }
 
 

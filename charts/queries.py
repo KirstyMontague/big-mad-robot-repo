@@ -9,7 +9,7 @@ class Queries():
                 "description" : "best individuals",
                 "ylabel" : "Best fitness",
                 "index" : 1,
-                "ylim" : [[0.5, 0.61], [0.6, 0.9], [0.83, 0.88]],
+                "ylim" : [[0.48, 0.61], [0.6, 0.9], [0.83, 0.88], [0.5, 0.545], [0.55, 0.88], [0.0, 1.0], [0.0, 2.2]],
             },
             "qd-score" : {
                 "name" : "qd-scores",
