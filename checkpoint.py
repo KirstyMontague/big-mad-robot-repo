@@ -59,7 +59,7 @@ class Checkpoint():
 
     def save(self, generation, population, containers, logs):
         
-        if self.params.saveOutput and (generation % self.params.save_period == 0 or generation == self.params.generations):
+        if self.params.saveCheckpoint and (generation % self.params.save_period == 0 or generation == self.params.generations):
 
             checkpoint = dict(containers=containers,
                               population=population,

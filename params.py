@@ -40,7 +40,7 @@ class eaParams():
 	indexes = [6]
 	populationSize = 25
 
-	start_gen = 0
+	start_gen   = 0
 	generations = 100
 
 	using_repertoire = True
@@ -49,6 +49,7 @@ class eaParams():
 
 	readCheckpoint = False
 	loadCheckpoint = False
+	saveCheckpoint = False
 	saveOutput = False
 	saveCSV = False
 
