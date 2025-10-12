@@ -124,47 +124,47 @@ class eaParams():
 		self.nodes = {}
 	
 	def configure(self):
-		f = open("../config.txt", "r")
-		for line in f:
-			data = line.split()
-			if len(data) > 0:
-				for d in data:
-					print(d)
-				if data[0] == "description": self.description = data[1]
-				if data[0] == "indexes":
-					self.indexes = []
-					for i in range(1, len(data)):
-						self.indexes.append(int(data[i]))
-				if data[0] == "features": self.features = int(data[1])
-				if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
-				if data[0] == "populationsSize": self.populationsSize = int(data[1])
-				if data[0] == "loadCheckpoint":  self.loadCheckpoint = False if data[1] == "False" else True
-				if data[0] == "runs": self.runs = int(data[1])
-				if data[0] == "start_gen": self.start_gen = int(data[1])
-				if data[0] == "generations": self.generations = int(data[1])
-				if data[0] == "genSleep": self.genSleep = float(data[1])
-				if data[0] == "evalSleep": self.evalSleep = float(data[1])
-				if data[0] == "trialSleep": self.trialSleep = float(data[1])
-				if data[0] == "printEliteScores": self.printEliteScores = False if data[1] == "False" else True
-				if data[0] == "printFitnessScores": self.printFitnessScores = False if data[1] == "False" else True
-				if data[0] == "printBestIndividuals": self.printBestIndividuals = False if data[1] == "False" else True
-				if data[0] == "saveOutput": self.saveOutput = False if data[1] == "False" else True
-				if data[0] == "saveCSV": self.saveCSV = False if data[1] == "False" else True
-				if data[0] == "save_period": self.save_period = int(data[1])
-				if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
-				if data[0] == "best_save_period": self.best_save_period = int(data[1])
-				if data[0] == "stop":
-					if len(data) > 1 and data[1] == "False":
-						self.stop = False
-					else:
+		with open("../config.txt", "r") as f:
+			for line in f:
+				data = line.split()
+				if len(data) > 0:
+					for d in data:
+						print(d)
+					if data[0] == "description": self.description = data[1]
+					if data[0] == "indexes":
+						self.indexes = []
+						for i in range(1, len(data)):
+							self.indexes.append(int(data[i]))
+					if data[0] == "features": self.features = int(data[1])
+					if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
+					if data[0] == "populationsSize": self.populationsSize = int(data[1])
+					if data[0] == "loadCheckpoint":  self.loadCheckpoint = False if data[1] == "False" else True
+					if data[0] == "runs": self.runs = int(data[1])
+					if data[0] == "start_gen": self.start_gen = int(data[1])
+					if data[0] == "generations": self.generations = int(data[1])
+					if data[0] == "genSleep": self.genSleep = float(data[1])
+					if data[0] == "evalSleep": self.evalSleep = float(data[1])
+					if data[0] == "trialSleep": self.trialSleep = float(data[1])
+					if data[0] == "printEliteScores": self.printEliteScores = False if data[1] == "False" else True
+					if data[0] == "printFitnessScores": self.printFitnessScores = False if data[1] == "False" else True
+					if data[0] == "printBestIndividuals": self.printBestIndividuals = False if data[1] == "False" else True
+					if data[0] == "saveOutput": self.saveOutput = False if data[1] == "False" else True
+					if data[0] == "saveCSV": self.saveCSV = False if data[1] == "False" else True
+					if data[0] == "save_period": self.save_period = int(data[1])
+					if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
+					if data[0] == "best_save_period": self.best_save_period = int(data[1])
+					if data[0] == "stop":
+						if len(data) > 1 and data[1] == "False":
+							self.stop = False
+						else:
+							self.stop = True
+							self.saveCSV = False
+							self.generations = 0
+					if data[0] == "cancel":
 						self.stop = True
+						self.saveOutput = False
 						self.saveCSV = False
 						self.generations = 0
-				if data[0] == "cancel":
-					self.stop = True
-					self.saveOutput = False
-					self.saveCSV = False
-					self.generations = 0
 
 	def getRepertoireFilename(self):
 		return "../gp/test/"+self.description+"/sub-behaviours.txt"
@@ -174,10 +174,10 @@ class eaParams():
 		names = []
 
 		filename = self.getRepertoireFilename()
-		f = open(filename, "r")
-		for line in f:
-			first = line[0:line.find(" ")]
-			names.append(first)
+		with open(filename, "r") as f:
+			for line in f:
+				first = line[0:line.find(" ")]
+				names.append(first)
 
 		return names
 

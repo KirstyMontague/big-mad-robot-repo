@@ -9,6 +9,9 @@ from archive import Archive
 from params import Params
 from utilities import Utilities
 
+import warnings
+warnings.filterwarnings("error")
+
 class EA():
     
     def __init__(self):

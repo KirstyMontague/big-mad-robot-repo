@@ -9,6 +9,9 @@ import numpy
 import pickle
 import copy
 
+import warnings
+warnings.filterwarnings("error")
+
 from pathlib import Path
 import numpy as np
 

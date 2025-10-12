@@ -65,44 +65,44 @@ class Analysis():
 
 		filename = filename + query["name"] + str(file_index)+".csv"
 
-		f = open(filename, "r")
+		with open(filename, "r") as f:
 
-		indexes = []
-		horizontal_data = []
+			indexes = []
+			horizontal_data = []
 
-		for line in f:
+			for line in f:
+				
+				data = []
+				columns = line.split(",")
+
+				if columns[0] == "Type":
+					for i in range(9, len(columns)):
+						if columns[i].isdigit() and int(columns[i]) <= generations and int(columns[i]) % interval == 0:
+							indexes.append(i)
+
+				elif columns[0] != "Type" and len(indexes) > 0 and len(horizontal_data) < runs:
+					for i in range(generations+1):
+						index = i + 9
+						if index in indexes:
+							if query["name"] == "coverage":
+								# coverage is represented by only one value even for MT 
+								score = columns[index]
+								if score[0] == "[":
+									# adjustment for qdpy output format for coverage
+									score = float(score[1:-1])
+								else:
+									score = float(score)
+								data.append([score])
+							else:
+								scores = columns[index]
+								scoresList = scores.split(" ")
+								if (scoresList[-1] == ""):
+									data.append(scoresList[0:-1])
+								else:
+									data.append(scoresList)
+
+					horizontal_data.append(data)
 			
-			data = []
-			columns = line.split(",")
-
-			if columns[0] == "Type":
-				for i in range(9, len(columns)):
-					if columns[i].isdigit() and int(columns[i]) <= generations and int(columns[i]) % interval == 0:
-						indexes.append(i)
-
-			elif columns[0] != "Type" and len(indexes) > 0 and len(horizontal_data) < runs:
-				for i in range(generations+1):
-					index = i + 9
-					if index in indexes:
-						if query["name"] == "coverage":
-							# coverage is represented by only one value even for MT 
-							score = columns[index]
-							if score[0] == "[":
-								# adjustment for qdpy output format for coverage
-								score = float(score[1:-1])
-							else:
-								score = float(score)
-							data.append([score])
-						else:
-							scores = columns[index]
-							scoresList = scores.split(" ")
-							if (scoresList[-1] == ""):
-								data.append(scoresList[0:-1])
-							else:
-								data.append(scoresList)
-
-				horizontal_data.append(data)
-		
 		# print ("")
 		# print(len(horizontal_data))
 		# print(len(horizontal_data[0]))
@@ -418,19 +418,19 @@ class Analysis():
 		csv_index = self.getCsvIndex(objective, algorithm_name)
 
 		input_file = objective[algorithm_url]+query["name"]+str(generations)+".csv"
-		f = open(input_file, "r")
-		for line in f:
-			columns = line.split(",")
-			if algorithm_name in ["mtc", "mti"]:
-				if columns[0] in ["density-nest-food", "density-nest-ifood", "food-idensity-inest", "idensity-inest-ifood"]:
-					data = []
-					for scores in columns[9:generations+10]:
-						score = scores.split(" ")
-						data.append(float(score[csv_index]))
-					csv_data.append(data)
-			else:
-				if columns[0] == objective["name"]:
-					csv_data.append(columns[9:generations+10])
+		with open(input_file, "r") as f:
+			for line in f:
+				columns = line.split(",")
+				if algorithm_name in ["mtc", "mti"]:
+					if columns[0] in ["density-nest-food", "density-nest-ifood", "food-idensity-inest", "idensity-inest-ifood"]:
+						data = []
+						for scores in columns[9:generations+10]:
+							score = scores.split(" ")
+							data.append(float(score[csv_index]))
+						csv_data.append(data)
+				else:
+					if columns[0] == objective["name"]:
+						csv_data.append(columns[9:generations+10])
 
 		xlabel = "Generations"
 

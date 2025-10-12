@@ -1537,30 +1537,30 @@ class Redundancy():
 			subprocess.call(["/bin/bash", "../evaluate"+str(thread_index), "", "./"])
 			
 			# result from file
-			f = open("../txt/result"+str(thread_index)+".txt", "r")
-			
-			# print ("")
-			for line in f:
-				first = line[0:line.find(" ")]
-				if (first == "result"):
-					# print (line[0:-1])
-					lines = line.split()
-					robotId = int(float(lines[1]))
-					robots[robotId] = []
-					for j in range(self.params.features):
-						for k in range(self.params.iterations):
-							index = (j * self.params.iterations) + k + 2
-							robots[robotId].append(float(lines[index]))
-					# qdpy optimisation
-					for j in range(3):
-						for k in range(self.params.iterations):
-							index = (j * self.params.iterations) + (self.params.features * self.params.iterations) + k + 2
-							robots[robotId].append(float(lines[index]))
-					# end qdpy
-					# string = str(robotId)+" "
-					# for s in robots[robotId][15:20]:
-						# string += str(s)+" "
-					# print (string)
+			with open("../txt/result"+str(thread_index)+".txt", "r") as f:
+				
+				# print ("")
+				for line in f:
+					first = line[0:line.find(" ")]
+					if (first == "result"):
+						# print (line[0:-1])
+						lines = line.split()
+						robotId = int(float(lines[1]))
+						robots[robotId] = []
+						for j in range(self.params.features):
+							for k in range(self.params.iterations):
+								index = (j * self.params.iterations) + k + 2
+								robots[robotId].append(float(lines[index]))
+						# qdpy optimisation
+						for j in range(3):
+							for k in range(self.params.iterations):
+								index = (j * self.params.iterations) + (self.params.features * self.params.iterations) + k + 2
+								robots[robotId].append(float(lines[index]))
+						# end qdpy
+						# string = str(robotId)+" "
+						# for s in robots[robotId][15:20]:
+							# string += str(s)+" "
+						# print (string)
 			
 			# get scores for each robot and add to cumulative total
 			# qdpy optimisation

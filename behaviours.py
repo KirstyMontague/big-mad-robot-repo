@@ -27,19 +27,19 @@ class Behaviours():
             self.subBehaviourNodes.append("goAwayFromNest"+str(i+1))
             self.subBehaviourNodes.append("goAwayFromFood"+str(i+1))
 
-        f = open(self.params.getRepertoireFilename(), "r")
+        with open(self.params.getRepertoireFilename(), "r") as f:
 
-        for line in f:
+            for line in f:
 
-            name = line[0:line.find(" ")]
+                name = line[0:line.find(" ")]
 
-            chromosome = line[line.find(" ")+1:]
-            chromosome = chromosome.replace(",", "")
-            chromosome = chromosome.replace("(", " ")
-            chromosome = chromosome.replace(")", " ")
-            size = len(chromosome.split())
+                chromosome = line[line.find(" ")+1:]
+                chromosome = chromosome.replace(",", "")
+                chromosome = chromosome.replace("(", " ")
+                chromosome = chromosome.replace(")", " ")
+                size = len(chromosome.split())
 
-            self.subBehaviourSizes[name] = size
+                self.subBehaviourSizes[name] = size
 
     def unpack(self, individual):
         

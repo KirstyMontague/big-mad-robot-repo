@@ -7,6 +7,9 @@ import pickle
 import sys
 import os
 
+import warnings
+warnings.filterwarnings("error")
+
 from deap import gp
 from deap import tools
 from deap import base

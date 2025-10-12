@@ -52,12 +52,12 @@ if not params.stop:
 		individual = ""
 		sqrtRobots = 0
 
-		f = open("../txt/best.txt", "r")
-		for line in f:
-			if sqrtRobots == 0:
-				sqrtRobots = line
-			elif individual == "":
-				individual = line
+		with open("../txt/best.txt", "r") as f:
+			for line in f:
+				if sqrtRobots == 0:
+					sqrtRobots = line
+				elif individual == "":
+					individual = line
 
 		fitness = ea.utilities.evaluateRobot(individual, 1)
 		print (fitness)
@@ -67,12 +67,12 @@ if not params.stop:
 		individual = ""
 		sqrtRobots = 0
 
-		f = open("../txt/best.txt", "r")
-		for line in f:
-			if sqrtRobots == 0:
-				sqrtRobots = line
-			elif individual == "":
-				individual = line
+		with open("../txt/best.txt", "r") as f:
+			for line in f:
+				if sqrtRobots == 0:
+					sqrtRobots = line
+				elif individual == "":
+					individual = line
 
 		print(individual)
 		trimmed = ea.redundancy.removeRedundancy(individual)

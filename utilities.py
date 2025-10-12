@@ -125,71 +125,46 @@ class Utilities():
 			subprocess.call(["/bin/bash", "../evaluate"+str(thread_index), "", "./"])
 			
 			# result from file
-			f = open("../txt/result"+str(thread_index)+".txt", "r")
-			
-			# print ("")
-			for line in f:
-				first = line[0:line.find(" ")]
-				if (first == "result"):
-					# print (line[0:-1])
-					lines = line.split()
-					robotId = int(float(lines[1]))
-					robots[robotId] = []
-					for j in range(7): # all objectives are saved to the result file
-						for k in range(self.params.iterations):
-							if j in self.params.indexes:
-								index = (j * self.params.iterations) + k + 2
+			with open("../txt/result"+str(thread_index)+".txt", "r") as f:
+				
+				# print ("")
+				for line in f:
+					first = line[0:line.find(" ")]
+					if (first == "result"):
+						# print (line[0:-1])
+						lines = line.split()
+						robotId = int(float(lines[1]))
+						robots[robotId] = []
+						for j in range(7): # all objectives are saved to the result file
+							for k in range(self.params.iterations):
+								if j in self.params.indexes:
+									index = (j * self.params.iterations) + k + 2
+									robots[robotId].append(float(lines[index]))
+						for j in range(3):
+							for k in range(self.params.iterations):
+								# hard coded 7 because foraging is included in footbot controller objectives
+								index = (j * self.params.iterations) + (7 * self.params.iterations) + k + 2
 								robots[robotId].append(float(lines[index]))
-					# qdpy optimisation
-					for j in range(3):
-						for k in range(self.params.iterations):
-							# hard coded 7 because foraging is included in footbot controller objectives
-							index = (j * self.params.iterations) + (7 * self.params.iterations) + k + 2
-							robots[robotId].append(float(lines[index]))
-					# end qdpy
-					# string = str(robotId)+" "
-					# for s in robots[robotId]:
-						# string += str(s)+" "
-					# print (string)
-					# string = str(robotId)+" "
-					# for s in robots[robotId][5:20]:
-						# string += str(s)+" "
-					# print (string)
-			
+
 			# get scores for each robot and add to cumulative total
-			# qdpy optimisation
-			# for k in range(self.params.features):
 			for k in range(self.params.features + 3):
-				# end qdpy
 				totals[k] += self.collectFitnessScore(robots, k)
-				# print (totals[k])
-			
+
 			# increment counter and pause to free up CPU
 			time.sleep(self.params.trialSleep)
-		
+
 		# divide to get average per seed and arena configuration then apply derating factor
-		# deratingFactor = self.deratingFactor(individual)
 		deratingFactor = 1.0
 		features = []
-		# qdpy optimisation
-		# for i in range(self.params.features):
-		# for i in range(self.params.features + 3):
-			# end qdpy
-			# features.append(self.getAvgAndDerate(totals[i], individual, deratingFactor))
-		
+
 		for i in range(self.params.features):
 			fitness.append(self.getAvgAndDerate(totals[i], individual, deratingFactor))
 		for i in range(self.params.characteristics):
 			features.append(self.getAvgAndDerate(totals[i + self.params.features], individual, deratingFactor))
-		
+
 		# pause to free up CPU
 		time.sleep(self.params.evalSleep)
-		
-		# output = ""
-		# for f in features:
-			# output += str("%.9f" % f) + " \t"
-		# print (output)
-		
+
 		if self.params.is_qdpy:
 			return (fitness, features)
 		else:
@@ -513,7 +488,7 @@ class Utilities():
 
 	def saveBestToFile(self, best):
 		
-		with open('../best.txt', 'w') as f:
+		with open('../txt/best.txt', 'w') as f:
 			f.write(str(self.params.sqrtRobots))
 			f.write("\n")
 			f.write(str(best))
