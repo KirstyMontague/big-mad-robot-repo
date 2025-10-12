@@ -171,6 +171,9 @@ class EA():
 		if generation == self.params.generations or generation % 100 == 0 or invalid_new > 0:
 			print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 		
+		if generation != 0 and generation % 100 == 0 and invalid_new == 0:
+			time.sleep(10.0)
+
 		# print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+str(len(best[0]))+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 
 		self.logs.logFitness(generation, best)
@@ -236,9 +239,10 @@ class EA():
 		# get the best individual at the end of the evolutionary run
 		best = self.utilities.getBestAll(population)
 		self.printIndividuals(best, True)
-		
+
 		self.checkpoint.save(self.params.generations, population, self.grid.grids, self.logs)
 		self.archive.saveArchive(self.redundancy)
+		self.utilities.saveBestToFile(best[0])
 
 		self.grid.save()
 

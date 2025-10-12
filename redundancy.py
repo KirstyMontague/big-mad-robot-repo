@@ -72,6 +72,33 @@ class Redundancy():
 		self.chromosomes = []
 		tests = RedundancyTests()
 		self.tests = tests.getTests()
+		self.hits = 0
+		self.limit = 10000
+		self.verbose = False
+		self.stop = True
+
+	def printMessage(self, indent, message):
+		if self.verbose == True and self.hits > 0:
+			print(indent+message)
+
+	def terminate(self):
+		if (self.stop and self.hits > self.limit):
+			print("more than "+str(self.hits)+" hits")
+			return True
+		return False
+
+	def writeError(self, chromosome):
+
+		tree = self.primitivetree.from_string(chromosome, self.pset)
+		print("\nfailed to remove redundancy from tree\n")
+		print("nodes: "+str(len(chromosome))+"   hits: "+str(self.hits))
+		print("see ../txt/error.txt")
+
+		with open('../txt/error.txt', 'w') as f:
+			f.write("nodes: "+str(len(chromosome))+"   hits: "+str(self.hits)+"\n")
+			f.write(str(chromosome))
+			f.write("\n")
+			f.write(self.formatChromosome(tree))
 
 	def test(tree):
 		print ("test")
@@ -99,9 +126,8 @@ class Redundancy():
 		self.chromosomes.append("selm2(r, probm4(rl, ifRobotToLeft, ifNestToLeft, ifNestToRight))")
 
 	def trim(self, chromosome):
-		
+
 		tree = self.primitivetree.from_string(chromosome, self.pset)
-		# print(self.formatChromosome(tree))
 		
 		output = []
 		for j in range(len(self.trailingList) - 1, -1, -1):
@@ -109,21 +135,25 @@ class Redundancy():
 		
 		self.active = [True]
 		self.trailingList = []
+		self.hits = 0
 
-		self.parseSubtreeGreedy(tree, "  ", output)
-		self.trailingNodesGreedy(tree, output)
-		self.capitaliseOutput(output)
-		
-		trailing = self.trailingList
-		new_chromosome = self.replaceObsoleteConditionsWithStop(tree, tree.searchSubtree(0), trailing, "", 1, True)
-		new_chromosome = self.rebuildFromTrailingList(trailing, new_chromosome, new_chromosome.searchSubtree(0), "", 1)
+		try:
+			self.parseSubtreeGreedy(tree, "  ", output)
+			self.trailingNodesGreedy(tree, output)
+			self.capitaliseOutput(output)
+
+			trailing = self.trailingList
+			new_chromosome = self.replaceObsoleteConditionsWithStop(tree, tree.searchSubtree(0), trailing, "", 1, True)
+			new_chromosome = self.rebuildFromTrailingList(trailing, new_chromosome, new_chromosome.searchSubtree(0), "", 1)
+
+		except:
+			self.writeError(chromosome)
 
 		return new_chromosome
 
 	def removeRedundancy(self, chromosome):
 		
 		tree = self.primitivetree.from_string(chromosome, self.pset)
-		# print(self.formatChromosome(tree))
 		
 		output = []
 		for j in range(len(self.trailingList) - 1, -1, -1):
@@ -131,31 +161,20 @@ class Redundancy():
 		
 		self.active = [True]
 		self.trailingList = []
+		self.hits = 0
 
-		self.parseSubtreeGreedy(tree, "  ", output)
-		self.trailingNodesGreedy(tree, output)
-		self.capitaliseOutput(output)
-		
-		trailing = self.trailingList
-		new_chromosome = self.replaceObsoleteConditionsWithStop(tree, tree.searchSubtree(0), trailing, "", 1, True)
-		new_chromosome = self.rebuildFromTrailingList(trailing, new_chromosome, new_chromosome.searchSubtree(0), "", 1)
-		# new_tree = self.primitivetree.from_string(str(new_chromosome), self.pset)
+		try:
+			self.parseSubtreeGreedy(tree, "  ", output)
+			self.trailingNodesGreedy(tree, output)
+			self.capitaliseOutput(output)
 
-		# print(self.formatChromosome(new_tree))
-		# print("")
+			trailing = self.trailingList
+			new_chromosome = self.replaceObsoleteConditionsWithStop(tree, tree.searchSubtree(0), trailing, "", 1, True)
+			new_chromosome = self.rebuildFromTrailingList(trailing, new_chromosome, new_chromosome.searchSubtree(0), "", 1)
 		
-		# fitness = self.evaluateRobot(tree, 1)
-		# fitness2 = self.evaluateRobot(new_tree, 2)
+		except:
+			self.writeError(chromosome)
 		
-		# print(fitness)
-		# print(fitness2)
-		
-		# chromosome = self.rebuildChromosome(output)
-		
-		# print ("---------------------------")
-		# print (str(chromosome)+"\n")
-		# print (str(new_chromosome)+"\n")
-		# print(self.mapNodesToArchive(chromosome)
 		return str(new_chromosome)
 	
 	def makeTests(self):
@@ -930,13 +949,20 @@ class Redundancy():
 		
 		removed_node_last_time = True
 		count = 0
-		
+		self.hits += 1
+		if self.terminate(): return
+
+		# removed_node_last_time is true if we removed a seqm or selm node last
+		# time round, or descending into a subtree caused the tree to be changed
 		while removed_node_last_time and count < 100:
-			
+
 			removed_node_last_time = False
+
+			if self.terminate(): return
+
 			count += 1
 			# print(indent+str(slice_))
-			
+
 			parent_is_last_subtree = last
 			
 			subtree_slice = slice_
@@ -946,21 +972,24 @@ class Redundancy():
 			slices = self.getSubtreeSlices(tree, slice_)
 			
 			subtree_is_active = False
-			activity_somewhere_in_subtree = False
 			nextSubtreeActive = False
 			
 			parent = subtree[0].name
 			parent_is_prob_node = parent in self.probabilityNodes
 			
+			self.printMessage(indent, parent+" "+str(slice_))
+
 			# going backwards through all slices
 			for i in range(len(slices) - count, -1, -1):
 			
-				# print (indent+str(slices[i].start)+" - "+str(slices[i].stop))
-				
+				if self.terminate(): return
+
 				active_subtree_this_iteration = False
 				chromosome = tree[slices[i]]
 				subSubtree = gp.PrimitiveTree(chromosome)
-				
+
+				# self.printMessage(indent, str(slices[i].start)+" - "+str(slices[i].stop)+"  "+str(subSubtree))
+
 				sub_subtree_parent = subSubtree[0].name
 				
 				# if not first time round loop and a subtree has already been marked as active and the next (prev
@@ -979,16 +1008,16 @@ class Redundancy():
 				# if this is the last subtree which could have actions and doesn't have any actions
 				if last and not activity and not active_subtree_this_iteration:
 					
-					# print(indent+"last and not active_subtree_this_iteration")
+					# self.printMessage(indent, "last and not active_subtree_this_iteration")
 				
 					if parent_is_prob_node:
 						
-						# print(indent+"parent_is_prob_node")
+						# self.printMessage(indent, "parent_is_prob_node")
 						
 						for j in reversed(range(slices[i].start, slices[i].stop)):
 							
 							node = tree[j].name
-							# print(indent+str(j)+" "+node)
+							# self.printMessage(indent, str(j)+" "+node)
 							
 							if node in self.conditionNodes:
 								
@@ -1044,7 +1073,7 @@ class Redundancy():
 							
 							elif node in self.probabilityNodes and not self.anyActivityInSubtree(tree, j):
 								
-								# can't find anywhere this is used								
+								self.printMessage(indent, "can't find anywhere this is used (probm node and no activity in subtree)")
 								# this probm node is nested in another probm node, 
 								# keep (at least) the first two conditions
 								
@@ -1054,7 +1083,7 @@ class Redundancy():
 								tree = self.neutraliseProbmChildren(trailing, new_list, j)
 								
 					elif sub_subtree_parent in self.probabilityNodes:						
-						# can't find anywhere this is used									
+						self.printMessage(indent, "can't find anywhere this is used (sub-subtree parent is probm node)")
 						for j in reversed(range(slices[i].start, slices[i].stop)):
 							if tree[j].name in self.probabilityNodes and not self.anyActivityInSubtree(tree, j):
 								new_list = []
@@ -1065,24 +1094,25 @@ class Redundancy():
 				# otherwise descend into this subtree
 				if not last or active_subtree_this_iteration or (not parent_is_prob_node and not sub_subtree_parent in self.probabilityNodes):
 					
-					# print(indent+"descend2")
+					# self.printMessage(indent, "descend into subtree")
 					
 					first += 1
 					if (first < 10000):
 						
-						if (real_activity):
-							activity_somewhere_in_subtree = True
-						if last and not active_subtree_this_iteration and not parent_is_prob_node and not sub_subtree_parent in self.probabilityNodes:
-							# probably not necessary
-							activity_somewhere_in_subtree = True
-						
 						trailingSubtree = last
+
+						old_tree = tree
 						tree = self.replaceObsoleteConditionsWithStop(tree, slices[i], trailing, "  "+indent, first, trailingSubtree)
-						
-						removed_node_last_time = True
+						new_tree = tree
+
+						if old_tree != new_tree:
+							removed_node_last_time = True
+							self.printMessage(indent, "removed_node_last_time = True")
+
+						if self.terminate(): return
 				
 				if removed_node_last_time:
-		
+
 					subtree = self.updateSubtree(tree, slices, subtree[0].name)
 					slice_ = tree.searchSubtree(slices[0].start - 1)
 									
@@ -1098,8 +1128,8 @@ class Redundancy():
 			# probably don't want to do this if we've just rearranged the tree but not sure
 			if not removed_node_last_time and parent_is_last_subtree and parent_is_prob_node:
 				
-				# print(indent+"not removed_node_last_time and parent_is_last_subtree and parent_is_prob_node
-				
+				# self.printMessage(indent, "not removed_node_last_time and parent_is_last_subtree and parent_is_prob_node")
+
 				prob_subtree_slices = self.getSubtreeSlices(tree, subtree_slice)
 				
 				tree_index = prob_subtree_slices[-1].start
@@ -1107,19 +1137,27 @@ class Redundancy():
 				while slice_index >= 0:
 					
 					new_list = []
+
+					# make a new list of every node in the tree
 					for node in tree:
 						new_list.append(node.name)				
-					
+
+					# if root of this slice is a condition node change it to ifInNest
 					if new_list[tree_index] in self.conditionNodes:
 						new_list[tree_index] = self.changeConditionNode(new_list[tree_index])
 					
+					# rewrite the tree now condition nodes have been changed (trailing param is just for debugging)
 					tree = self.buildNewTreeFromList(trailing, new_list, indent)
 					
+					# also update this subtree to match the updated tree
 					subtree = self.updateSubtree(tree, slices, parent)
 					
+					# proceed to previous subtree for next loop
 					slice_index -= 1
 					tree_index -= prob_subtree_slices[slice_index].stop - prob_subtree_slices[slice_index].start
-		
+
+			# self.printMessage(indent, "removed last time: "+str(removed_node_last_time)+" and count: "+str(count))
+
 		return tree
 
 	def rebuildTree(self, tree, slice_, trailing, first, last):

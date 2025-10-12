@@ -50,19 +50,41 @@ if not params.stop:
 	def evaluateOneIndividual():
 
 		individual = ""
+		sqrtRobots = 0
 
 		f = open("../txt/best.txt", "r")
 		for line in f:
-			if line == "3": continue
-			else:
+			if sqrtRobots == 0:
+				sqrtRobots = line
+			elif individual == "":
 				individual = line
 
 		fitness = ea.utilities.evaluateRobot(individual, 1)
 		print (fitness)
 
+	def trimOneIndividual():
+
+		individual = ""
+		sqrtRobots = 0
+
+		f = open("../txt/best.txt", "r")
+		for line in f:
+			if sqrtRobots == 0:
+				sqrtRobots = line
+			elif individual == "":
+				individual = line
+
+		print(individual)
+		trimmed = ea.redundancy.removeRedundancy(individual)
+		print ()
+		print (trimmed)
+
 	def main():
 
 		# evaluateOneIndividual()
+		# return
+
+		# trimOneIndividual()
 		# return
 
 		parseArguments()
