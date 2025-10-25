@@ -37,14 +37,14 @@ class eaParams():
 	iterations = 5
 	num_threads = 8
 
-	indexes = [6]
+	indexes = [0,1,5]
 	populationSize = 25
 
 	start_gen   = 0
 	generations = 100
 
 	using_repertoire = True
-	repertoire_type = "qd"
+	repertoire_type = "mtc"
 	bins_per_axis = 1
 
 	readCheckpoint = False

@@ -585,7 +585,7 @@ void CFootBotBT::ControlStep()
 		m_scores[2].push_back(m_blackBoard->getDifferenceInDistanceFromFood());
 		m_scores[3].push_back(m_blackBoard->getDifferenceInDensityInverse());
 		m_scores[4].push_back(m_blackBoard->getDifferenceInDistanceFromNestInverse());
-		m_scores[5].push_back(m_blackBoard->getDifferenceInDistanceFromFoodInverse(tracking ? std::stoi(GetId()) : -1));
+		m_scores[5].push_back(m_blackBoard->getAbsoluteDifferenceInDistanceFromFoodInverse(0.5 + m_gap, tracking ? std::stoi(GetId()) : -1));
 		
 		// foraging
 		m_scores[6].push_back(static_cast<float>(m_food));
