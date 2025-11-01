@@ -101,7 +101,7 @@ class QD():
 
             grid = self.grids[i]
 
-            filename = "./test/"+self.params.description+"/"+str(self.params.deapSeed)+"/"
+            filename = self.params.path()
             filename += self.params.description+"-"+str(self.params.deapSeed)+"-"+self.params.objectives[self.params.indexes[i]]+".pkl"
             print(filename)
 

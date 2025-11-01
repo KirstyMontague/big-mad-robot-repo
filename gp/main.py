@@ -5,14 +5,6 @@ from params import eaParams
 params = eaParams()
 params.configure()
 
-# from redundancy import Redundancy
-# redundancy = Redundancy()
-# redundancy.params.is_qdpy = False
-
-# redundancy.checkRedundancy()
-# redundancy.checkProbmNodes()
-
-# if False:
 if not params.stop:
 
 	import random
@@ -88,8 +80,12 @@ if not params.stop:
 		# return
 
 		parseArguments()
-		
-		if params.saveOutput:
+
+		if params.saveOutput or params.saveCSV or params.saveCheckpoint:
+			Path(params.shared_path+"/"+params.algorithm+"/").mkdir(parents=False, exist_ok=True)
+			Path(params.shared_path+"/"+params.algorithm+"/"+params.description+"/").mkdir(parents=False, exist_ok=True)
+
+		if params.saveOutput or params.saveCheckpoint:
 			Path(params.path()).mkdir(parents=False, exist_ok=True)
 
 		random.seed(params.deapSeed)

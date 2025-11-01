@@ -42,17 +42,16 @@ class Archive():
 		archive = self.getArchive()
 		cumulative_archive = self.getCumulativeArchive()
 
-		algorithm = "qdpy" if self.params.is_qdpy else "gp"
+		directory_path = self.params.shared_path
+		results_directory = self.params.description
 
-		directory_path = ".."
-		results_directory = "test/"+self.params.description
-		use_temp_archive = (directory_path == ".." and results_directory == "test/"+self.params.description)
+		use_temp_archive = (directory_path == self.params.shared_path and results_directory == self.params.description)
 
 		print()
 
 		for i in range(30):
 			archive_path = directory_path+"/gp/"+results_directory+"/"+str(i+1)+"/"
-			if not use_temp_archive or archive_path != "../"+algorithm+"/"+self.params.path():
+			if not use_temp_archive or archive_path != self.params.path():
 				if os.path.exists(archive_path+"archive.pkl"):
 					with open(archive_path+"archive.pkl", "rb") as archive_file:
 						cumulative_archive.update(pickle.load(archive_file))
@@ -61,7 +60,7 @@ class Archive():
 
 		for i in range(30):
 			archive_path = directory_path+"/qdpy/"+results_directory+"/"+str(i+1)+"/"
-			if not use_temp_archive or archive_path != "../"+algorithm+"/"+self.params.path():
+			if not use_temp_archive or archive_path != self.params.path():
 				if os.path.exists(archive_path+"archive.pkl"):
 					with open(archive_path+"archive.pkl", "rb") as archive_file:
 						cumulative_archive.update(pickle.load(archive_file))

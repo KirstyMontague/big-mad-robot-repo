@@ -90,7 +90,7 @@ class Utilities():
 		# print (individual)
 		
 		# save number of robots and chromosome to file
-		with open('../txt/chromosome'+str(thread_index)+'.txt', 'w') as f:
+		with open(self.params.local_path+'/chromosome'+str(thread_index)+'.txt', 'w') as f:
 			f.write(str(self.params.sqrtRobots))
 			f.write("\n")
 			f.write(str(individual))
@@ -116,17 +116,16 @@ class Utilities():
 			
 			# write seed to file
 			seed += 1
-			with open('../txt/seed'+str(thread_index)+'.txt', 'w') as f:
+			with open(self.params.local_path+'/seed'+str(thread_index)+'.txt', 'w') as f:
 				f.write(str(seed))
 				f.write("\n")
 				f.write(str(i))
 
 			# run argos
-			subprocess.call(["/bin/bash", "../evaluate"+str(thread_index), "", "./"])
-			
+			subprocess.call(["/bin/bash", "../evaluate"+str(thread_index), self.params.local_path, "./"])
 			# result from file
-			with open("../txt/result"+str(thread_index)+".txt", "r") as f:
-				
+			with open(self.params.local_path+"/result"+str(thread_index)+".txt", "r") as f:
+
 				# print ("")
 				for line in f:
 					first = line[0:line.find(" ")]
@@ -471,27 +470,13 @@ class Utilities():
 		nb_updated = grid.update(fittest_flat, issue_warning = True)
 		return grid
 
-	def saveQdResults(self, container):
-		
-		with open('QD-'+str(self.params.generations)+'.csv', 'a') as f:
-			for idx, inds in container.solutions.items():
-				if len(inds) == 0:
-					continue
-				for ind in inds:
-					performance = str("%.5f" % ind.fitness.values[0]) + "  \t"
-					for feature in ind.features:
-						performance += str("%.5f" % feature) + ","
-					f.write(performance)
-					f.write(",\""+str(ind)+"\"")
-					f.write("\n")
-				f.write("\n")
-
 	def saveBestToFile(self, best):
 		
-		with open('../txt/best.txt', 'w') as f:
-			f.write(str(self.params.sqrtRobots))
-			f.write("\n")
-			f.write(str(best))
+		if self.params.saveOutput:
+			with open(self.params.path()+'best.txt', 'w') as f:
+				f.write(str(self.params.sqrtRobots))
+				f.write("\n")
+				f.write(str(best))
 
 	def saveBestIndividuals(self, population):
 
@@ -500,12 +485,12 @@ class Utilities():
 			if not self.params.saveAllIndividuals:
 				population = self.getBestAll(population)
 
-			with open('../txt/current.txt', 'w') as f:
+			with open(self.params.local_path+'/current.txt', 'w') as f:
 				f.write("\n")
 
 			for b in population:
 
-				with open('../txt/current.txt', 'a') as f:
+				with open(self.params.local_path+'/current.txt', 'a') as f:
 					f.write("\n")
 					f.write(str(b.fitness))
 					f.write("\n\n")
@@ -704,7 +689,7 @@ class Utilities():
 	def saveConfigurationFile(self):
 
 		experiment_length = 500 if self.params.description == "foraging" else 100
-		with open('../txt/configuration.txt', 'w') as f:
+		with open(self.params.local_path+'/configuration.txt', 'w') as f:
 			f.write("experimentLength:"+str(experiment_length)+"\n")
 			f.write("repertoireFilename:"+self.params.getRepertoireFilename()+"\n")
 			f.write("nestRadius:"+str(self.params.nest)+"\n")

@@ -50,10 +50,39 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 		GetNodeAttribute(tDistr, "index", index);
 	}
 
-	// get configuration from file
-	std::string configFilename = "../txt/configuration.txt";
-	std::ifstream configFile(configFilename);
+	// get paths
+	std::string pathFilename = "../path.txt";
+	std::ifstream pathFile(pathFilename);
 	std::string line = "";
+	std::string hostPath = "";
+	std::string localPath = "";
+	while( getline(pathFile, line) )
+	{
+		int delimiter = line.find(":");
+		std::string key = line.substr(0, delimiter);
+		std::string value = line.substr(delimiter + 1);
+
+		if (key == "host")
+		{
+			hostPath = value;
+		}
+		if (key == "local")
+		{
+			localPath = value;
+		}
+	}
+
+	if (hostPath == "" || localPath == "")
+	{
+		std::cout << "hostPath: " << hostPath << "\n";
+		std::cout << "localPath: " << localPath << "\n";
+		return;
+	}
+
+	// get configuration from file
+	std::string configFilename = hostPath+"/"+localPath+"/configuration.txt";
+	std::ifstream configFile(configFilename);
+	line = "";
 	int trialLength = 0;
 	std::string repertoireFilename = "";
 	while( getline(configFile, line) )
@@ -86,8 +115,8 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
     }
 
 	// get random seed and environmental parameters from file
-	std::cout << "../txt/seed"+std::to_string(index)+".txt" << std::endl;
-	std::ifstream seedFile("../txt/seed"+std::to_string(index)+".txt");
+	std::string seedFileName = hostPath+"/"+localPath+"/seed"+std::to_string(index)+".txt";
+	std::ifstream seedFile(seedFileName);
 	line = "";
 	int seed = -1;
 	while( getline(seedFile, line) )
@@ -100,7 +129,8 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 	m_pcRNG->Reset();
 	
 	// read number of robots and chromosome from file
-	std::ifstream chromosomeFile("../txt/"+filename); 
+	std::string chromosomeFileName = hostPath+"/"+localPath+"/"+filename;
+	std::ifstream chromosomeFile(chromosomeFileName);
 	line = "";
 	int sqrtRobots = 0;
 	std::string chromosome;

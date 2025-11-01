@@ -2,11 +2,13 @@
 
 import random
 import pickle
+from utilities import Utilities
 
 class Checkpoint():
 
     def __init__(self, params):
         self.params = params
+        self.utilities = Utilities(params, None)
 
     def read(self):
 
@@ -38,6 +40,13 @@ class Checkpoint():
         print("fitness: "+str(fitness))
         print("qd score: "+str(qd_scores))
         print("coverage: "+str(coverage))
+
+        best = self.utilities.getBestAll(population, False)
+        print("best from population: "+str(best[0].fitness.values)+" ("+str(len(best[0]))+" nodes)")
+
+        for i in range(len(containers)):
+            best = self.utilities.getBestHDRandom(containers[i], 0, False)
+            print("best from container: "+str(best.fitness.values)+" ("+str(len(best))+" nodes)")
 
         return population
 

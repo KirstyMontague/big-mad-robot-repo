@@ -50,6 +50,9 @@ class EA():
 		self._init_container(container)
 		self.total_elapsed = 0.
 		random.seed(self.params.deapSeed)
+		if self.params.saveOutput or self.params.saveCSV or self.params.saveCheckpoint:
+			Path(self.params.shared_path+"/"+self.params.algorithm+"/").mkdir(parents=False, exist_ok=True)
+			Path(self.params.shared_path+"/"+self.params.algorithm+"/"+self.params.description+"/").mkdir(parents=False, exist_ok=True)
 		if self.params.saveOutput:
 			Path(self.params.path()).mkdir(parents=False, exist_ok=True)
 			Path(self.params.path()+"/csvs").mkdir(parents=False, exist_ok=True)

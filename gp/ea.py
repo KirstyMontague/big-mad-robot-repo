@@ -90,42 +90,17 @@ class EA():
 		return offspring
 
 	def startWithNewPopulation(self):
-		
-		
-		
+
 		population = self.utilities.toolbox.population(n=self.params.populationSize)
-	
+
 		self.params.start_gen = 0	
-		
+
 		matched = self.evaluateNewPopulation(True, self.params.start_gen, population)
-				
+
 		self.printScores(population, self.params.printFitnessScores)
 		self.printIndividuals(self.utilities.getBestAll(population), self.params.printBestIndividuals)
 		self.printIndividuals(population, self.params.printAllIndividuals)
-		
-		# for ind in population:
-			# self.printIndividual(ind)
-		
-		# Evaluate the individuals with an invalid fitness
-		# invalid_ind = [ind for ind in population if not ind.fitness.valid]
-		# invalid_orig = len(invalid_ind)			
-		
-		# matched = [0,0]
-		# invalid_ind = self.assignDuplicateFitness(invalid_ind, matched)
-		
-		# invalid_ind = [ind for ind in population if not ind.fitness.valid]
-		# invalid_new = len(invalid_ind)
-		
-		# self.evaluate(self.toolbox, invalid_ind)
-		
-		# redundancy
-		# for ind in invalid_ind:
-			# self.redundancy.addToLibrary(str(ind), ind.fitness.values)
-		
-		# print ("\t"+str(self.params.deapSeed)+" - "+str(self.params.start_gen)+" - invalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
-		
-		# self.logFitness(self.getBestHDAll(population))
-		
+
 		return population
 
 	def transferTrimmedFitnessScores(self, offspring, trimmed):
@@ -232,12 +207,18 @@ class EA():
 			population = self.checkpoint.load(self.logs, self.grid)
 
 		else:
-			population = self.startWithNewPopulation()
+			try:
+				population = self.startWithNewPopulation()
+			except:
+				return
 		
 		self.utilities.saveParams()
 		
 		# begin evolution
-		self.eaLoop(population, stats)
+		try:
+			self.eaLoop(population, stats)
+		except:
+			return
 
 		# get the best individual at the end of the evolutionary run
 		best = self.utilities.getBestAll(population)

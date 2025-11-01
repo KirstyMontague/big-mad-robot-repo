@@ -92,9 +92,9 @@ class Redundancy():
 		tree = self.primitivetree.from_string(chromosome, self.pset)
 		print("\nfailed to remove redundancy from tree\n")
 		print("nodes: "+str(len(chromosome))+"   hits: "+str(self.hits))
-		print("see ../txt/error.txt")
+		print("see "+self.params.shared_path+"/error.txt")
 
-		with open('../txt/error.txt', 'w') as f:
+		with open(self.params.shared_path+'/error.txt', 'w') as f:
 			f.write("nodes: "+str(len(chromosome))+"   hits: "+str(self.hits)+"\n")
 			f.write(str(chromosome))
 			f.write("\n")
@@ -148,6 +148,7 @@ class Redundancy():
 
 		except:
 			self.writeError(chromosome)
+			raise
 
 		return new_chromosome
 
@@ -174,6 +175,7 @@ class Redundancy():
 		
 		except:
 			self.writeError(chromosome)
+			raise
 		
 		return str(new_chromosome)
 	
