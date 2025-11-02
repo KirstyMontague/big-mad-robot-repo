@@ -33,6 +33,7 @@ class EA():
 
 		self.params = params
 		self.params.is_qdpy = False
+		self.params.configure()
 
 		self.behaviours = Behaviours(params)
 
@@ -41,7 +42,7 @@ class EA():
 		self.utilities.saveConfigurationFile()
 
 		self.logs = Logs(self.params, self.utilities)
-		self.redundancy = Redundancy(self.params.using_repertoire)
+		self.redundancy = Redundancy(self.params)
 		self.archive = Archive(params, self.redundancy)
 		self.checkpoint = Checkpoint(params)
 		self.grid = QD(params, self.utilities)

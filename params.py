@@ -41,7 +41,7 @@ class eaParams():
         self.populationSize = 25
 
         self.start_gen   = 0
-        self.generations = 100
+        self.generations = 1000
 
         self.using_repertoire = True
         self.repertoire_type = "qd"
@@ -141,15 +141,48 @@ class eaParams():
                 if len(data) > 0:
                     for d in data:
                         print(d)
-                    if data[0] == "description": self.description = data[1]
                     if data[0] == "indexes":
                         self.indexes = []
                         for i in range(1, len(data)):
                             self.indexes.append(int(data[i]))
-                    if data[0] == "features": self.features = int(data[1])
+
+                        description = ""
+                        for index in self.indexes:
+                            description += self.objectives[index]+"-"
+                        self.description = description[0:-1]
+
+                        self.populationSize *= len(self.indexes)
+                        self.tournamentSize = 2 + len(self.indexes)
+                        self.features = len(self.indexes)
+                        self.repertoire_size = self.bins_per_axis ** self.characteristics
+
+                        self.save_period = 1000
+                        self.csv_save_period = 1000
+                        if self.description == "foraging" and not self.using_repertoire:
+                            self.save_period = 2200
+                            self.csv_save_period = 2200
+
+                        if self.description != "foraging":
+                            self.using_repertoire = False
+                            self.features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)]
+                        else:
+                            self.features_domain = [(-200.0, 200.0), (-200.0, 200.0), (0.0, 1.0)]
+
+                    if data[0] == "bins_per_axis":
+                        self.bins_per_axis = int(data[1])
+                        self.repertoire_size = self.bins_per_axis ** self.characteristics
+
+                    if data[0] == "using_repertoire":
+                        self.using_repertoire = False if data[1] == "False" else True
+                        self.save_period = 1000
+                        self.csv_save_period = 1000
+                        if self.description == "foraging" and not self.using_repertoire:
+                            self.save_period = 2200
+                            self.csv_save_period = 2200
+
                     if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
                     if data[0] == "populationsSize": self.populationsSize = int(data[1])
-                    if data[0] == "loadCheckpoint":  self.loadCheckpoint = False if data[1] == "False" else True
+                    if data[0] == "loadCheckpoint": self.loadCheckpoint = False if data[1] == "False" else True
                     if data[0] == "runs": self.runs = int(data[1])
                     if data[0] == "start_gen": self.start_gen = int(data[1])
                     if data[0] == "generations": self.generations = int(data[1])

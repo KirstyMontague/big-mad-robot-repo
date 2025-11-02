@@ -36,10 +36,11 @@ class EA():
 	def __init__(self, params):
 		self.params = params
 		self.params.is_qdpy = True
+		self.params.configure()
 		self.utilities = Utilities(params)
 		self.utilities.setupToolbox(self.selTournament)
 		self.utilities.saveConfigurationFile()
-		self.redundancy = Redundancy(self.params.using_repertoire)
+		self.redundancy = Redundancy(self.params)
 		self.archive = Archive(params, self.redundancy)
 		self.logs = Logs(params, self.utilities)
 
