@@ -1,11 +1,14 @@
 
+import os
 import time
+import warnings
+
+from pathlib import Path
 
 from archive import Archive
 from params import Params
 from utilities import Utilities
 
-import warnings
 warnings.filterwarnings("error")
 
 
@@ -17,23 +20,24 @@ class EA():
 
         self.params = Params()
         self.utilities = Utilities(self.params)
-        self.archive = Archive(self.utilities, self.params)
-        self.best = None
-
-        self.configure()
-        if self.params.cancelled:
-            return
 
         if self.params.seed == 0: self.params.seed = self.utilities.parseArguments()
         if self.params.seed == None:
             print("no seed")
             return
 
-        self.utilities.setSeed()
+        self.configure()
+        if self.params.cancelled:
+            return
+
+        self.archive = Archive(self.utilities, self.params)
         self.archive.loadArchives()
 
+        self.utilities.setSeed()
+        self.best = None
+
         experiment_length = 500 if self.params.objective == "foraging" else 100
-        with open('../txt/configuration.txt', 'w') as f:
+        with open(self.params.local_path+'/configuration.txt', 'w') as f:
             f.write("numInputs:"+str(self.params.num_inputs))
             f.write("\n")
             f.write("numHidden:"+str(self.params.num_hidden))
@@ -55,28 +59,37 @@ class EA():
         end_time = round(time.time() * 1000)
         self.utilities.printDuration(start_time, end_time)
 
+        if self.params.saveOutput or self.params.saveCSV or self.params.saveBest:
+            Path(self.params.shared_path+"/cma-es/").mkdir(parents=False, exist_ok=True)
+            Path(self.params.shared_path+"/cma-es/"+self.params.objective+"/").mkdir(parents=False, exist_ok=True)
 
-        with open('../txt/best.txt', 'w') as f:
-            f.write(str(self.params.ind_size))
-            for s in self.best:
-                f.write(" ")
-                f.write(str(s))
+        if self.params.saveBest:
+            with open(self.params.shared_path+"/cma-es/"+self.params.objective+"/best"+str(self.params.seed)+".txt", "w") as f:
+                f.write(str(self.params.ind_size))
+                for s in self.best:
+                    f.write(" ")
+                    f.write(str(s))
 
         if self.params.saveOutput:
             self.archive.saveArchive()
 
-        csv_string = str(self.params.objective) +","
-        csv_string += str(self.params.seed) +","
-        csv_string += str(self.params.generations) +","
-        csv_string += str(self.best.fitness.getValues()[0]) +","
-        for c in self.best:
-            csv_string += str(c) + " "
-        csv_string = csv_string[0:-1]
-        csv_string += "\n"
-        print(csv_string)
-
         if self.params.saveCSV:
-            with open(self.params.csv, 'a') as f:
+            csv_string = ""
+            if not os.path.exists(self.params.csvFilename()):
+                csv_string += "Objective,"
+                csv_string += "Seed,"
+                csv_string += "Generations,"
+                csv_string += "Fitness,"
+                csv_string += "Chromosome\n"
+            csv_string += str(self.params.objective) +","
+            csv_string += str(self.params.seed) +","
+            csv_string += str(self.params.generations) +","
+            csv_string += str(self.best.fitness.getValues()[0]) +","
+            for c in self.best:
+                csv_string += str(c) + " "
+            csv_string = csv_string[0:-1]
+            csv_string += "\n"
+            with open(self.params.csvFilename(), 'a') as f:
                 f.write(csv_string)
 
     def eaLoop(self):
@@ -94,7 +107,7 @@ class EA():
                 self.params.generations = 0
                 self.params.saveCSV = False
                 self.params.cancelled = True
-                with open('../config.txt', 'a') as f:
+                with open(self.params.shared_path+'/config.txt', 'a') as f:
                     f.write("stop\n")
                 print("\n\nFAILED\n\n")
 
@@ -151,13 +164,17 @@ class EA():
             ind.fitness.values = fit
 
     def configure(self):
-        with open("../config.txt", 'r') as f:
+        with open(self.params.shared_path+"/config.txt", 'r') as f:
             for line in f:
                 data = line.split()
                 if len(data) > 0:
+                    if data[0] == "objective":
+                        self.params.objective_index = int(data[1])
+                        self.params.objective = self.params.objectives[self.params.objective_index]
                     if data[0] == "generations": self.params.generations = int(data[1])
                     if data[0] == "saveOutput": self.params.saveOutput = False if data[1] == "False" else True
                     if data[0] == "saveCSV": self.params.saveCSV = False if data[1] == "False" else True
+                    if data[0] == "saveBest": self.params.saveBest = False if data[1] == "False" else True
                     if data[0] == "stop":
                         self.params.saveCSV = False
                         self.params.generations = 0
@@ -165,6 +182,7 @@ class EA():
                     if data[0] == "cancel":
                         self.params.saveOutput = False
                         self.params.saveCSV = False
+                        self.params.saveBest = False
                         self.params.generations = 0
                         self.params.cancelled = True
 

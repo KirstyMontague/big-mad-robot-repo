@@ -6,9 +6,10 @@ class Params():
         self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
 
         self.objective_index = 0
-        self.generations = 10
+        self.generations = 0
         self.saveOutput = False
         self.saveCSV = False
+        self.saveBest = False
 
         self.population_size = 25
 
@@ -34,4 +35,12 @@ class Params():
 
         self.objective = self.objectives[self.objective_index]
 
-        self.csv = "./test/"+self.objective+"/results.csv"
+        with open("../path.txt", "r") as f:
+            for line in f:
+                data = line.split(":")
+                if data[0] == "host": self.host = data[1][0:-1]
+                if data[0] == "local": self.local_path = self.host+"/"+data[1][0:-1]
+                if data[0] == "shared": self.shared_path = self.host+"/"+data[1][0:-1]
+
+    def csvFilename(self):
+        return self.shared_path+"/cma-es/"+self.objective+"/results"+str(self.seed)+".csv"

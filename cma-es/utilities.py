@@ -44,7 +44,7 @@ class Utilities():
     def evaluateRobot(self, individual, thread_index):
 
         # save number of robots and chromosome to file
-        with open('../txt/chromosome'+str(thread_index)+'.txt', 'w') as f:
+        with open(self.params.local_path+'/chromosome'+str(thread_index)+'.txt', 'w') as f:
             f.write(str(self.params.ind_size))
             for s in individual:
                 f.write(" ")
@@ -58,16 +58,16 @@ class Utilities():
 
             # write seed to file
             seed += 1
-            with open('../txt/seed'+str(thread_index)+'.txt', 'w') as f:
+            with open(self.params.local_path+'/seed'+str(thread_index)+'.txt', 'w') as f:
                 f.write(str(seed))
                 f.write("\n")
                 f.write(str(i))
 
             # run argos
-            subprocess.call(["/bin/bash", "./evaluate"+str(thread_index), "", "./"])
+            subprocess.call(["/bin/bash", "./evaluate"+str(thread_index), self.params.local_path, "", "./"])
 
             # result from file
-            with open("../txt/result"+str(thread_index)+".txt", 'r') as f:
+            with open(self.params.local_path+"/result"+str(thread_index)+".txt", 'r') as f:
 
                 # print ("")
                 for line in f:

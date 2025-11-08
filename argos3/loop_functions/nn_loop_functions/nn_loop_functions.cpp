@@ -47,10 +47,39 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
         GetNodeAttribute(tDistr, "index", index);
     }
 
-     // get configuration from file
-    std::string configFilename = "../txt/configuration.txt";
-    std::ifstream configFile(configFilename);
+    // get paths
+    std::string pathFilename = "../path.txt";
+    std::ifstream pathFile(pathFilename);
     std::string line = "";
+    std::string hostPath = "";
+    std::string localPath = "";
+    while( getline(pathFile, line) )
+    {
+        int delimiter = line.find(":");
+        std::string key = line.substr(0, delimiter);
+        std::string value = line.substr(delimiter + 1);
+
+        if (key == "host")
+        {
+            hostPath = value;
+        }
+        if (key == "local")
+        {
+            localPath = value;
+        }
+    }
+
+    if (hostPath == "" || localPath == "")
+    {
+        std::cout << "hostPath: " << hostPath << "\n";
+        std::cout << "localPath: " << localPath << "\n";
+        return;
+    }
+
+     // get configuration from file
+    std::string configFilename = hostPath+"/"+localPath+"/configuration.txt";
+    std::ifstream configFile(configFilename);
+    line = "";
     int numInputs = 0;
     int numHidden = 0;
     int numOutputs = 0;
@@ -97,7 +126,7 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
     size_t genomeSize = (numInputs * numHidden) + numHidden + (numHidden * numOutputs) + numOutputs;
 
     // get random seed and environmental parameters from file
-    std::string seedFilename = "../txt/seed"+std::to_string(index)+".txt";
+    std::string seedFilename = hostPath+"/"+localPath+"/seed"+std::to_string(index)+".txt";
     std::ifstream seedFile(seedFilename);
     line = "";
     int seed = -1;
@@ -124,7 +153,8 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
     m_pcRNG->Reset();
 
     // read chromosome from file
-    std::ifstream chromosomeFile("../txt/"+filename);
+    std::string chromosomeFilename = hostPath+"/"+localPath+"/"+filename;
+    std::ifstream chromosomeFile(chromosomeFilename);
     line = "";
     Real* chromosome = new Real[genomeSize + 1];
     while( getline(chromosomeFile, line) )
