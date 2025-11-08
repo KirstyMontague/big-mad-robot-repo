@@ -41,6 +41,7 @@ if not params.stop:
 
 	def evaluateOneIndividual():
 
+		ea.utilities.params.deapSeed = 1
 		individual = ""
 		sqrtRobots = 0
 
@@ -67,9 +68,11 @@ if not params.stop:
 					individual = line
 
 		print(individual)
-		trimmed = ea.redundancy.removeRedundancy(individual)
-		print ()
-		print (trimmed)
+		try:
+			trimmed = ea.redundancy.removeRedundancy(individual)
+			print ()
+			print (trimmed)
+		except: return
 
 	def main():
 

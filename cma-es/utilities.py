@@ -1,5 +1,8 @@
 
+import array
 import numpy
+import os
+import random
 import subprocess
 import threading
 
@@ -8,9 +11,8 @@ from deap import base
 from deap import creator
 from deap import cma
 
-import array
-import random
-import argparse
+from datetime import datetime
+
 
 class Utilities():
 
@@ -32,7 +34,7 @@ class Utilities():
         toolbox.register("update", strategy.update)
 
         self.evaluation_functions = []
-        for i in range(1,9):
+        for i in range(1, self.params.num_threads + 1):
             toolbox.register("evaluate"+str(i), self.evaluateRobot, thread_index=i)
             self.evaluation_functions.append(self.makeEvaluationFunction("evaluate"+str(i)))
 
@@ -64,7 +66,7 @@ class Utilities():
                 f.write(str(i))
 
             # run argos
-            subprocess.call(["/bin/bash", "./evaluate"+str(thread_index), self.params.local_path, "", "./"])
+            subprocess.call(["/bin/bash", "./evaluate", str(thread_index), self.params.local_path, "", "./"])
 
             # result from file
             with open(self.params.local_path+"/result"+str(thread_index)+".txt", 'r') as f:
@@ -89,6 +91,20 @@ class Utilities():
         # divide to get average per seed and arena configuration
         fitness /= self.params.arena_iterations
         fitness /= len(self.params.arena_params)
+
+        try:
+            os.remove(self.params.local_path+"/seed"+str(thread_index)+".txt")
+            os.remove(self.params.local_path+"/chromosome"+str(thread_index)+".txt")
+            os.remove(self.params.local_path+"/result"+str(thread_index)+".txt")
+        except Exception as e:
+            now = datetime.now()
+            print(e)
+            with open(self.params.shared_path+"/errors"+str(self.params.seed)+".txt", "a") as f:
+                f.write(now.strftime("%H:%M %d/%m/%Y")+" ")
+                f.write(str(e))
+                f.write("\n")
+            with open(self.params.local_path+"/runtime.txt", "w") as f:
+                f.write("stop")
 
         return (fitness,)
 
@@ -136,15 +152,6 @@ class Utilities():
         minutes = (duration / 1000) / 60
         minutes_str = str("%.2f" % minutes)
         print("\nDuration " +minutes_str+" minutes\n")
-
-    def parseArguments(self):
-        
-        parser = argparse.ArgumentParser()
-        parser.add_argument('--seed', type=int, default=None, help="DEAP random seed")
-        args = parser.parse_args()
-
-        if args.seed != None:
-            return args.seed
 
     def trimPopulationPrecision(self, population):
 

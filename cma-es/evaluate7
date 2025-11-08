@@ -1,4 +1,0 @@
-
-cd ../argos3/
-
-argos3 -c experiments/nn7.argos > $1/result7.txt

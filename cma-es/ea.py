@@ -1,9 +1,11 @@
 
+import argparse
 import os
 import time
 import warnings
 
 from pathlib import Path
+from datetime import datetime
 
 from archive import Archive
 from params import Params
@@ -19,9 +21,8 @@ class EA():
         start_time = round(time.time() * 1000)
 
         self.params = Params()
-        self.utilities = Utilities(self.params)
 
-        if self.params.seed == 0: self.params.seed = self.utilities.parseArguments()
+        if self.params.seed == 0: self.params.seed = self.parseArguments()
         if self.params.seed == None:
             print("no seed")
             return
@@ -30,6 +31,7 @@ class EA():
         if self.params.cancelled:
             return
 
+        self.utilities = Utilities(self.params)
         self.archive = Archive(self.utilities, self.params)
         self.archive.loadArchives()
 
@@ -58,6 +60,9 @@ class EA():
 
         end_time = round(time.time() * 1000)
         self.utilities.printDuration(start_time, end_time)
+
+        if os.path.exists(self.params.local_path+"/runtime.txt"):
+            os.remove(self.params.local_path+"/runtime.txt")
 
         if self.params.saveOutput or self.params.saveCSV or self.params.saveBest:
             Path(self.params.shared_path+"/cma-es/").mkdir(parents=False, exist_ok=True)
@@ -103,15 +108,17 @@ class EA():
                 self.evaluateNewPopulation(generation, population)
                 self.utilities.toolbox.update(population)
 
-            except:
-                self.params.generations = 0
-                self.params.saveCSV = False
-                self.params.cancelled = True
-                with open(self.params.shared_path+'/config.txt', 'a') as f:
+            except Exception as e:
+                now = datetime.now()
+                print(e)
+                with open(self.params.shared_path+'/errors'+str(self.params.seed)+'.txt', 'a') as f:
+                    f.write(now.strftime("%H:%M %d/%m/%Y")+" ")
+                    f.write(str(e))
+                    f.write("\n")
+                with open(self.params.local_path+'/runtime.txt', 'a') as f:
                     f.write("stop\n")
-                print("\n\nFAILED\n\n")
 
-            self.configure()
+            self.runtime()
             generation += 1
 
         return population
@@ -163,26 +170,58 @@ class EA():
         for ind, fit in zip(population, fitnesses):
             ind.fitness.values = fit
 
+    def parseArguments(self):
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--seed', type=int, default=None, help="DEAP random seed")
+        args = parser.parse_args()
+        if args.seed != None:
+            return args.seed
+
     def configure(self):
         with open(self.params.shared_path+"/config.txt", 'r') as f:
             for line in f:
                 data = line.split()
                 if len(data) > 0:
-                    if data[0] == "objective":
-                        self.params.objective_index = int(data[1])
-                        self.params.objective = self.params.objectives[self.params.objective_index]
-                    if data[0] == "generations": self.params.generations = int(data[1])
-                    if data[0] == "saveOutput": self.params.saveOutput = False if data[1] == "False" else True
-                    if data[0] == "saveCSV": self.params.saveCSV = False if data[1] == "False" else True
-                    if data[0] == "saveBest": self.params.saveBest = False if data[1] == "False" else True
-                    if data[0] == "stop":
-                        self.params.saveCSV = False
-                        self.params.generations = 0
-                        self.params.cancelled = True
-                    if data[0] == "cancel":
-                        self.params.saveOutput = False
-                        self.params.saveCSV = False
-                        self.params.saveBest = False
-                        self.params.generations = 0
-                        self.params.cancelled = True
+                    print(line)
+                    self.update(data)
+
+    def runtime(self):
+        restricted = ["objective", "num_threads"]
+        with open(self.params.shared_path+"/runtime.txt", 'r') as f:
+            for line in f:
+                data = line.split()
+                if len(data) > 0:
+                    if data[0] not in restricted:
+                        print(line)
+                        self.update(data)
+                    else:
+                        print(data[0] +" not supported at runtime")
+        if os.path.exists(self.params.local_path+"/runtime.txt"):
+            with open(self.params.local_path+"/runtime.txt", 'r') as f:
+                for line in f:
+                    data = line.split()
+                    if len(data) > 0:
+                        if data[0] not in restricted:
+                            print(line)
+                            self.update(data)
+
+    def update(self, data):
+        if data[0] == "objective":
+            self.params.objective_index = int(data[1])
+            self.params.objective = self.params.objectives[self.params.objective_index]
+        if data[0] == "generations": self.params.generations = int(data[1])
+        if data[0] == "saveOutput": self.params.saveOutput = False if data[1] == "False" else True
+        if data[0] == "saveCSV": self.params.saveCSV = False if data[1] == "False" else True
+        if data[0] == "saveBest": self.params.saveBest = False if data[1] == "False" else True
+        if data[0] == "num_threads": self.params.num_threads = int(data[1])
+        if data[0] == "stop":
+            self.params.saveCSV = False
+            self.params.generations = 0
+            self.params.cancelled = True
+        if data[0] == "cancel":
+            self.params.saveOutput = False
+            self.params.saveCSV = False
+            self.params.saveBest = False
+            self.params.generations = 0
+            self.params.cancelled = True
 

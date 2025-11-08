@@ -124,11 +124,14 @@ class EA():
 		while (generation < max_gen):
 			generation += 1
 			self.eaLoop(self.container, generation)
-			self.params.configure()
+			self.params.runtime()
 			max_gen = self.params.generations
 
 		print("\nEnd the generational process\n")
 		print ("\n\n")
+
+		if os.path.exists(self.params.local_path+"/runtime.txt"):
+			os.remove(self.params.local_path+"/runtime.txt")
 
 		self.archive.saveArchive(self.redundancy)
 

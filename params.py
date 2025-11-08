@@ -37,11 +37,11 @@ class eaParams():
         self.iterations = 5
         self.num_threads = 8
 
-        self.indexes = [6]
+        self.indexes = [0]
         self.populationSize = 25
 
         self.start_gen   = 0
-        self.generations = 1000
+        self.generations = 0
 
         self.using_repertoire = True
         self.repertoire_type = "qd"
@@ -139,76 +139,99 @@ class eaParams():
             for line in f:
                 data = line.split()
                 if len(data) > 0:
-                    for d in data:
-                        print(d)
-                    if data[0] == "indexes":
-                        self.indexes = []
-                        for i in range(1, len(data)):
-                            self.indexes.append(int(data[i]))
+                    print(line)
+                    self.update(data)
 
-                        description = ""
-                        for index in self.indexes:
-                            description += self.objectives[index]+"-"
-                        self.description = description[0:-1]
+    def runtime(self):
+        restricted = ["indexes", "bins_per_axis", "using_repertoire", "tournamentSize", "populationSize", "num_threads"]
+        with open(self.shared_path+"/runtime.txt", "r") as f:
+            for line in f:
+                data = line.split()
+                if len(data) > 0:
+                    if data[0] not in restricted:
+                        print(line)
+                        self.update(data)
+                    else:
+                        print(data[0] +" not supported at runtime")
+        if os.path.exists(self.local_path+"/runtime.txt"):
+            with open(self.local_path+"/runtime.txt", 'r') as f:
+                for line in f:
+                    data = line.split()
+                    if len(data) > 0:
+                        if data[0] not in restricted:
+                            print(line)
+                            self.update(data)
 
-                        self.populationSize *= len(self.indexes)
-                        self.tournamentSize = 2 + len(self.indexes)
-                        self.features = len(self.indexes)
-                        self.repertoire_size = self.bins_per_axis ** self.characteristics
+    def update(self, data):
+        if data[0] == "indexes":
+            self.indexes = []
+            for i in range(1, len(data)):
+                self.indexes.append(int(data[i]))
 
-                        self.save_period = 1000
-                        self.csv_save_period = 1000
-                        if self.description == "foraging" and not self.using_repertoire:
-                            self.save_period = 2200
-                            self.csv_save_period = 2200
+            description = ""
+            for index in self.indexes:
+                description += self.objectives[index]+"-"
+            self.description = description[0:-1]
 
-                        if self.description != "foraging":
-                            self.using_repertoire = False
-                            self.features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)]
-                        else:
-                            self.features_domain = [(-200.0, 200.0), (-200.0, 200.0), (0.0, 1.0)]
+            self.populationSize *= len(self.indexes)
+            self.tournamentSize = 2 + len(self.indexes)
+            self.features = len(self.indexes)
+            self.repertoire_size = self.bins_per_axis ** self.characteristics
 
-                    if data[0] == "bins_per_axis":
-                        self.bins_per_axis = int(data[1])
-                        self.repertoire_size = self.bins_per_axis ** self.characteristics
+            self.save_period = 1000
+            self.csv_save_period = 1000
+            if self.description == "foraging" and not self.using_repertoire:
+                self.save_period = 2200
+                self.csv_save_period = 2200
 
-                    if data[0] == "using_repertoire":
-                        self.using_repertoire = False if data[1] == "False" else True
-                        self.save_period = 1000
-                        self.csv_save_period = 1000
-                        if self.description == "foraging" and not self.using_repertoire:
-                            self.save_period = 2200
-                            self.csv_save_period = 2200
+            if self.description != "foraging":
+                self.using_repertoire = False
+                self.features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)]
+            else:
+                self.features_domain = [(-200.0, 200.0), (-200.0, 200.0), (0.0, 1.0)]
 
-                    if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
-                    if data[0] == "populationsSize": self.populationsSize = int(data[1])
-                    if data[0] == "loadCheckpoint": self.loadCheckpoint = False if data[1] == "False" else True
-                    if data[0] == "runs": self.runs = int(data[1])
-                    if data[0] == "start_gen": self.start_gen = int(data[1])
-                    if data[0] == "generations": self.generations = int(data[1])
-                    if data[0] == "genSleep": self.genSleep = float(data[1])
-                    if data[0] == "evalSleep": self.evalSleep = float(data[1])
-                    if data[0] == "trialSleep": self.trialSleep = float(data[1])
-                    if data[0] == "printEliteScores": self.printEliteScores = False if data[1] == "False" else True
-                    if data[0] == "printFitnessScores": self.printFitnessScores = False if data[1] == "False" else True
-                    if data[0] == "printBestIndividuals": self.printBestIndividuals = False if data[1] == "False" else True
-                    if data[0] == "saveOutput": self.saveOutput = False if data[1] == "False" else True
-                    if data[0] == "saveCSV": self.saveCSV = False if data[1] == "False" else True
-                    if data[0] == "save_period": self.save_period = int(data[1])
-                    if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
-                    if data[0] == "best_save_period": self.best_save_period = int(data[1])
-                    if data[0] == "stop":
-                        if len(data) > 1 and data[1] == "False":
-                            self.stop = False
-                        else:
-                            self.stop = True
-                            self.saveCSV = False
-                            self.generations = 0
-                    if data[0] == "cancel":
-                        self.stop = True
-                        self.saveOutput = False
-                        self.saveCSV = False
-                        self.generations = 0
+        if data[0] == "bins_per_axis":
+            self.bins_per_axis = int(data[1])
+            self.repertoire_size = self.bins_per_axis ** self.characteristics
+
+        if data[0] == "using_repertoire":
+            self.using_repertoire = False if data[1] == "False" else True
+            self.save_period = 1000
+            self.csv_save_period = 1000
+            if self.description == "foraging" and not self.using_repertoire:
+                self.save_period = 2200
+                self.csv_save_period = 2200
+
+        if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
+        if data[0] == "populationsSize": self.populationsSize = int(data[1])
+        if data[0] == "loadCheckpoint": self.loadCheckpoint = False if data[1] == "False" else True
+        if data[0] == "runs": self.runs = int(data[1])
+        if data[0] == "start_gen": self.start_gen = int(data[1])
+        if data[0] == "generations": self.generations = int(data[1])
+        if data[0] == "genSleep": self.genSleep = float(data[1])
+        if data[0] == "evalSleep": self.evalSleep = float(data[1])
+        if data[0] == "trialSleep": self.trialSleep = float(data[1])
+        if data[0] == "printEliteScores": self.printEliteScores = False if data[1] == "False" else True
+        if data[0] == "printFitnessScores": self.printFitnessScores = False if data[1] == "False" else True
+        if data[0] == "printBestIndividuals": self.printBestIndividuals = False if data[1] == "False" else True
+        if data[0] == "saveOutput": self.saveOutput = False if data[1] == "False" else True
+        if data[0] == "saveCSV": self.saveCSV = False if data[1] == "False" else True
+        if data[0] == "save_period": self.save_period = int(data[1])
+        if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
+        if data[0] == "best_save_period": self.best_save_period = int(data[1])
+        if data[0] == "num_threads": self.num_threads = int(data[1])
+        if data[0] == "stop":
+            if len(data) > 1 and data[1] == "False":
+                self.stop = False
+            else:
+                self.stop = True
+                self.saveCSV = False
+                self.generations = 0
+        if data[0] == "cancel":
+            self.stop = True
+            self.saveOutput = False
+            self.saveCSV = False
+            self.generations = 0
 
     def getRepertoireFilename(self):
         return self.shared_path+"/"+self.algorithm+"/"+self.description+"/sub-behaviours.txt"

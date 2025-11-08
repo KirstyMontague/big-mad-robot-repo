@@ -1,0 +1,17 @@
+
+cd ../argos3/
+
+cat experiments/nn.argos > $2/nn$1.argos
+
+echo "
+
+  <loop_functions library='build/loop_functions/nn_loop_functions/libnn_loop_functions'
+                  label='nn_loop_functions'>
+                  <filename name='chromosome$1.txt' index='$1' />
+  </loop_functions>
+</argos-configuration>
+" >> $2/nn$1.argos
+
+argos3 -c $2/nn$1.argos > $2/result$1.txt
+
+rm $2/nn$1.argos

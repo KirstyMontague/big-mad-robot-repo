@@ -221,6 +221,9 @@ class EA():
 		except:
 			return
 
+		if os.path.exists(self.params.local_path+"/runtime.txt"):
+			os.remove(self.params.local_path+"/runtime.txt")
+
 		# get the best individual at the end of the evolutionary run
 		best = self.utilities.getBestAll(population)
 		self.printIndividuals(best, True)
@@ -271,7 +274,7 @@ class EA():
 			if gen % self.params.csv_save_period == 0: self.archive.saveArchive(self.redundancy)
 			if gen % self.params.best_save_period == 0: self.utilities.saveBestIndividuals(population)
 
-			self.params.configure()
+			self.params.runtime()
 			max_gen = self.params.generations
 
 	def checkDuplicatesAreCorrect(self, population):

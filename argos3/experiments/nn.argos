@@ -24,12 +24,8 @@
       <params trackingID="1" velocity="5" verbose="true" />
     </footbot_nn>
   </controllers>
-  <loop_functions library="build/loop_functions/nn_loop_functions/libnn_loop_functions"
-                  label="nn_loop_functions">
-                  <filename name="chromosome8.txt" index="8" />
-  </loop_functions>
+
   <arena size="6, 6, 2" center="0,0,0.5">
-	  
     <floor id="floor"
            source="loop_functions"
            pixels_per_meter="50" />
@@ -56,5 +52,3 @@
     <range_and_bearing id="rab" />
     <led id="leds" />
   </media>
-
-</argos-configuration>

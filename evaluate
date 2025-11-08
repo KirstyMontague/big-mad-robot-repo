@@ -1,0 +1,17 @@
+
+cd ../argos3/
+
+cat experiments/bt.argos > $2/bt$1.argos
+
+echo "
+
+  <loop_functions library='build/loop_functions/bt_loop_functions/libbt_loop_functions'
+                  label='bt_loop_functions'>
+                  <filename name='chromosome$1.txt' index='$1' />
+  </loop_functions>
+</argos-configuration>
+" >> $2/bt$1.argos
+
+argos3 -c $2/bt$1.argos > $2/result$1.txt
+
+rm $2/bt$1.argos

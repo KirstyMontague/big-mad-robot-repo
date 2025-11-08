@@ -1,6 +1,7 @@
 
 import subprocess
 import time
+from datetime import datetime
 import pickle
 import threading
 
@@ -67,7 +68,7 @@ class Utilities():
 		toolbox.register("select", tournament, tournsize=self.params.tournamentSize)
 
 		self.evaluation_functions = []
-		for i in range(1,9):
+		for i in range(1, self.params.num_threads + 1):
 			toolbox.register("evaluate"+str(i), self.evaluateRobot, thread_index=i)
 			self.evaluation_functions.append(self.makeEvaluationFunction("evaluate"+str(i)))
 
@@ -122,7 +123,8 @@ class Utilities():
 				f.write(str(i))
 
 			# run argos
-			subprocess.call(["/bin/bash", "../evaluate"+str(thread_index), self.params.local_path, "./"])
+			subprocess.call(["/bin/bash", "../evaluate", str(thread_index), self.params.local_path, "./"])
+
 			# result from file
 			with open(self.params.local_path+"/result"+str(thread_index)+".txt", "r") as f:
 
@@ -160,6 +162,20 @@ class Utilities():
 			fitness.append(self.getAvgAndDerate(totals[i], individual, deratingFactor))
 		for i in range(self.params.characteristics):
 			features.append(self.getAvgAndDerate(totals[i + self.params.features], individual, deratingFactor))
+
+		try:
+			os.remove(self.params.local_path+"/seed"+str(thread_index)+".txt")
+			os.remove(self.params.local_path+"/chromosome"+str(thread_index)+".txt")
+			os.remove(self.params.local_path+"/result"+str(thread_index)+".txt")
+		except Exception as e:
+			now = datetime.now()
+			print(e)
+			with open(self.params.shared_path+"/errors"+str(self.params.deapSeed)+".txt", "a") as f:
+				f.write(now.strftime("%H:%M %d/%m/%Y")+" ")
+				f.write(str(e))
+				f.write("\n")
+			with open(self.params.local_path+"/runtime.txt", "w") as f:
+				f.write("stop")
 
 		# pause to free up CPU
 		time.sleep(self.params.evalSleep)
