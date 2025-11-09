@@ -123,8 +123,8 @@ class eaParams():
         working_directory = os.getcwd()
         self.algorithm = working_directory.split("/")[-1]
 
-    def csvInputFilename(self, gen, query): return self.shared_path+"/"+self.algorithm+"/"+self.description+"/"+query+""+str(gen)+".csv"
-    def csvOutputFilename(self, gen, query): return self.shared_path+"/"+self.algorithm+"/"+self.description+"/"+query+""+str(gen)+".csv"
+    def csvInputFilename(self, gen, query): return self.shared_path+"/"+self.algorithm+"/"+self.description+"/"+query+str(gen)+"-"+str(self.deapSeed)+".csv"
+    def csvOutputFilename(self, gen, query): return self.shared_path+"/"+self.algorithm+"/"+self.description+"/"+query+str(gen)+"-"+str(self.deapSeed)+".csv"
 
     def path(self): return self.shared_path+"/"+self.algorithm+"/"+self.description+"/"+str(self.deapSeed)+"/"
     def checkpointInputFilename(self, gen): return self.path() + "checkpoint-"+self.description+"-"+str(self.deapSeed)+"-"+str(gen)+".pkl"
@@ -139,17 +139,17 @@ class eaParams():
             for line in f:
                 data = line.split()
                 if len(data) > 0:
-                    print(line)
+                    print(line[0:-1])
                     self.update(data)
 
     def runtime(self):
-        restricted = ["indexes", "bins_per_axis", "using_repertoire", "tournamentSize", "populationSize", "num_threads"]
+        restricted = ["indexes", "bins_per_axis", "using_repertoire", "tournamentSize", "populationSize", "csv_save_interval", "num_threads"]
         with open(self.shared_path+"/runtime.txt", "r") as f:
             for line in f:
                 data = line.split()
                 if len(data) > 0:
                     if data[0] not in restricted:
-                        print(line)
+                        print(line[0:-1])
                         self.update(data)
                     else:
                         print(data[0] +" not supported at runtime")
@@ -159,7 +159,7 @@ class eaParams():
                     data = line.split()
                     if len(data) > 0:
                         if data[0] not in restricted:
-                            print(line)
+                            print(line[0:-1])
                             self.update(data)
 
     def update(self, data):
@@ -203,7 +203,7 @@ class eaParams():
                 self.csv_save_period = 2200
 
         if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
-        if data[0] == "populationsSize": self.populationsSize = int(data[1])
+        if data[0] == "populationSize": self.populationSize = int(data[1])
         if data[0] == "loadCheckpoint": self.loadCheckpoint = False if data[1] == "False" else True
         if data[0] == "runs": self.runs = int(data[1])
         if data[0] == "start_gen": self.start_gen = int(data[1])
@@ -218,6 +218,7 @@ class eaParams():
         if data[0] == "saveCSV": self.saveCSV = False if data[1] == "False" else True
         if data[0] == "save_period": self.save_period = int(data[1])
         if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
+        if data[0] == "csv_save_interval": self.csv_save_interval = int(data[1])
         if data[0] == "best_save_period": self.best_save_period = int(data[1])
         if data[0] == "num_threads": self.num_threads = int(data[1])
         if data[0] == "stop":

@@ -43,4 +43,4 @@ class Params():
                 if data[0] == "shared": self.shared_path = self.host+"/"+data[1][0:-1]
 
     def csvFilename(self):
-        return self.shared_path+"/cma-es/"+self.objective+"/results"+str(self.seed)+".csv"
+        return self.shared_path+"/cma-es/"+self.objective+"/best"+str(self.generations)+"-"+str(self.seed)+".csv"

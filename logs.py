@@ -49,7 +49,7 @@ class Logs():
 
     def getHeadings(self, generation):
 
-        headings = "Type,Time,Seed,Robots,Pop,Tourn,Iterations,Params,,"
+        headings = "Objective,Time,Seed,Robots,Pop,Tourn,Iterations,Params,,"
         for i in range(0, generation + 1, self.params.csv_save_interval):
             headings += str(i)+","
         headings += ",Chromosome,,Nodes\n"

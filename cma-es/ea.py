@@ -83,13 +83,11 @@ class EA():
             if not os.path.exists(self.params.csvFilename()):
                 csv_string += "Objective,"
                 csv_string += "Seed,"
-                csv_string += "Generations,"
-                csv_string += "Fitness,"
+                csv_string += ","+str(self.params.generations)+",,"
                 csv_string += "Chromosome\n"
             csv_string += str(self.params.objective) +","
             csv_string += str(self.params.seed) +","
-            csv_string += str(self.params.generations) +","
-            csv_string += str(self.best.fitness.getValues()[0]) +","
+            csv_string += ","+str(self.best.fitness.getValues()[0]) +",,"
             for c in self.best:
                 csv_string += str(c) + " "
             csv_string = csv_string[0:-1]
@@ -182,7 +180,7 @@ class EA():
             for line in f:
                 data = line.split()
                 if len(data) > 0:
-                    print(line)
+                    print(line[0:-1])
                     self.update(data)
 
     def runtime(self):
@@ -192,7 +190,7 @@ class EA():
                 data = line.split()
                 if len(data) > 0:
                     if data[0] not in restricted:
-                        print(line)
+                        print(line[0:-1])
                         self.update(data)
                     else:
                         print(data[0] +" not supported at runtime")
@@ -202,7 +200,7 @@ class EA():
                     data = line.split()
                     if len(data) > 0:
                         if data[0] not in restricted:
-                            print(line)
+                            print(line[0:-1])
                             self.update(data)
 
     def update(self, data):

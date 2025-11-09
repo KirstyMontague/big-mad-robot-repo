@@ -75,12 +75,12 @@ class Analysis():
 				data = []
 				columns = line.split(",")
 
-				if columns[0] == "Type":
+				if columns[0] in ["Type", "Objective"]:
 					for i in range(9, len(columns)):
 						if columns[i].isdigit() and int(columns[i]) <= generations and int(columns[i]) % interval == 0:
 							indexes.append(i)
 
-				elif columns[0] != "Type" and len(indexes) > 0 and len(horizontal_data) < runs:
+				elif columns[0] not in ["Type", "Objective"] and len(indexes) > 0 and len(horizontal_data) < runs:
 					for i in range(generations+1):
 						index = i + 9
 						if index in indexes:
