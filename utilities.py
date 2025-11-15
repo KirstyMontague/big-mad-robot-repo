@@ -175,7 +175,7 @@ class Utilities():
 				f.write(str(e))
 				f.write("\n")
 			with open(self.params.local_path+"/runtime.txt", "w") as f:
-				f.write("stop")
+				f.write("stop\n")
 
 		# pause to free up CPU
 		time.sleep(self.params.evalSleep)

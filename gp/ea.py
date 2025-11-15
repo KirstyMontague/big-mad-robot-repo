@@ -208,21 +208,13 @@ class EA():
 			population = self.checkpoint.load(self.logs, self.grid)
 
 		else:
-			try:
-				population = self.startWithNewPopulation()
-			except:
-				return
-		
+			population = self.startWithNewPopulation()
+			self.params.runtime()
+
 		self.utilities.saveParams()
 		
 		# begin evolution
-		try:
-			self.eaLoop(population, stats)
-		except:
-			return
-
-		if os.path.exists(self.params.local_path+"/runtime.txt"):
-			os.remove(self.params.local_path+"/runtime.txt")
+		self.eaLoop(population, stats)
 
 		# get the best individual at the end of the evolutionary run
 		best = self.utilities.getBestAll(population)

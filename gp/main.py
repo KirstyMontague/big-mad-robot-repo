@@ -18,8 +18,6 @@ if not params.stop:
 
 	from ea import EA
 
-	ea = EA(params)
-
 	def parseArguments():
 		
 		parser = argparse.ArgumentParser()
@@ -84,6 +82,9 @@ if not params.stop:
 
 		parseArguments()
 
+		params.local_path += "/"+str(params.deapSeed)
+		Path(params.local_path+"/").mkdir(parents=False, exist_ok=True)
+
 		if params.saveOutput or params.saveCSV or params.saveCheckpoint:
 			Path(params.shared_path+"/"+params.algorithm+"/").mkdir(parents=False, exist_ok=True)
 			Path(params.shared_path+"/"+params.algorithm+"/"+params.description+"/").mkdir(parents=False, exist_ok=True)
@@ -106,8 +107,17 @@ if not params.stop:
 		mstats.register("min", numpy.min)
 		mstats.register("max", numpy.max)
 
+		ea = EA(params)
 		ea.eaInit(mstats, halloffame=hof)
 		
+
+		if os.path.exists(params.local_path+"/runtime.txt"):
+			os.remove(params.local_path+"/runtime.txt")
+		if os.path.exists(params.local_path+"/current.txt"):
+			os.remove(params.local_path+"/current.txt")
+		os.remove(params.local_path+"/configuration.txt")
+		if len(os.listdir(params.local_path)) == 0:
+			os.rmdir(params.local_path)
 
 
 	if __name__ == "__main__":

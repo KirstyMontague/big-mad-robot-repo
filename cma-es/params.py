@@ -38,9 +38,11 @@ class Params():
         with open("../path.txt", "r") as f:
             for line in f:
                 data = line.split(":")
-                if data[0] == "host": self.host = data[1][0:-1]
-                if data[0] == "local": self.local_path = self.host+"/"+data[1][0:-1]
-                if data[0] == "shared": self.shared_path = self.host+"/"+data[1][0:-1]
+                if data[0] == "local": self.local_path = data[1][0:-1]
+                if data[0] == "shared": self.shared_path = data[1][0:-1]
 
     def csvFilename(self):
         return self.shared_path+"/cma-es/"+self.objective+"/best"+str(self.generations)+"-"+str(self.seed)+".csv"
+
+    def bestFilename(self):
+        return self.shared_path+"/cma-es/"+self.objective+"/best-"+str(self.seed)+".txt"

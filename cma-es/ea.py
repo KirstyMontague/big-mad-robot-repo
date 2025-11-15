@@ -31,6 +31,9 @@ class EA():
         if self.params.cancelled:
             return
 
+        self.params.local_path += "/"+str(self.params.seed)
+        Path(self.params.local_path+"/").mkdir(parents=False, exist_ok=True)
+
         self.utilities = Utilities(self.params)
         self.archive = Archive(self.utilities, self.params)
         self.archive.loadArchives()
@@ -63,13 +66,18 @@ class EA():
 
         if os.path.exists(self.params.local_path+"/runtime.txt"):
             os.remove(self.params.local_path+"/runtime.txt")
+        if os.path.exists(self.params.local_path+"/current.txt"):
+            os.remove(self.params.local_path+"/current.txt")
+        os.remove(self.params.local_path+"/configuration.txt")
+        if len(os.listdir(self.params.local_path)) == 0:
+            os.rmdir(self.params.local_path)
 
         if self.params.saveOutput or self.params.saveCSV or self.params.saveBest:
             Path(self.params.shared_path+"/cma-es/").mkdir(parents=False, exist_ok=True)
             Path(self.params.shared_path+"/cma-es/"+self.params.objective+"/").mkdir(parents=False, exist_ok=True)
 
         if self.params.saveBest:
-            with open(self.params.shared_path+"/cma-es/"+self.params.objective+"/best"+str(self.params.seed)+".txt", "w") as f:
+            with open(self.params.bestFilename(), "w") as f:
                 f.write(str(self.params.ind_size))
                 for s in self.best:
                     f.write(" ")

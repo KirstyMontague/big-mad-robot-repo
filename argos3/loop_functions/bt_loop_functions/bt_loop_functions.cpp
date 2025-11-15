@@ -42,47 +42,20 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 	// get the filename for chromosome (best/chromosome)
 	std::string filename;
 	int index = 0;
+	std::string path;
 	TConfigurationNodeIterator itDistr;
 	for(itDistr = itDistr.begin(&t_tree); itDistr != itDistr.end(); ++itDistr) 
 	{
 		TConfigurationNode& tDistr = *itDistr;
 		GetNodeAttribute(tDistr, "name", filename);
 		GetNodeAttribute(tDistr, "index", index);
-	}
-
-	// get paths
-	std::string pathFilename = "../path.txt";
-	std::ifstream pathFile(pathFilename);
-	std::string line = "";
-	std::string hostPath = "";
-	std::string localPath = "";
-	while( getline(pathFile, line) )
-	{
-		int delimiter = line.find(":");
-		std::string key = line.substr(0, delimiter);
-		std::string value = line.substr(delimiter + 1);
-
-		if (key == "host")
-		{
-			hostPath = value;
-		}
-		if (key == "local")
-		{
-			localPath = value;
-		}
-	}
-
-	if (hostPath == "" || localPath == "")
-	{
-		std::cout << "hostPath: " << hostPath << "\n";
-		std::cout << "localPath: " << localPath << "\n";
-		return;
+		GetNodeAttribute(tDistr, "path", path);
 	}
 
 	// get configuration from file
-	std::string configFilename = hostPath+"/"+localPath+"/configuration.txt";
+	std::string configFilename = path+"/configuration.txt";
 	std::ifstream configFile(configFilename);
-	line = "";
+	std::string line = "";
 	int trialLength = 0;
 	std::string repertoireFilename = "";
 	while( getline(configFile, line) )
@@ -115,8 +88,8 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
     }
 
 	// get random seed and environmental parameters from file
-	std::string seedFileName = hostPath+"/"+localPath+"/seed"+std::to_string(index)+".txt";
-	std::ifstream seedFile(seedFileName);
+	std::string seedFilename = path+"/seed"+std::to_string(index)+".txt";
+	std::ifstream seedFile(seedFilename);
 	line = "";
 	int seed = -1;
 	while( getline(seedFile, line) )
@@ -129,8 +102,8 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 	m_pcRNG->Reset();
 	
 	// read number of robots and chromosome from file
-	std::string chromosomeFileName = hostPath+"/"+localPath+"/"+filename;
-	std::ifstream chromosomeFile(chromosomeFileName);
+	std::string chromosomeFilename = path+"/"+filename;
+	std::ifstream chromosomeFile(chromosomeFilename);
 	line = "";
 	int sqrtRobots = 0;
 	std::string chromosome;

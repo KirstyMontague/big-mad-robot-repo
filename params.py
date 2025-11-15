@@ -116,9 +116,9 @@ class eaParams():
         with open("../path.txt", "r") as f:
             for line in f:
                 data = line.split(":")
-                if data[0] == "host": self.host = data[1][0:-1]
-                if data[0] == "local": self.local_path = self.host+"/"+data[1][0:-1]
-                if data[0] == "shared": self.shared_path = self.host+"/"+data[1][0:-1]
+                if data[0] == "home": self.home_path = data[1][0:-1]
+                if data[0] == "local": self.local_path = data[1][0:-1]
+                if data[0] == "shared": self.shared_path = data[1][0:-1]
 
         working_directory = os.getcwd()
         self.algorithm = working_directory.split("/")[-1]

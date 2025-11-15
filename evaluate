@@ -7,7 +7,7 @@ echo "
 
   <loop_functions library='build/loop_functions/bt_loop_functions/libbt_loop_functions'
                   label='bt_loop_functions'>
-                  <filename name='chromosome$1.txt' index='$1' />
+                  <filename name='chromosome$1.txt' index='$1' path='$2' />
   </loop_functions>
 </argos-configuration>
 " >> $2/bt$1.argos

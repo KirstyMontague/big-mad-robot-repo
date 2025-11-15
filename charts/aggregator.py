@@ -73,7 +73,7 @@ class Aggregator():
     def writeCSV(self, results_per_query):
 
         print("\nwriting...")
-        Path(self.params.local_path+"/"+self.algorithm+"/").mkdir(parents=False, exist_ok=True)
+        Path(self.params.home_path+"/"+self.algorithm+"/").mkdir(parents=False, exist_ok=True)
         confirmed = False
 
         for i in range(len(self.queries)):
@@ -83,7 +83,7 @@ class Aggregator():
 
             if len(entries) > 0:
 
-                filename = self.params.local_path+"/"+self.algorithm+"/"+query+str(self.generations)+"-"+self.objective+".csv"
+                filename = self.params.home_path+"/"+self.algorithm+"/"+query+str(self.generations)+"-"+self.objective+".csv"
 
                 if not confirmed and os.path.exists(filename):
                     test = input("Output files already exist. Continue? (y/N)\n")

@@ -10,7 +10,6 @@ if not params.stop:
 	import local
 
 	from ea import EA
-	ea = EA(params)
 
 	import matplotlib as mpl
 	mpl.use('Agg')
@@ -172,6 +171,7 @@ if not params.stop:
 	fitness_weight = (1.0,)
 
 	parseArguments()
+	ea = EA(params)
 	print(params.deapSeed)
 	
 	if params.readCheckpoint:

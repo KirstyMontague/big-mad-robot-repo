@@ -37,6 +37,17 @@ class EA():
 		self.params = params
 		self.params.is_qdpy = True
 		self.params.configure()
+
+		self.params.local_path += "/"+str(self.params.deapSeed)
+		Path(self.params.local_path+"/").mkdir(parents=False, exist_ok=True)
+
+		if self.params.saveOutput or self.params.saveCSV or self.params.saveCheckpoint:
+			Path(self.params.shared_path+"/"+self.params.algorithm+"/").mkdir(parents=False, exist_ok=True)
+			Path(self.params.shared_path+"/"+self.params.algorithm+"/"+self.params.description+"/").mkdir(parents=False, exist_ok=True)
+		if self.params.saveOutput:
+			Path(self.params.path()).mkdir(parents=False, exist_ok=True)
+			Path(self.params.path()+"/csvs").mkdir(parents=False, exist_ok=True)
+
 		self.utilities = Utilities(params)
 		self.utilities.setupToolbox(self.selTournament)
 		self.utilities.saveConfigurationFile()
@@ -51,12 +62,6 @@ class EA():
 		self._init_container(container)
 		self.total_elapsed = 0.
 		random.seed(self.params.deapSeed)
-		if self.params.saveOutput or self.params.saveCSV or self.params.saveCheckpoint:
-			Path(self.params.shared_path+"/"+self.params.algorithm+"/").mkdir(parents=False, exist_ok=True)
-			Path(self.params.shared_path+"/"+self.params.algorithm+"/"+self.params.description+"/").mkdir(parents=False, exist_ok=True)
-		if self.params.saveOutput:
-			Path(self.params.path()).mkdir(parents=False, exist_ok=True)
-			Path(self.params.path()+"/csvs").mkdir(parents=False, exist_ok=True)
 
 	def _init_container(self, container = None):
 		if container == None:
@@ -117,6 +122,7 @@ class EA():
 			raise ValueError("``init_batch`` must not be empty.")
 
 		self.evaluateNewPopulation(self.container, 0, init_batch, "w")
+		self.params.runtime()
 
 		max_gen = self.params.generations
 		generation = self.start_gen
@@ -130,10 +136,15 @@ class EA():
 		print("\nEnd the generational process\n")
 		print ("\n\n")
 
+		self.archive.saveArchive(self.redundancy)
+
 		if os.path.exists(self.params.local_path+"/runtime.txt"):
 			os.remove(self.params.local_path+"/runtime.txt")
-
-		self.archive.saveArchive(self.redundancy)
+		os.remove(self.params.local_path+"/configuration.txt")
+		if os.path.exists(self.params.local_path+"/current.txt"):
+			os.remove(self.params.local_path+"/current.txt")
+		if len(os.listdir(self.params.local_path)) == 0:
+			os.rmdir(self.params.local_path)
 
 		end_time = round(time.time() * 1000)
 
