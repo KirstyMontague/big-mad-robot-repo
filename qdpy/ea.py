@@ -1,42 +1,37 @@
 
-__all__ = ["qdSimple", "Kilobots"]
-
 import time
-import copy
 import random
 import os
 import numpy
 import pickle
-import copy
 
 import warnings
 warnings.filterwarnings("error")
 
 from pathlib import Path
-import numpy as np
 
 from qdpy.phenotype import *
-# from qdpy.containers import *
-
 from containers import *
 
 from deap import tools
 
 from params import eaParams
-from utilities import Utilities
-from redundancy import Redundancy
 from archive import Archive
+from checkpoint import Checkpoint
 from logs import Logs
+from redundancy import Redundancy
+from utilities import Utilities
 import local
 
 
 
 class EA():
-	
+
 	def __init__(self, params):
+
 		self.params = params
 		self.params.is_qdpy = True
-		self.params.configure()
+		random.seed(self.params.deapSeed)
 
 		self.params.local_path += "/"+str(self.params.deapSeed)
 		Path(self.params.local_path+"/").mkdir(parents=False, exist_ok=True)
@@ -44,122 +39,94 @@ class EA():
 		if self.params.saveOutput or self.params.saveCSV or self.params.saveCheckpoint:
 			Path(self.params.shared_path+"/"+self.params.algorithm+"/").mkdir(parents=False, exist_ok=True)
 			Path(self.params.shared_path+"/"+self.params.algorithm+"/"+self.params.description+"/").mkdir(parents=False, exist_ok=True)
-		if self.params.saveOutput:
+
+		if self.params.saveOutput or self.params.saveCheckpoint:
 			Path(self.params.path()).mkdir(parents=False, exist_ok=True)
+
+		if self.params.saveOutput:
 			Path(self.params.path()+"/csvs").mkdir(parents=False, exist_ok=True)
 
 		self.utilities = Utilities(params)
 		self.utilities.setupToolbox(self.selTournament)
 		self.utilities.saveConfigurationFile()
+		self.toolbox = self.utilities.toolbox
+
 		self.redundancy = Redundancy(self.params)
 		self.archive = Archive(params, self.redundancy)
 		self.logs = Logs(params, self.utilities)
-
-	def config(self, start_gen, container = None):
-		self.toolbox = self.utilities.toolbox
-		self.start_gen = start_gen
-		self.current_iteration = start_gen
-		self._init_container(container)
-		self.total_elapsed = 0.
-		random.seed(self.params.deapSeed)
-
-	def _init_container(self, container = None):
-		if container == None:
-			self.container = Container()
-		else:
-			self.container = container
-
-	def save(self, outputFile):
-		if self.params.saveOutput:
-			results = {}
-			results['current_iteration'] = self.current_iteration
-			results['container'] = self.container
-			results['random_state'] = random.getstate()
-			results = {**results}
-			with open(outputFile, "wb") as f:
-				pickle.dump(results, f)
-
-	def _iteration_callback(self, iteration, batch, container):
-		self.current_iteration = iteration
-		self.current_batch = batch
-		if self.params.final_filename() != None and self.params.final_filename() != "":
-			self.save(self.params.final_filename())
-		if self.params.save_period == None or self.params.save_period == 0:
-			return
-		if iteration % self.params.save_period == 0 and self.params.iteration_filename() != None and self.params.iteration_filename() != "":
-			self.save(self.params.iteration_filename() % iteration)			
-			if self.params.saveHeatmap: self.utilities.saveHeatmap(self.container, self.current_iteration)
-		if iteration % self.params.csv_save_period == 0:
-			self.logs.saveCSV(iteration, self.utilities.getBestMax(container))
-		time.sleep(self.params.genSleep)
-
-		self.current_iteration = iteration + 1
+		self.checkpoint = Checkpoint(self.params)
 
 	def run(self, init_batch = None, **kwargs):
 
-		self.archive.getArchives(self.redundancy)
-
-		if self.params.loadCheckpoint:
-			from deap import base, creator, gp
-			import pickle
-			with open(self.params.input_filename(), "rb") as f:
-				data = pickle.load(f)
-			print ("")
-			for i in data:
-				if str(i) == "random_state":
-					random.setstate(data[i])
-			print ("")
-
+		start_time = round(time.time() * 1000)
 		self.utilities.saveParams()
 
-		start_time = round(time.time() * 1000)
+		self.archive.getArchives(self.redundancy)
 
-		if init_batch == None:
-			if not hasattr(self, "init_batch") or self.init_batch == None:
-				init_batch = self.toolbox.population(n = self.params.populationSize)
+		if self.params.readCheckpoint:
+			self.checkpoint.read()
+			return
 
-		if len(init_batch) == 0:
-			raise ValueError("``init_batch`` must not be empty.")
+		elif self.params.loadCheckpoint:
+			self.current_batch, containers = self.checkpoint.load(self.logs)
+			self.container = containers[0]
+			generation = self.params.start_gen
 
-		self.evaluateNewPopulation(self.container, 0, init_batch, "w")
-		self.params.runtime()
+		else:
+			self.container = Grid(shape = self.params.nb_bins,
+								  max_items_per_bin = self.params.max_items_per_bin,
+								  fitness_domain = self.params.fitness_domain,
+								  features_domain = self.params.features_domain,
+								  storage_type=list)
 
-		max_gen = self.params.generations
-		generation = self.start_gen
-		
-		while (generation < max_gen):
-			generation += 1
-			self.eaLoop(self.container, generation)
+			self.current_batch = self.toolbox.population(n = self.params.populationSize)
+			generation = 0
+			self.evaluateNewPopulation(self.container, generation, self.current_batch, "w")
 			self.params.runtime()
-			max_gen = self.params.generations
 
-		print("\nEnd the generational process\n")
-		print ("\n\n")
+		self.eaLoop(self.container, generation)
 
-		self.archive.saveArchive(self.redundancy)
+		self.checkpoint.save(self.params.generations, self.current_batch, [self.container], self.logs)
+		self.archive.saveArchive(self.redundancy, self.params.generations)
+		self.utilities.saveBestIndividuals(self.utilities.getBestMax(self.container, 25), self.params.generations)
 
 		if os.path.exists(self.params.local_path+"/runtime.txt"):
 			os.remove(self.params.local_path+"/runtime.txt")
-		os.remove(self.params.local_path+"/configuration.txt")
 		if os.path.exists(self.params.local_path+"/current.txt"):
 			os.remove(self.params.local_path+"/current.txt")
+		os.remove(self.params.local_path+"/configuration.txt")
 		if len(os.listdir(self.params.local_path)) == 0:
 			os.rmdir(self.params.local_path)
 
 		end_time = round(time.time() * 1000)
-
 		self.utilities.saveDuration(start_time, end_time)
 
 		time.sleep(self.params.eaRunSleep)
 
 	def eaLoop(self, container, generation):
 
-		batch = self.toolbox.select(container, self.params.populationSize)
-		offspring = self.varAnd(batch, self.toolbox)
+		max_gen = self.params.generations
 
-		self.evaluateNewPopulation(container, generation, offspring, "a")
+		while (generation < max_gen):
 
-		self._iteration_callback(generation, offspring, container)
+			generation += 1
+
+			time.sleep(self.params.genSleep)
+
+			batch = self.toolbox.select(container, self.params.populationSize)
+			offspring = self.varAnd(batch, self.toolbox)
+
+			self.evaluateNewPopulation(container, generation, offspring, "a")
+
+			self.current_batch = offspring
+
+			self.checkpoint.save(generation, self.current_batch, [container], self.logs)
+			self.logs.saveCSV(generation, self.utilities.getBestMax(container))
+			self.archive.saveArchive(self.redundancy, generation)
+			self.utilities.saveBestIndividuals(self.utilities.getBestMax(container, 25), generation)
+
+			self.params.runtime()
+			max_gen = self.params.generations
 
 	def transferTrimmedFitnessScores(self, offspring, trimmed):
 		for i in range(len(offspring)):
@@ -216,7 +183,7 @@ class EA():
 			print("Coverage: "+str("%.9f" % coverage))
 			print("")
 
-		if self.params.saveCSV: # all seeds
+		if self.params.saveCSV or self.params.saveCheckpoint: # all seeds
 			self.logs.logFitness(generation, self.utilities.getBestMax(container))
 			self.logs.logQdScore(generation, [self.utilities.getQDScore(container)])
 			self.logs.logCoverage(generation, self.utilities.getCoverage(container))
@@ -225,10 +192,6 @@ class EA():
 			self.utilities.saveQDScore(container, generation, mode)
 			self.utilities.saveCoverage(container, generation, mode)
 			self.utilities.saveBestToCsv(container, generation, mode)
-
-		if generation % self.params.best_save_period == 0:
-			self.utilities.saveBestIndividuals(self.utilities.getBestMax(container, 25))
-
 
 	def printOutput(self, generation, invalid_new, invalid_orig, matched):
 		
@@ -250,7 +213,7 @@ class EA():
 		output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
 		output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
 		
-		if generation % 100 == 0 or invalid_new > 0: print (output_string)
+		if generation % 100 == 0 or generation == self.params.generations or invalid_new > 0: print (output_string)
 
 	def assignFitness(self, offspring, fitness):
 		offspring.fitness.values = (fitness[0],)

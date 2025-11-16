@@ -494,24 +494,26 @@ class Utilities():
 				f.write("\n")
 				f.write(str(best))
 
-	def saveBestIndividuals(self, population):
+	def saveBestIndividuals(self, population, generation):
 
 		if self.params.saveBestIndividuals or self.params.saveAllIndividuals:
 
-			if not self.params.saveAllIndividuals:
-				population = self.getBestAll(population)
+			if generation % self.params.best_save_period == 0:
 
-			with open(self.params.local_path+'/current.txt', 'w') as f:
-				f.write("\n")
+				if not self.params.saveAllIndividuals:
+					population = self.getBestAll(population)
 
-			for b in population:
-
-				with open(self.params.local_path+'/current.txt', 'a') as f:
+				with open(self.params.local_path+'/current.txt', 'w') as f:
 					f.write("\n")
-					f.write(str(b.fitness))
-					f.write("\n\n")
-					f.write(self.formatChromosome(b))
-					f.write("\n============================================\n")
+
+				for b in population:
+
+					with open(self.params.local_path+'/current.txt', 'a') as f:
+						f.write("\n")
+						f.write(str(b.fitness))
+						f.write("\n\n")
+						f.write(self.formatChromosome(b))
+						f.write("\n============================================\n")
 
 	def formatChromosome(self, chromosome):
 		
@@ -712,7 +714,7 @@ class Utilities():
 
 	def saveParams(self):
 
-		if self.params.saveOutput:
+		if self.params.saveOutput or self.params.saveCheckpoint:
 			with open(self.params.path()+"params.txt", 'a') as f:
 				f.write("\n")
 				f.write("time: "+str(time.ctime()) + "\n")

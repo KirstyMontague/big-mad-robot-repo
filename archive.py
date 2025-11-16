@@ -83,9 +83,9 @@ class Archive():
 		print("cumulative archive length "+str(len(cumulative_archive)))
 		print()
 
-	def saveArchive(self, redundancy):
+	def saveArchive(self, redundancy, generation):
 
-		if self.params.saveOutput:
+		if self.params.saveOutput and generation % self.params.csv_save_period == 0:
 			archive = self.getCompleteArchive()
 			archive_string = ""
 			archive_dict = {}

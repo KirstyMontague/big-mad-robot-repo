@@ -50,21 +50,19 @@ class Checkpoint():
 
         return population
 
-    def load(self, logs, grid):
+    def load(self, logs):
 
         with open(self.params.checkpointInputFilename(self.params.start_gen), "rb") as checkpoint_file:
             checkpoint = pickle.load(checkpoint_file)
 
         random.setstate(checkpoint["rndstate"])
 
-        grid.grids = checkpoint["containers"]
-
         self.params.csv_save_interval = checkpoint["save_interval"]
         logs.best = checkpoint["fitness"]
         logs.qd_scores = checkpoint["qd_scores"]
         logs.coverage = checkpoint["coverage"]
 
-        return checkpoint["population"]
+        return checkpoint["population"], checkpoint["containers"]
 
     def save(self, generation, population, containers, logs):
         

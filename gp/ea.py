@@ -33,7 +33,7 @@ class EA():
 
 		self.params = params
 		self.params.is_qdpy = False
-		self.params.configure()
+		random.seed(params.deapSeed)
 
 		self.behaviours = Behaviours(params)
 
@@ -147,7 +147,7 @@ class EA():
 		else:
 			length = str(len(best[0]))+" "
 		
-		if generation == self.params.generations or generation % 100 == 0 or invalid_new > 0:
+		if generation % 100 == 0 or generation == self.params.generations or invalid_new > 0:
 			print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 		
 		if generation != 0 and generation % 100 == 0 and invalid_new == 0:
@@ -190,7 +190,7 @@ class EA():
 			print ("")
 					
 
-	def eaInit(self, population, stats=None, halloffame=None, verbose=__debug__):
+	def eaInit(self):
 
 		start_time = round(time.time() * 1000)
 		
@@ -200,31 +200,32 @@ class EA():
 		invalid_new = 0
 
 		if self.params.readCheckpoint:
-			population = self.checkpoint.read()
-			return population
+			self.checkpoint.read()
+			return
 
 		elif self.params.loadCheckpoint:
 			self.archive.setCompleteArchive(self.archive.getArchive())
-			population = self.checkpoint.load(self.logs, self.grid)
+			population, self.grid.grids = self.checkpoint.load(self.logs)
+			generation = self.params.start_gen
 
 		else:
+			generation = 0
 			population = self.startWithNewPopulation()
 			self.params.runtime()
 
 		self.utilities.saveParams()
 		
 		# begin evolution
-		self.eaLoop(population, stats)
+		self.eaLoop(population, generation)
 
 		# get the best individual at the end of the evolutionary run
 		best = self.utilities.getBestAll(population)
 		self.printIndividuals(best, True)
 
 		self.checkpoint.save(self.params.generations, population, self.grid.grids, self.logs)
-		self.archive.saveArchive(self.redundancy)
+		self.archive.saveArchive(self.redundancy, self.params.generations)
 		self.utilities.saveBestToFile(best[0])
-
-		self.grid.save()
+		self.grid.save(self.params.generations)
 
 		end_time = round(time.time() * 1000)
 		self.utilities.saveDuration(start_time, end_time)
@@ -233,14 +234,13 @@ class EA():
 
 		return population
 
-	def eaLoop(self, population, stats=None, verbose=__debug__):
+	def eaLoop(self, population, generation):
 
 		max_gen = self.params.generations
-		gen = self.params.start_gen
 
-		while (gen < max_gen):
+		while (generation < max_gen):
 
-			gen += 1
+			generation += 1
 
 			time.sleep(self.params.genSleep)
 		
@@ -255,16 +255,16 @@ class EA():
 			newPop = elites + offspring
 			population[:] = newPop
 			
-			self.evaluateNewPopulation(False, gen, population)
+			self.evaluateNewPopulation(False, generation, population)
 
 			self.printScores(elites, self.params.printEliteScores)
 			self.printScores(offspring, self.params.printFitnessScores)
 			self.printIndividuals(self.utilities.getBestAll(population), self.params.printBestIndividuals)
 			
-			self.checkpoint.save(gen, population, self.grid.grids, self.logs)
-			self.logs.saveCSV(gen, population)
-			if gen % self.params.csv_save_period == 0: self.archive.saveArchive(self.redundancy)
-			if gen % self.params.best_save_period == 0: self.utilities.saveBestIndividuals(population)
+			self.checkpoint.save(generation, population, self.grid.grids, self.logs)
+			self.logs.saveCSV(generation, population)
+			self.archive.saveArchive(self.redundancy, generation)
+			self.utilities.saveBestIndividuals(population, generation)
 
 			self.params.runtime()
 			max_gen = self.params.generations

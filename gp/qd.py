@@ -92,7 +92,7 @@ class QD():
 
         return qd_scores
 
-    def save(self):
+    def save(self, generation):
 
         if not self.params.saveOutput:
             return
@@ -102,8 +102,8 @@ class QD():
             grid = self.grids[i]
 
             filename = self.params.path()
-            filename += self.params.description+"-"+str(self.params.deapSeed)+"-"+self.params.objectives[self.params.indexes[i]]+".pkl"
-            print(filename)
+            filename += "grid-"+self.params.description+"-"+str(self.params.deapSeed)+"-"
+            filename += self.params.objectives[self.params.indexes[i]]+"-"+str(generation)+".pkl"
 
             with open(filename, "wb") as f:
                 pickle.dump(grid, f)

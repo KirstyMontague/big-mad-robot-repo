@@ -7,14 +7,9 @@ params.configure()
 
 if not params.stop:
 
-	import random
 	import os
 	import argparse
 	from pathlib import Path
-	import numpy
-
-	from deap import tools
-
 
 	from ea import EA
 
@@ -39,7 +34,7 @@ if not params.stop:
 
 	def evaluateOneIndividual():
 
-		ea.utilities.params.deapSeed = 1
+		ea = EA(params)
 		individual = ""
 		sqrtRobots = 0
 
@@ -55,6 +50,7 @@ if not params.stop:
 
 	def trimOneIndividual():
 
+		ea = EA(params)
 		individual = ""
 		sqrtRobots = 0
 
@@ -74,13 +70,13 @@ if not params.stop:
 
 	def main():
 
+		parseArguments()
+
 		# evaluateOneIndividual()
 		# return
 
 		# trimOneIndividual()
 		# return
-
-		parseArguments()
 
 		params.local_path += "/"+str(params.deapSeed)
 		Path(params.local_path+"/").mkdir(parents=False, exist_ok=True)
@@ -92,24 +88,9 @@ if not params.stop:
 		if params.saveOutput or params.saveCheckpoint:
 			Path(params.path()).mkdir(parents=False, exist_ok=True)
 
-		random.seed(params.deapSeed)
-		
-		hof = tools.HallOfFame(1)
-		
-		stats_fit = tools.Statistics(key=lambda ind: ind.fitness.values[0])
-		stats_size = tools.Statistics(key=lambda depth: depth.height)
-		mstats = tools.MultiStatistics(fitness=stats_fit, size=stats_size)
-
-		stats = tools.Statistics(lambda ind: ind.fitness.values)
-		mstats.register("avg", numpy.mean)
-		mstats.register("med", numpy.median)
-		mstats.register("std", numpy.std)
-		mstats.register("min", numpy.min)
-		mstats.register("max", numpy.max)
-
 		ea = EA(params)
-		ea.eaInit(mstats, halloffame=hof)
-		
+		ea.eaInit()
+
 
 		if os.path.exists(params.local_path+"/runtime.txt"):
 			os.remove(params.local_path+"/runtime.txt")
