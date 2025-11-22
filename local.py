@@ -10,106 +10,106 @@ from collections import defaultdict
 from deap import tools, base, gp, creator
 
 class Condition(gp.Terminal):
-	
-	def __init__(self, terminal, symbolic, ret):
-		super(Condition, self).__init__(terminal, symbolic, ret)
+    
+    def __init__(self, terminal, symbolic, ret):
+        super(Condition, self).__init__(terminal, symbolic, ret)
 
 class Action(gp.Terminal):
-	
-	def __init__(self, terminal, symbolic, ret):
-		super(Action, self).__init__(terminal, symbolic, ret)
+    
+    def __init__(self, terminal, symbolic, ret):
+        super(Action, self).__init__(terminal, symbolic, ret)
 
 class PrimitiveSetExtended(gp.PrimitiveSet):
-	"""
-	Extends DEAP's PrimitveSet class to be able to distinguish
-	between different types of behaviour tree nodes so that we
-	can control the ratio of condition nodes vs action nodes
-	"""
+    """
+    Extends DEAP's PrimitveSet class to be able to distinguish
+    between different types of behaviour tree nodes so that we
+    can control the ratio of condition nodes vs action nodes
+    """
 
-	def __init__(self, names, in_types):
-		self.conditions = defaultdict(list)
-		self.actions = defaultdict(list)
-		self.conditions_count = 0
-		self.actions_count = 0
-		super(PrimitiveSetExtended, self).__init__(names, in_types)
+    def __init__(self, names, in_types):
+        self.conditions = defaultdict(list)
+        self.actions = defaultdict(list)
+        self.conditions_count = 0
+        self.actions_count = 0
+        super(PrimitiveSetExtended, self).__init__(names, in_types)
 
-	def _add(self, prim):
-		def addType(dict_, ret_type):
-			if ret_type not in dict_:
-				new_list = []
-				for type_, list_, in dict_.items():
-					if issubclass(type_, ret_type):
-						for item in list_:
-							if item not in new_list:
-								new_list.append(item)
-				dict_[ret_type] = new_list
-		
-		addType(self.primitives, prim.ret)
-		addType(self.terminals, prim.ret)
-		addType(self.conditions, prim.ret)
-		addType(self.actions, prim.ret)
-		
-		self.mapping[prim.name] = prim
-		
-		if isinstance(prim, gp.Primitive):
-			for type_ in prim.args:
-				addType(self.primitives, type_)
-				addType(self.terminals, type_)
-			dict_ = self.primitives
-		elif isinstance(prim, Condition):
-			dict_ = self.conditions
-		elif isinstance(prim, Action):
-			dict_ = self.actions
-		
-		for type_ in dict_:
-			if issubclass(prim.ret, type_):
-				dict_[type_].append(prim)
+    def _add(self, prim):
+        def addType(dict_, ret_type):
+            if ret_type not in dict_:
+                new_list = []
+                for type_, list_, in dict_.items():
+                    if issubclass(type_, ret_type):
+                        for item in list_:
+                            if item not in new_list:
+                                new_list.append(item)
+                dict_[ret_type] = new_list
+        
+        addType(self.primitives, prim.ret)
+        addType(self.terminals, prim.ret)
+        addType(self.conditions, prim.ret)
+        addType(self.actions, prim.ret)
+        
+        self.mapping[prim.name] = prim
+        
+        if isinstance(prim, gp.Primitive):
+            for type_ in prim.args:
+                addType(self.primitives, type_)
+                addType(self.terminals, type_)
+            dict_ = self.primitives
+        elif isinstance(prim, Condition):
+            dict_ = self.conditions
+        elif isinstance(prim, Action):
+            dict_ = self.actions
+        
+        for type_ in dict_:
+            if issubclass(prim.ret, type_):
+                dict_[type_].append(prim)
 
-	def addCondition(self, condition, name=None):
-		
-		symbolic = False
-		
-		if name is None and callable(condition):
-			name = condition.__name__
-		
-		assert name not in self.context, "\nname "+name+" is not unique\n"
-		
-		if name is not None:
-			self.context[name] = condition
-			condition = name
-			symbolic = True
-		elif condition in (True, False):
-			self.context[str(condition)] = condition
-		
-		prim = Condition(condition, symbolic, gp.__type__)
-		self._add(prim)
-		self.conditions_count += 1
-		
-	def addAction(self, action, name=None):
-		
-		symbolic = False
-		
-		if name is None and callable(action):
-			name = action.__name__
-		
-		assert name not in self.context, "\nname "+name+" is not unique\n"
-		
-		if name is not None:
-			self.context[name] = action
-			action = name
-			symbolic = True
-		elif action in (True, False):
-			self.context[str(action)] = action
-		
-		prim = Action(action, symbolic, gp.__type__)
-		self._add(prim)
-		self.actions_count += 1
+    def addCondition(self, condition, name=None):
+        
+        symbolic = False
+        
+        if name is None and callable(condition):
+            name = condition.__name__
+        
+        assert name not in self.context, "\nname "+name+" is not unique\n"
+        
+        if name is not None:
+            self.context[name] = condition
+            condition = name
+            symbolic = True
+        elif condition in (True, False):
+            self.context[str(condition)] = condition
+        
+        prim = Condition(condition, symbolic, gp.__type__)
+        self._add(prim)
+        self.conditions_count += 1
+        
+    def addAction(self, action, name=None):
+        
+        symbolic = False
+        
+        if name is None and callable(action):
+            name = action.__name__
+        
+        assert name not in self.context, "\nname "+name+" is not unique\n"
+        
+        if name is not None:
+            self.context[name] = action
+            action = name
+            symbolic = True
+        elif action in (True, False):
+            self.context[str(action)] = action
+        
+        prim = Action(action, symbolic, gp.__type__)
+        self._add(prim)
+        self.actions_count += 1
 
 def genEmpty(pset, min_, max_, type_=None):
-	"""
-	For big mad robot repo
-	"""
-	return []
+    """
+    For big mad robot repo
+    """
+    return []
 
 def genFull(pset, min_, max_, type_=None):
     """

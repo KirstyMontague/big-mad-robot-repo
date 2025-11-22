@@ -82,48 +82,31 @@ void CPerceptronMulti::Destroy()
 
 void CPerceptronMulti::LoadNetworkParameters(const Real* chromosome, bool tracking)
 {
-
     uint pos = 1;
     
-    // if (tracking) std::cout << chromosome[0] << "\n";
-
     m_pfInputToHiddenWeights = new Real[m_unNumberOfInputs * m_numHidden];
     for( uint i = 0; i < m_unNumberOfInputs * m_numHidden; i++ )
     {
         m_pfInputToHiddenWeights[i] = chromosome[pos++];
-        // if (tracking) std::cout << m_pfInputToHiddenWeights[i] << "\n";
     }
-
-    // if (tracking) std::cout << m_pfInputToHiddenWeights[0] << "\n";
 
     m_pfHiddenBiases = new Real[m_numHidden];
     for( uint i = 0; i < m_numHidden; i++ )
     {
         m_pfHiddenBiases[i] = chromosome[pos++];
-        // if (tracking) std::cout << m_pfHiddenBiases[i] << "\n";
     }
-
-    // if (tracking) std::cout <<  "\n";
 
     m_pfHiddenToOutputWeights = new Real[m_numHidden * m_unNumberOfOutputs];
     for( uint i = 0; i < m_numHidden * m_unNumberOfOutputs; i++ )
     {
         m_pfHiddenToOutputWeights[i] = chromosome[pos++];
-        // if (tracking) std::cout << m_pfHiddenToOutputWeights[i] << "\n";
     }
-
-    // if (tracking) std::cout <<  "\n";
 
     m_pfOutputBiases = new Real[m_unNumberOfOutputs];
     for( uint i = 0; i < m_unNumberOfOutputs; i++ )
     {
         m_pfOutputBiases[i] = chromosome[pos++];
-        // if (tracking) std::cout << m_pfOutputBiases[i] << "\n";
     }
-
-    // if (tracking) std::cout << m_pfOutputBiases[1] << "\n";
-
-    // if (tracking) std::cout <<  "\n";
 }
 
 /****************************************/
@@ -160,10 +143,8 @@ void CPerceptronMulti::ComputeOutputs(bool tracking)
         // Activation function
         m_pfOutputs[i] = sigmoid(m_pfOutputs[i]);
         
-        // if (tracking) std::cout << m_pfOutputs[i] << "\n";
         m_pfOutputs[i] *= 7;
    }
-
 }
 
 /****************************************/

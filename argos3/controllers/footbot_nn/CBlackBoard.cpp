@@ -20,7 +20,7 @@ void CBlackBoard::setInNest(int count, bool nest, int robotID)
         
         m_inNest = true;
         
-    }		
+    }
 }
 
 void CBlackBoard::updateDistNestVector(float distance, int robotID)
@@ -59,7 +59,7 @@ void CBlackBoard::setDistNest(bool first, int robotID)
     distance /= m_distNestVector.size();
     //if (robotID != -1) std::cout << " | " << distance;
     
-    if (!first)	m_distNestChange = distance - m_distNest;	
+    if (!first) m_distNestChange = distance - m_distNest;
     //if (robotID != -1) std::cout << " | " << m_distNestChange;
     
     //if (robotID != -1) std::cout << std::endl;
@@ -127,7 +127,7 @@ void CBlackBoard::setDetectedFood(int count, bool detected, int robotID)
             m_carryingFood = true;
         }
     }
-}	
+}
 
 void CBlackBoard::updateDistFoodVector(float distance, int robotID)
 {
@@ -138,7 +138,7 @@ void CBlackBoard::updateDistFoodVector(float distance, int robotID)
         m_distFoodVector.erase(m_distFoodVector.begin());
     }
     
-    m_distFoodVector.push_back(distance);	
+    m_distFoodVector.push_back(distance);
 }
 
 void CBlackBoard::setInitialDistanceFromFood(int robotID)
@@ -183,7 +183,7 @@ void CBlackBoard::setDistFood(bool first, int robotID)
     distance /= m_distFoodVector.size();
     //if (robotID != -1) std::cout << " | " << distance;
     
-    if (!first)	m_distFoodChange = distance - m_distFood;
+    if (!first) m_distFoodChange = distance - m_distFood;
     //if (robotID != -1) std::cout << " | " << m_distFoodChange;
     
     //if (robotID != -1) std::cout << std::endl;
@@ -280,7 +280,7 @@ void CBlackBoard::updateDensityVector(float density, int robotID)
         m_densityVector.erase(m_densityVector.begin());
     }
     
-    m_densityVector.push_back(density);	
+    m_densityVector.push_back(density);
     m_totalDensity += density;
     //if (robotID != -1) std::cout << density << std::endl;
     
@@ -335,13 +335,11 @@ void CBlackBoard::setDensity(bool first, int robotID)
     density /= m_densityVector.size();
     //if (robotID != -1) std::cout << " | " << density;
     
-    if (!first)	m_densityChange = density - m_density;	
+    if (!first) m_densityChange = density - m_density;
     //if (robotID != -1) std::cout << " | " << m_densityChange << std::endl;
     
     m_density = density;
 }
-
-// qdpy optimisation
 
 void CBlackBoard::addMovement()
 {
@@ -377,5 +375,3 @@ float CBlackBoard::getConditionality()
     }
     return 1.0;
 }
-
-// end qdpy

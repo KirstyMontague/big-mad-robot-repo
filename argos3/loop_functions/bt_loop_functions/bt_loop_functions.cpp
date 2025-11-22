@@ -20,64 +20,63 @@ CBTLoopFunctions::CBTLoopFunctions() :
     m_gap(0.0),
     m_experimentLength(0)
 {
-	m_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
-	//std::cout << "start " << m_ms.count() << std::endl;
+    m_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+    //std::cout << "start " << m_ms.count() << std::endl;
 }
 
 CBTLoopFunctions::~CBTLoopFunctions() 
 {
-	milliseconds ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
-	//std::cout << ms.count() << std::endl;
-	milliseconds cost = ms - m_ms;
-	std::cout << "duration " << cost.count() << std::endl;
-
+    milliseconds ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
+    //std::cout << ms.count() << std::endl;
+    milliseconds cost = ms - m_ms;
+    std::cout << "duration " << cost.count() << std::endl;
 }
 
 void CBTLoopFunctions::Init(TConfigurationNode& t_tree) 
 {
-	m_pcFloor = &GetSpace().GetFloorEntity();
-       
-	m_pcRNG = CRandom::CreateRNG("argos");;
-	
-	// get the filename for chromosome (best/chromosome)
-	std::string filename;
-	int index = 0;
-	std::string path;
-	TConfigurationNodeIterator itDistr;
-	for(itDistr = itDistr.begin(&t_tree); itDistr != itDistr.end(); ++itDistr) 
-	{
-		TConfigurationNode& tDistr = *itDistr;
-		GetNodeAttribute(tDistr, "name", filename);
-		GetNodeAttribute(tDistr, "index", index);
-		GetNodeAttribute(tDistr, "path", path);
-	}
+    m_pcFloor = &GetSpace().GetFloorEntity();
 
-	// get configuration from file
-	std::string configFilename = path+"/configuration.txt";
-	std::ifstream configFile(configFilename);
-	std::string line = "";
-	int trialLength = 0;
-	std::string repertoireFilename = "";
-	while( getline(configFile, line) )
-	{
-		int delimiter = line.find(":");
-		std::string key = line.substr(0, delimiter);
-		std::string value = line.substr(delimiter + 1);
+    m_pcRNG = CRandom::CreateRNG("argos");;
 
-		if (key == "experimentLength")
-		{
-			m_experimentLength = std::stoi(value) * 8; // eight ticks per second
-			trialLength = (std::stoi(value) * 8) / 5; // five trials per experiment
-		}
-		if (key == "repertoireFilename")
-		{
-			repertoireFilename = value;
-		}
-		if (key == "nestRadius")
-		{
-			m_nest = std::stof(value);
-		}
-	}
+    // get the filename for chromosome (best/chromosome)
+    std::string filename;
+    int index = 0;
+    std::string path;
+    TConfigurationNodeIterator itDistr;
+    for(itDistr = itDistr.begin(&t_tree); itDistr != itDistr.end(); ++itDistr) 
+    {
+        TConfigurationNode& tDistr = *itDistr;
+        GetNodeAttribute(tDistr, "name", filename);
+        GetNodeAttribute(tDistr, "index", index);
+        GetNodeAttribute(tDistr, "path", path);
+    }
+
+    // get configuration from file
+    std::string configFilename = path+"/configuration.txt";
+    std::ifstream configFile(configFilename);
+    std::string line = "";
+    int trialLength = 0;
+    std::string repertoireFilename = "";
+    while( getline(configFile, line) )
+    {
+        int delimiter = line.find(":");
+        std::string key = line.substr(0, delimiter);
+        std::string value = line.substr(delimiter + 1);
+
+        if (key == "experimentLength")
+        {
+            m_experimentLength = std::stoi(value) * 8; // eight ticks per second
+            trialLength = (std::stoi(value) * 8) / 5; // five trials per experiment
+        }
+        if (key == "repertoireFilename")
+        {
+            repertoireFilename = value;
+        }
+        if (key == "nestRadius")
+        {
+            m_nest = std::stof(value);
+        }
+    }
     
     if (m_experimentLength == 0 || repertoireFilename == "" || m_nest == 0.0)
     {
@@ -87,244 +86,254 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
         return;
     }
 
-	// get random seed and environmental parameters from file
-	std::string seedFilename = path+"/seed"+std::to_string(index)+".txt";
-	std::ifstream seedFile(seedFilename);
-	line = "";
-	int seed = -1;
-	while( getline(seedFile, line) )
-	{
-		(seed == -1)
-			? seed = std::stoi(line)
-			: m_gap = std::stof(line);
-	}
-	m_pcRNG->SetSeed(seed);
-	m_pcRNG->Reset();
-	
-	// read number of robots and chromosome from file
-	std::string chromosomeFilename = path+"/"+filename;
-	std::ifstream chromosomeFile(chromosomeFilename);
-	line = "";
-	int sqrtRobots = 0;
-	std::string chromosome;
-    while( getline(chromosomeFile, line) )
-	{
-		// number of robots
-		if (sqrtRobots == 0)
-		{
-			sqrtRobots = std::stoi(line);
-		}		
-		// chromosome
-		else
-		{
-			//std::cout << line << std::endl;
-			line.erase(std::remove(line.begin(), line.end(), ','), line.end());
-			
-			std::replace( line.begin(), line.end(), '(', ' ');
-			std::replace( line.begin(), line.end(), ')', ' ');
-			
-			chromosome = line;
-			std::cout << chromosome << std::endl;
-		}
-	}
-	
-	// unpack sub-behaviours
-	
-	std::ifstream subBehavioursFile(repertoireFilename);
-	std::vector<std::string> subBehaviourTrees;
-    while( getline(subBehavioursFile, line) )
-	{
-		//std::cout << line << std::endl;
-		line.erase(std::remove(line.begin(), line.end(), ','), line.end());
-		
-		std::replace( line.begin(), line.end(), '(', ' ');
-		std::replace( line.begin(), line.end(), ')', ' ');
-		
-		subBehaviourTrees.push_back(line);
-	}
-	
-	// tokenize subbehaviours
-	
-	std::vector<std::pair<std::string, std::vector<std::string>>> subBehaviours;
-	for (std::string chromosome : subBehaviourTrees)
-	{
-		std::string name;
-		std::vector<std::string> tokens;
-		uint i = 0;
-		
-		std::stringstream ss(chromosome); 
-		std::string token;
-		while (std::getline(ss, token, ' ')) 
-		{
-			if (token.length() > 0)
-			{
-				if (i == 0)
-				{
-					name = token;
-					i = 1;
-				}
-				else
-				{
-					tokens.push_back(token);
-				}
-			}
-		}
-		std::pair<std::string, std::vector<std::string>> subBehaviour(name, tokens);
-		subBehaviours.push_back(subBehaviour);
-	}
-	
-	
-	// tokenize chromosome
-	std::stringstream ss(chromosome); 
-	std::string token;
-	std::vector<std::string> tokens;
-	while (std::getline(ss, token, ' ')) 
-	{
-		if (token.length() > 0)
-		{
-			bool subBehaviour = false;
-			
-			for (auto node : subBehaviours)
-			{
-				if (token == node.first)
-				{
-					subBehaviour = true;
-					tokens.push_back("successd");
-					for (std::string subToken : node.second)
-					{
-						tokens.push_back(subToken);
-					}
-				}
-				     
-			}
-			
-			if (!subBehaviour)
-			{
-				tokens.push_back(token);
-			}
-		}
-	}   
-	
-	for (auto t : tokens)
-	{
-		std::cout << t << " ";
-	}
-	std::cout << std::endl;
-	
-	// add robots
-	for (int i = 0; i < sqrtRobots; ++i)
-	{
-		for (int j = 0; j < sqrtRobots; ++j)
-		{
-			//std::cout << "add robots " << j << std::endl;
-			CFootBotEntity* pcFB = new CFootBotEntity(std::to_string(i*sqrtRobots+j), "fswc");
-			m_footbots.push_back(pcFB);
-			AddEntity(*pcFB);
-			
-			CVector3 cFBPos;
-			CQuaternion cFBRot;	
-			
-			// position
-			//double x = ((double) i - floor(sqrtRobots / 2)) / 4;
-			//double y = ((double) j - floor(sqrtRobots / 2)) / 4;
-			//cFBPos.Set(x, y, 0.0f);	
-			//cFBPos.Set(-1.0f,0.0f,0.0f); --- uncomment to hard code robot position
-			
-			// rotation
-			auto r = m_pcRNG->Uniform(CRadians::UNSIGNED_RANGE);
-			cFBRot.FromAngleAxis(r, CVector3::Z);
-			// cFBRot.FromAngleAxis(CRadians(), CVector3::Z); --- uncomment to hard code robot orientation
-			
-			// random positions
-			CRange<Real> areaRange(-1.0, 1.0);
-			for (int k = 0; k < 10; ++k)
-			{
-				//std::cout << std::to_string(k) << std::endl;
-				double x = m_pcRNG->Uniform(areaRange) + 0.0;
-				double y = m_pcRNG->Uniform(areaRange) + 0.0;
-				cFBPos.Set(x, y, 0.0f);	
-				
-				// place robot
-				if (MoveEntity(pcFB->GetEmbodiedEntity(), cFBPos, cFBRot))
-				{
-					break;
-				}
-			}
-		
-			// create robot
-			CFootBotBT& controller = dynamic_cast<CFootBotBT&>(pcFB->GetControllableEntity().GetController());
-			controller.buildTree(tokens);
-			controller.createBlackBoard(sqrtRobots * sqrtRobots);
-			controller.setParams(m_nest, m_gap, trialLength);
-			if (filename == "best.txt")
-			{
-				controller.setPlayback(true);
-			}
-		}
-	}
+    // get random seed and environmental parameters from file
+    std::string seedFilename = path+"/seed"+std::to_string(index)+".txt";
+    std::ifstream seedFile(seedFilename);
+    line = "";
+    int seed = -1;
+    while( getline(seedFile, line) )
+    {
+        (seed == -1)
+            ? seed = std::stoi(line)
+            : m_gap = std::stof(line);
+    }
+    m_pcRNG->SetSeed(seed);
+    m_pcRNG->Reset();
 
+    if (seed == -1 || m_gap == 0.0)
+    {
+        std::cout << "seed: " << std::to_string(seed) << "\n";
+        std::cout << "gap: " << std::to_string(m_gap) << "\n";
+        return;
+    }
+
+    // read number of robots and chromosome from file
+    std::string chromosomeFilename = path+"/"+filename;
+    std::ifstream chromosomeFile(chromosomeFilename);
+    line = "";
+    int sqrtRobots = 0;
+    std::string chromosome;
+    while( getline(chromosomeFile, line) )
+    {
+        // number of robots
+        if (sqrtRobots == 0)
+        {
+            sqrtRobots = std::stoi(line);
+        }
+        // chromosome
+        else
+        {
+            //std::cout << line << std::endl;
+            line.erase(std::remove(line.begin(), line.end(), ','), line.end());
+            
+            std::replace( line.begin(), line.end(), '(', ' ');
+            std::replace( line.begin(), line.end(), ')', ' ');
+            
+            chromosome = line;
+            std::cout << chromosome << std::endl;
+        }
+    }
+
+    if (sqrtRobots == 0 || chromosome == "")
+    {
+        std::cout << "sqrtRobots: " << std::to_string(sqrtRobots) << "\n";
+        std::cout << "chromosome: " << chromosome << "\n";
+        return;
+    }
+
+    // unpack sub-behaviours
+
+    std::ifstream subBehavioursFile(repertoireFilename);
+    std::vector<std::string> subBehaviourTrees;
+    while( getline(subBehavioursFile, line) )
+    {
+        //std::cout << line << std::endl;
+        line.erase(std::remove(line.begin(), line.end(), ','), line.end());
+        
+        std::replace( line.begin(), line.end(), '(', ' ');
+        std::replace( line.begin(), line.end(), ')', ' ');
+        
+        subBehaviourTrees.push_back(line);
+    }
+
+    // tokenize subbehaviours
+
+    std::vector<std::pair<std::string, std::vector<std::string>>> subBehaviours;
+    for (std::string chromosome : subBehaviourTrees)
+    {
+        std::string name;
+        std::vector<std::string> tokens;
+        uint i = 0;
+        
+        std::stringstream ss(chromosome); 
+        std::string token;
+        while (std::getline(ss, token, ' ')) 
+        {
+            if (token.length() > 0)
+            {
+                if (i == 0)
+                {
+                    name = token;
+                    i = 1;
+                }
+                else
+                {
+                    tokens.push_back(token);
+                }
+            }
+        }
+        std::pair<std::string, std::vector<std::string>> subBehaviour(name, tokens);
+        subBehaviours.push_back(subBehaviour);
+    }
+
+    // tokenize chromosome
+    std::stringstream ss(chromosome); 
+    std::string token;
+    std::vector<std::string> tokens;
+    while (std::getline(ss, token, ' ')) 
+    {
+        if (token.length() > 0)
+        {
+            bool subBehaviour = false;
+            
+            for (auto node : subBehaviours)
+            {
+                if (token == node.first)
+                {
+                    subBehaviour = true;
+                    tokens.push_back("successd");
+                    for (std::string subToken : node.second)
+                    {
+                        tokens.push_back(subToken);
+                    }
+                }
+                     
+            }
+            
+            if (!subBehaviour)
+            {
+                tokens.push_back(token);
+            }
+        }
+    }   
+
+    for (auto t : tokens)
+    {
+        std::cout << t << " ";
+    }
+    std::cout << std::endl;
+
+    // add robots
+    for (int i = 0; i < sqrtRobots; ++i)
+    {
+        for (int j = 0; j < sqrtRobots; ++j)
+        {
+            //std::cout << "add robots " << j << std::endl;
+            CFootBotEntity* pcFB = new CFootBotEntity(std::to_string(i*sqrtRobots+j), "fswc");
+            m_footbots.push_back(pcFB);
+            AddEntity(*pcFB);
+            
+            CVector3 cFBPos;
+            CQuaternion cFBRot;
+            
+            // position
+            //double x = ((double) i - floor(sqrtRobots / 2)) / 4;
+            //double y = ((double) j - floor(sqrtRobots / 2)) / 4;
+            //cFBPos.Set(x, y, 0.0f);
+            //cFBPos.Set(-1.0f,0.0f,0.0f); --- uncomment to hard code robot position
+            
+            // rotation
+            auto r = m_pcRNG->Uniform(CRadians::UNSIGNED_RANGE);
+            cFBRot.FromAngleAxis(r, CVector3::Z);
+            // cFBRot.FromAngleAxis(CRadians(), CVector3::Z); --- uncomment to hard code robot orientation
+            
+            // random positions
+            CRange<Real> areaRange(-1.0, 1.0);
+            for (int k = 0; k < 10; ++k)
+            {
+                //std::cout << std::to_string(k) << std::endl;
+                double x = m_pcRNG->Uniform(areaRange) + 0.0;
+                double y = m_pcRNG->Uniform(areaRange) + 0.0;
+                cFBPos.Set(x, y, 0.0f);
+                
+                // place robot
+                if (MoveEntity(pcFB->GetEmbodiedEntity(), cFBPos, cFBRot))
+                {
+                    break;
+                }
+            }
+            
+            // create robot
+            CFootBotBT& controller = dynamic_cast<CFootBotBT&>(pcFB->GetControllableEntity().GetController());
+            controller.buildTree(tokens);
+            controller.createBlackBoard(sqrtRobots * sqrtRobots);
+            controller.setParams(m_nest, m_gap, trialLength);
+            if (filename == "best.txt")
+            {
+                controller.setPlayback(true);
+            }
+        }
+    }
 }
 
 CColor CBTLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane)
 {
-	double x = c_position_on_plane.GetX();
-	double y = c_position_on_plane.GetY();
-	
-	// distance from centre
-	double r = sqrt((x * x) + (y * y));
-	
-	if (fmod(x, 1) == 0 || fmod(y, 1) == 0)
-	{
+    double x = c_position_on_plane.GetX();
+    double y = c_position_on_plane.GetY();
+
+    // distance from centre
+    double r = sqrt((x * x) + (y * y));
+
+    if (fmod(x, 1) == 0 || fmod(y, 1) == 0)
+    {
       return CColor::GRAY80; // tile edges
-	}
-	else if (r < m_nest)
-   {
-		return CColor::GRAY50; // nest
-   }
-   else if (r < 0.5f + m_gap)
-   {
-		return CColor::WHITE; // gap
-	}
-	
-	return CColor::GRAY50; // food
+    }
+    else if (r < m_nest)
+    {
+        return CColor::GRAY50; // nest
+    }
+    else if (r < 0.5f + m_gap)
+    {
+        return CColor::WHITE; // gap
+    }
+
+    return CColor::GRAY50; // food
 }
 
 void CBTLoopFunctions::PostStep()
 {
-	m_count++;
-	if (m_count % (m_experimentLength / 5) == 0) // evaluation time 160 for subbehaviours, 800 for foraging
-	{      
-		//std::cout <s< "poststep " << m_count << std::endl;
-		for (CFootBotEntity* footbot : m_footbots)
-		{
-			CVector3 cFBPos;
-			CQuaternion cFBRot;	
-			
-			// rotation
-			auto r = m_pcRNG->Uniform(CRadians::UNSIGNED_RANGE);
-			cFBRot.FromAngleAxis(r, CVector3::Z);
-			// cFBRot.FromAngleAxis(CRadians(), CVector3::Z); --- uncomment to hard code robot orientation
-			
-			// random positions
-			CRange<Real> areaRange(-1.0, 1.0);
-			for (int k = 0; k < 10; ++k)
-			{
-				//std::cout << std::to_string(k) << std::endl;
-				double x = m_pcRNG->Uniform(areaRange) + 0.0;
-				double y = m_pcRNG->Uniform(areaRange) + 0.0;
-				cFBPos.Set(x, y, 0.0f);	
-				
-				// place robot
-				if (MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot))
-				{
-					CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
-					controller.setColour();
-					break;
-				}
-			}
-		
-		}
-	}
+    m_count++;
+    if (m_count % (m_experimentLength / 5) == 0) // evaluation time 160 for subbehaviours, 800 for foraging
+    {      
+        for (CFootBotEntity* footbot : m_footbots)
+        {
+            CVector3 cFBPos;
+            CQuaternion cFBRot;
+            
+            // rotation
+            auto r = m_pcRNG->Uniform(CRadians::UNSIGNED_RANGE);
+            cFBRot.FromAngleAxis(r, CVector3::Z);
+            // cFBRot.FromAngleAxis(CRadians(), CVector3::Z); --- uncomment to hard code robot orientation
+            
+            // random positions
+            CRange<Real> areaRange(-1.0, 1.0);
+            for (int k = 0; k < 10; ++k)
+            {
+                double x = m_pcRNG->Uniform(areaRange) + 0.0;
+                double y = m_pcRNG->Uniform(areaRange) + 0.0;
+                cFBPos.Set(x, y, 0.0f);
+                
+                // place robot
+                if (MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot))
+                {
+                    CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
+                    controller.setColour();
+                    break;
+                }
+            }
+        
+        }
+    }
 }
 
 bool CBTLoopFunctions::IsExperimentFinished()

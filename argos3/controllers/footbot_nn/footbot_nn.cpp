@@ -139,7 +139,7 @@ void CFootBotNNController::sensing(bool tracking)
 double CFootBotNNController::position(bool tracking) 
 {
     // position data
-    const CCI_PositioningSensor::SReading& pos = m_pcPosition->GetReading();	
+    const CCI_PositioningSensor::SReading& pos = m_pcPosition->GetReading();
     Real x = pos.Position.GetX();
     Real y = pos.Position.GetY();
 
@@ -178,7 +178,7 @@ double CFootBotNNController::position(bool tracking)
 void CFootBotNNController::rangeAndBearing(double r, bool tracking) 
 {
     // range and bearing data
-    const CCI_RangeAndBearingSensor::TReadings& tPackets = m_pcRABS->GetReadings();	
+    const CCI_RangeAndBearingSensor::TReadings& tPackets = m_pcRABS->GetReadings();
 
     // map for density of robots and defaults for distance to food or nest
     std::map<int, double> IDs;
@@ -216,7 +216,7 @@ void CFootBotNNController::rangeAndBearing(double r, bool tracking)
         
         //if (tracking && id == 0) std::cout << id << " - " << nest << " - " << food << " - " << tPackets[i].Range << std::endl;
         
-        // if we haven't already received a signal from this robot in the current timestep	
+        // if we haven't already received a signal from this robot in the current timestep
         if (IDs.find(id) == IDs.end())
         {
             if (closestNeighbourDistance == 0.0 || tPackets[i].Range < closestNeighbourDistance)
@@ -333,7 +333,7 @@ void CFootBotNNController::actuation(bool tracking)
 void CFootBotNNController::sendInitialSignal() 
 {
     // position data
-    const CCI_PositioningSensor::SReading& pos = m_pcPosition->GetReading();	
+    const CCI_PositioningSensor::SReading& pos = m_pcPosition->GetReading();
     Real x = pos.Position.GetX();
     Real y = pos.Position.GetY();
 
@@ -377,7 +377,7 @@ void CFootBotNNController::recordInitialPositions(bool tracking)
 
 void CFootBotNNController::recordFinalPositions(bool tracking) 
 {
-    const CCI_PositioningSensor::SReading& pos = m_pcPosition->GetReading();	
+    const CCI_PositioningSensor::SReading& pos = m_pcPosition->GetReading();
     Real x = pos.Position.GetX();
     Real y = pos.Position.GetY();
 
@@ -460,8 +460,8 @@ void CFootBotNNController::ControlStep()
         m_blackBoard->setFinalDistanceFromFood(tracking ? std::stoi(GetId()) : -1);
         
         // sub-behaviours
-        m_scores[0].push_back(m_blackBoard->getDifferenceInDensity());	
-        m_scores[1].push_back(m_blackBoard->getDifferenceInDistanceFromNest());	
+        m_scores[0].push_back(m_blackBoard->getDifferenceInDensity());
+        m_scores[1].push_back(m_blackBoard->getDifferenceInDistanceFromNest());
         m_scores[2].push_back(m_blackBoard->getDifferenceInDistanceFromFood());
         m_scores[3].push_back(m_blackBoard->getDifferenceInDensityInverse());
         m_scores[4].push_back(m_blackBoard->getDifferenceInDistanceFromNestInverse());
