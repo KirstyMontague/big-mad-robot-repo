@@ -24,7 +24,6 @@
       <params trackingID="1" velocity="5" verbose="true"/>
     </footbot_bt_controller>
   </controllers>
-
   <loop_functions library="build/loop_functions/bt_loop_functions/libbt_loop_functions"
                   label="bt_loop_functions">
                   <filename name="best.txt" index="1" path="./" />

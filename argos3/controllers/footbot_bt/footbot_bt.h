@@ -30,7 +30,8 @@ public:
 
     void buildTree(std::vector<std::string> tokens);
     void createBlackBoard(int numRobots);
-    void setParams(float nest, float gap, int trialLength);
+    void setParams(float nest, float food, float gap, int trialLength);
+    void calculateDistances(double x, double y);
     void setColour();
     void setPlayback(bool playback);
 
@@ -48,17 +49,20 @@ private:
     void sendInitialSignal();
     void recordInitialPositions(bool tracking);
     void recordFinalPositions(bool tracking);
-    
+
     void sensing();
     void actuation();
     void proximity(bool tracking);
-    double position(bool tracking);
-    void rangeAndBearing(double r, bool tracking);
+    void position(bool tracking);
+    void rangeAndBearing(bool tracking);
     void groundSensor(bool tracking);
-    
+
     CNode* m_rootNode;
     CBlackBoard* m_blackBoard;
-    float m_nest;
+    float m_nestRadius;
+    float m_foodRadius;
+    float m_distFood;
+    float m_distNest;
     float m_gap;
     int m_trialLength;
     int m_count;
@@ -71,7 +75,6 @@ private:
     Real m_lWheelVelocity;
 
     bool inTrackingIDs();
-
 
     bool m_playback = false;
     std::vector<std::vector<float>> m_scores;

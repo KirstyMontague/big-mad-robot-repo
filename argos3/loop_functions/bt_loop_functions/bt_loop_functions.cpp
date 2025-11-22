@@ -76,13 +76,18 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
         {
             m_nest = std::stof(value);
         }
+        if (key == "foodRadius")
+        {
+            m_food = std::stof(value);
+        }
     }
-    
-    if (m_experimentLength == 0 || repertoireFilename == "" || m_nest == 0.0)
+
+    if (m_experimentLength == 0 || repertoireFilename == "" || m_nest == 0.0 || m_food == 0.0)
     {
         std::cout << "experimentLength: " << std::to_string(m_experimentLength) << "\n";
         std::cout << "repertoireFilename: " << repertoireFilename << "\n";
         std::cout << "nestRadius: " << std::to_string(m_nest) << "\n";
+        std::cout << "foodRadius: " << std::to_string(m_food) << "\n";
         return;
     }
 
@@ -262,12 +267,12 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
                     break;
                 }
             }
-            
+
             // create robot
             CFootBotBT& controller = dynamic_cast<CFootBotBT&>(pcFB->GetControllableEntity().GetController());
             controller.buildTree(tokens);
             controller.createBlackBoard(sqrtRobots * sqrtRobots);
-            controller.setParams(m_nest, m_gap, trialLength);
+            controller.setParams(m_nest, m_food, m_gap, trialLength);
             if (filename == "best.txt")
             {
                 controller.setPlayback(true);
@@ -286,7 +291,7 @@ CColor CBTLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane)
 
     if (fmod(x, 1) == 0 || fmod(y, 1) == 0)
     {
-      return CColor::GRAY80; // tile edges
+        return CColor::GRAY80; // tile edges
     }
     else if (r < m_nest)
     {

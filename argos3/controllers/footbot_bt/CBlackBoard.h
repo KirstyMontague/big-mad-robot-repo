@@ -76,19 +76,19 @@ class CBlackBoard
         
         float getInitialDistanceFromFood() {return m_initialDistanceFromFood;}
         void setInitialDistanceFromFood(int robotID);
-        void setInitialAbsoluteDistanceFromFood(double radius, double threshold, int robotID);
+        void setInitialAbsoluteDistanceFromFood(double distance, int robotID);
         float getFinalDistanceFromFood() {return m_finalDistanceFromFood;}
         float getDifferenceInDistanceFromFood();
         float getDifferenceInDistanceFromFoodInverse(int robotID);
         float getAbsoluteDifferenceInDistanceFromFoodInverse(float radius, int robotID);
         void setFinalDistanceFromFood(int robotID);
-        void setFinalAbsoluteDistanceFromFood(double radius, double threshold, int robotID);
+        void setFinalAbsoluteDistanceFromFood(double distance, int robotID);
         
         // nest
         
         bool getInNest() {return m_inNest;}
         void setInNest(int count, bool nest, int robotID = -1);
-        
+
         float getFirstEnteredNest();
         void incrementTimeInNest(bool inNest) {m_timeInNest += (inNest) ? 1 : 0;}
         int getTimeInNest() {return m_timeInNest;}

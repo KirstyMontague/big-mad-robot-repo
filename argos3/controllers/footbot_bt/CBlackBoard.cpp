@@ -130,7 +130,7 @@ void CBlackBoard::setDetectedFood(int count, bool detected, int robotID)
             m_carryingFood = true;
         }
     }
-}    
+}
 
 float CBlackBoard::getFirstDetectedFood()
 {
@@ -168,20 +168,13 @@ void CBlackBoard::setInitialDistanceFromFood(int robotID)
     if (robotID != -1) std::cout << "m_initialDistanceFromFood = " << m_initialDistanceFromFood << std::endl;
 }
 
-void CBlackBoard::setInitialAbsoluteDistanceFromFood(double radius, double threshold, int robotID)
+void CBlackBoard::setInitialAbsoluteDistanceFromFood(double distance, int robotID)
 {
-    if (radius >= threshold)
-    {
-        m_initialAbsoluteDistanceFromFood = 0.0;
-    }
-    else
-    {
-        m_initialAbsoluteDistanceFromFood = threshold - radius;
-    }
+    m_initialAbsoluteDistanceFromFood = distance;
+
     if (robotID != -1) 
     {
         std::cout << "m_initialAbsoluteDistanceFromFood = ";
-        std::cout << threshold << " - " << radius << " = ";
         std::cout << m_initialAbsoluteDistanceFromFood << "\n";
     }
 }
@@ -194,7 +187,7 @@ void CBlackBoard::setDistFood(bool first, int robotID)
         distance += d;
     }
     distance /= m_distFoodVector.size();
-    
+
     if (!first) m_distFoodChange = distance - m_distFood;
 
     m_distFood = distance;
@@ -226,17 +219,15 @@ float CBlackBoard::getDifferenceInDistanceFromFoodInverse(int robotID)
 float CBlackBoard::getAbsoluteDifferenceInDistanceFromFoodInverse(float radius, int robotID)
 {
     if (robotID != -1) std::cout << "\t" << m_finalAbsoluteDistanceFromFood << " - " << m_initialAbsoluteDistanceFromFood << "\n";
+
     float difference = m_finalAbsoluteDistanceFromFood - m_initialAbsoluteDistanceFromFood;
-    
-    float max = radius;
-    float min = radius * -1;
-    difference = difference - min;
-    difference = difference / (max * 2);
-    float result = difference;
 
-    if (robotID != -1) std::cout << "\t" << result << "\n";
+    difference = difference + radius;
+    difference = difference / (radius * 2);
 
-    return result;
+    if (robotID != -1) std::cout << "\t" << difference << "\n";
+
+    return difference;
 }
 
 void CBlackBoard::setFinalDistanceFromFood(int robotID)
@@ -251,20 +242,13 @@ void CBlackBoard::setFinalDistanceFromFood(int robotID)
     if (robotID != -1) std::cout << "m_finalDistanceFromFood = " << distance << "\n";
 }
 
-void CBlackBoard::setFinalAbsoluteDistanceFromFood(double radius, double threshold, int robotID)
+void CBlackBoard::setFinalAbsoluteDistanceFromFood(double distance, int robotID)
 {
-    if (radius >= threshold)
-    {
-        m_finalAbsoluteDistanceFromFood = 0.0;
-    }
-    else
-    {
-        m_finalAbsoluteDistanceFromFood = threshold - radius;
-    }
+    m_finalAbsoluteDistanceFromFood = distance;
+
     if (robotID != -1) 
     {
         std::cout << "m_finalAbsoluteDistanceFromFood = ";
-        std::cout << threshold << " - " << radius << " = ";
         std::cout << m_finalAbsoluteDistanceFromFood << "\n";
     }
 }
