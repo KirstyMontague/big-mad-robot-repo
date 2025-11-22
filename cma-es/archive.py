@@ -12,7 +12,7 @@ class Archive():
         self.cumulative_archive = {}
         self.verbose_archive = {}
         self.complete_archive = {}
-        self.input_path = self.params.shared_path+"/cma-es"
+        self.input_path = self.params.input_path+"/cma-es"
         self.input_directory = self.params.objective
         self.output_directory = self.params.shared_path+"/cma-es/"+self.params.objective
 
@@ -43,7 +43,7 @@ class Archive():
         use_temp_archive = (self.input_path == self.params.shared_path+"/cma-es")
 
         for i in range(15):
-            archive_path = "./"+self.input_path+"/"+self.input_directory+"/"
+            archive_path = self.input_path+"/"+self.input_directory+"/"
             if not use_temp_archive or self.params.seed != i + 1:
                 if os.path.exists(archive_path+"archive"+str(i+1)+".pkl"):
                     with open(archive_path+"archive"+str(i+1)+".pkl", "rb") as archive_file:

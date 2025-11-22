@@ -15,6 +15,7 @@ class Aggregator():
         self.runs = 0
         self.generations = 0
         self.configure()
+        self.cancelled = "repro" in self.params.shared_path
 
     def configure(self):
         with open(self.params.local_path+"/config.txt", 'r') as f:
@@ -37,7 +38,10 @@ class Aggregator():
 
         for query in self.queries:
 
-            path = self.params.shared_path+"/"+self.algorithm+"/"+self.objective+"/"+query
+            path = self.params.shared_path+"/"+self.algorithm+"/"+self.objective+"/"
+            if self.objective == "foraging":
+                path += self.params.repertoire_type+str(self.params.repertoire_size)+"/"
+            path += query
 
             entries = []
 
@@ -83,10 +87,13 @@ class Aggregator():
 
             if len(entries) > 0:
 
-                filename = self.params.home_path+"/"+self.algorithm+"/"+query+str(self.generations)+"-"+self.objective+".csv"
+                filename = self.params.home_path+"/"+self.algorithm+"/"+query+str(self.generations)+"-"+self.objective
+                if self.objective == "foraging":
+                    filename += "-"+self.params.repertoire_type+str(self.params.repertoire_size)
+                filename += ".csv"
 
                 if not confirmed and os.path.exists(filename):
-                    test = input("Output files already exist. Continue? (y/N)\n")
+                    test = input("Output files already exist at "+filename+"\nContinue? (y/N)\n")
                     if test == "y":
                         confirmed = True
                         print()
@@ -104,7 +111,11 @@ class Aggregator():
         print("\ndeleting...")
         for query in self.queries:
 
-            path = self.params.shared_path+"/"+self.algorithm+"/"+self.objective+"/"+query
+            path = self.params.shared_path+"/"+self.algorithm+"/"+self.objective+"/"
+            if self.objective == "foraging":
+                path += self.params.repertoire_type+str(self.params.repertoire_size)+"/"
+            path += query
+
 
             for i in range(1, self.runs + 1):
 
@@ -120,8 +131,12 @@ class Aggregator():
 
 if __name__ == "__main__":
 
-        aggregator = Aggregator()
+    aggregator = Aggregator()
 
+    if aggregator.cancelled:
+        print("\naborted\n")
+
+    else:
         aggregator.queries = ["best", "qd-scores", "coverage"]
         if aggregator.algorithm == "cma-es":
             aggregator.queries = ["best"]

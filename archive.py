@@ -42,8 +42,11 @@ class Archive():
 		archive = self.getArchive()
 		cumulative_archive = self.getCumulativeArchive()
 
-		directory_path = self.params.shared_path
-		results_directory = self.params.description
+		directory_path = self.params.input_path
+		if self.params.description == "foraging":
+			results_directory = self.params.foraging_path+"/"+self.params.repertoire_type+str(self.params.repertoire_size)
+		else:
+			results_directory = self.params.subbehaviours_path+"/"+self.params.description
 
 		use_temp_archive = (directory_path == self.params.shared_path and results_directory == self.params.description)
 

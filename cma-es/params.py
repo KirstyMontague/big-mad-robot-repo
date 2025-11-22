@@ -25,7 +25,7 @@ class Params():
         self.arena_iterations = 5
 
         self.seed = 0
-        self.cancelled = False
+        self.stop = False
         self.num_threads = 8
 
         self.num_inputs = num_inputs
@@ -40,6 +40,14 @@ class Params():
                 data = line.split(":")
                 if data[0] == "local": self.local_path = data[1][0:-1]
                 if data[0] == "shared": self.shared_path = data[1][0:-1]
+                if data[0] == "input": self.input_path = data[1][0:-1]
+
+        if "repro" in self.shared_path:
+            self.saveOutput = False
+            self.saveCSV = False
+            self.saveBest = False
+
+        self.cancelled = "repro" in self.shared_path
 
     def csvFilename(self):
         return self.shared_path+"/cma-es/"+self.objective+"/best"+str(self.generations)+"-"+str(self.seed)+".csv"

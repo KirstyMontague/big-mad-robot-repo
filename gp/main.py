@@ -38,7 +38,7 @@ if not params.stop:
 		individual = ""
 		sqrtRobots = 0
 
-		with open("../txt/best.txt", "r") as f:
+		with open(params.path()+"/best.txt", "r") as f:
 			for line in f:
 				if sqrtRobots == 0:
 					sqrtRobots = line
@@ -54,7 +54,7 @@ if not params.stop:
 		individual = ""
 		sqrtRobots = 0
 
-		with open("../txt/best.txt", "r") as f:
+		with open(params.path()+"/best.txt", "r") as f:
 			for line in f:
 				if sqrtRobots == 0:
 					sqrtRobots = line

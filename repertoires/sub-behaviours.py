@@ -1,12 +1,13 @@
 
+import sys
+sys.path.insert(0, '..')
+
 import pickle
+from pathlib import Path
 
 from deap import creator
 
-import sys
-sys.path.insert(0, '..')
 import local
-
 from redundancy import Redundancy
 from params import eaParams
 
@@ -21,7 +22,12 @@ class SubBehaviours():
         self.params = eaParams()
         self.params.addUnpackedNodes(self.pset)
 
-        self.redundancy = Redundancy(False)
+        if self.params.using_repertoire:
+            self.params.using_repertoire = False
+            self.redundancy = Redundancy(self.params)
+            self.params.using_repertoire = True
+        else:
+            self.redundancy = Redundancy(self.params)
 
         self.bins = self.params.bins_per_axis
 
@@ -37,21 +43,30 @@ class SubBehaviours():
 
         self.subsets = ["food-idensity-inest", "density-nest-ifood"]
 
-        self.input_path = ".."
-        self.input_dir = "results"
-        self.output_filename = "../gp/test/"+self.params.description+"/sub-behaviours.txt"
+        self.input_path = self.params.input_path
+        self.input_dir = self.params.subbehaviours_path
+
+        self.output_path = self.params.shared_path+"/gp/foraging/"
+        self.output_path += self.params.repertoire_type+str(self.params.repertoire_size)
+        self.output_filename = self.output_path+"/sub-behaviours.txt"
+
+        self.cancelled = "repro" in self.params.shared_path
+
+        if self.save and not self.cancelled:
+            Path(self.output_path+"/").mkdir(parents=False, exist_ok=True)
 
     def run(self):
 
-        self.params.configure()
-        if self.params.description == "foraging" and self.params.using_repertoire and self.params.stop == False:
+        if self.cancelled:
+            print("\naborted\n")
+            return
 
-            if self.save:
-                with open(self.output_filename, 'w') as f:
-                    f.write("")
+        if self.save:
+            with open(self.output_filename, 'w') as f:
+                f.write("")
 
-            if self.params.repertoire_type == "mt": self.getMtRepertoire()
-            else: self.getQdRepertoire()
+        if self.params.repertoire_type == "mt": self.getMtRepertoire()
+        else: self.getQdRepertoire()
 
     def getQdRepertoire(self):
 
@@ -59,9 +74,13 @@ class SubBehaviours():
 
             containers = []
 
+            results_dir = objective
+            if objective == "ifood":
+                results_dir = "ifood-perceived-position"
+
             for seed in range(1, self.runs + 1):
 
-                input_filename = self.input_path+"/qdpy/"+self.input_dir+"/"+objective+"/"+str(seed)+"/seed"+str(seed)+"-iteration1000.p"
+                input_filename = self.input_path+"/qdpy/"+self.input_dir+"/"+results_dir+"/"+str(seed)+"/seed"+str(seed)+"-iteration1000.p"
 
                 with open(input_filename, "rb") as f:
                     data = pickle.load(f)
@@ -112,11 +131,15 @@ class SubBehaviours():
 
             subset = self.subsets[combination]
             sublist = self.sublists[combination]
+            results_dir = subset
+
+            if subset == "density-nest-ifood":
+                results_dir = "density-nest-ifood-perceived-position"
 
             seeds = []
             for seed in range(1, self.runs + 1):
 
-                input_filename = self.input_path+"/gp/"+self.input_dir+"/"+subset+"/"+str(seed)+"/checkpoint-"+subset+"-"+str(seed)+"-1000.pkl"
+                input_filename = self.input_path+"/gp/"+self.input_dir+"/"+results_dir+"/"+str(seed)+"/checkpoint-"+subset+"-"+str(seed)+"-1000.pkl"
                 with open(input_filename, "rb") as f:
                     checkpoint = pickle.load(f)
 

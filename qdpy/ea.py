@@ -58,6 +58,10 @@ class EA():
 
 	def run(self, init_batch = None, **kwargs):
 
+		if self.params.cancelled:
+			print("\naborted\n")
+			return
+
 		start_time = round(time.time() * 1000)
 		self.utilities.saveParams()
 

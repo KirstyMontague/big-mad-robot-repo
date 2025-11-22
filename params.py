@@ -55,8 +55,6 @@ class eaParams():
 
         self.stop = False
 
-        self.best_save_period = 10 # save best individual for each objective to current.txt
-
         self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
 
         self.description = ""
@@ -69,6 +67,7 @@ class eaParams():
         self.features = len(self.indexes)
         self.repertoire_size = self.bins_per_axis ** self.characteristics
 
+        self.best_save_period = 10 # save best individual for each objective to current.txt
         self.save_period = 1000 # save checkpoint, check duplicates
         self.csv_save_period = 1000 # save csv, save archive
         self.csv_save_interval = 1
@@ -119,14 +118,30 @@ class eaParams():
                 if data[0] == "home": self.home_path = data[1][0:-1]
                 if data[0] == "local": self.local_path = data[1][0:-1]
                 if data[0] == "shared": self.shared_path = data[1][0:-1]
+                if data[0] == "input": self.input_path = data[1][0:-1]
+                if data[0] == "subbehaviours": self.subbehaviours_path = data[1][0:-1]
+                if data[0] == "foraging": self.foraging_path = data[1][0:-1]
 
         working_directory = os.getcwd()
         self.algorithm = working_directory.split("/")[-1]
 
-    def csvInputFilename(self, gen, query): return self.shared_path+"/"+self.algorithm+"/"+self.description+"/"+query+str(gen)+"-"+str(self.deapSeed)+".csv"
-    def csvOutputFilename(self, gen, query): return self.shared_path+"/"+self.algorithm+"/"+self.description+"/"+query+str(gen)+"-"+str(self.deapSeed)+".csv"
+        if "repro" in self.shared_path:
+            self.saveCheckpoint = False
+            self.saveOutput = False
+            self.saveCSV = False
 
-    def path(self): return self.shared_path+"/"+self.algorithm+"/"+self.description+"/"+str(self.deapSeed)+"/"
+        self.cancelled = "repro" in self.shared_path
+
+    def basePath(self):
+        path = self.shared_path+"/"+self.algorithm+"/"+self.description
+        if self.description == "foraging":
+            path += "/"+self.repertoire_type+str(self.repertoire_size)
+        return path
+
+    def csvInputFilename(self, gen, query): return self.basePath()+"/"+query+str(gen)+"-"+str(self.deapSeed)+".csv"
+    def csvOutputFilename(self, gen, query): return self.basePath()+"/"+query+str(gen)+"-"+str(self.deapSeed)+".csv"
+
+    def path(self): return self.basePath()+"/"+str(self.deapSeed)+"/"
     def checkpointInputFilename(self, gen): return self.path() + "checkpoint-"+self.description+"-"+str(self.deapSeed)+"-"+str(gen)+".pkl"
     def checkpointOutputFilename(self, gen): return self.path() + "checkpoint-"+self.description+"-"+str(self.deapSeed)+"-"+str(gen)+".pkl"
 
@@ -141,6 +156,7 @@ class eaParams():
                 if len(data) > 0:
                     print(line[0:-1])
                     self.update(data)
+        self.runtime()
 
     def runtime(self):
         restricted = ["indexes", "bins_per_axis", "using_repertoire", "tournamentSize", "populationSize", "csv_save_interval", "num_threads"]
@@ -235,7 +251,9 @@ class eaParams():
             self.generations = 0
 
     def getRepertoireFilename(self):
-        return self.shared_path+"/"+self.algorithm+"/"+self.description+"/sub-behaviours.txt"
+        filename = self.shared_path+"/"+self.algorithm+"/"+self.description+"/"
+        filename += self.repertoire_type+str(self.repertoire_size)+"/sub-behaviours.txt"
+        return filename
 
     def getSubbehavioursFromFile(self):
 

@@ -192,6 +192,10 @@ class EA():
 
 	def eaInit(self):
 
+		if self.params.cancelled:
+			print("\naborted\n")
+			return
+
 		start_time = round(time.time() * 1000)
 		
 		self.archive.getArchives(self.redundancy)

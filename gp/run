@@ -1,5 +1,2 @@
 
-python3 ../repertoires/sub-behaviours.py
-
-python3 ./main.py --seed 1 
-
+python3 ./main.py --seed 1

@@ -28,7 +28,12 @@ class EA():
             return
 
         self.configure()
+
         if self.params.cancelled:
+            print("\naborted\n")
+            return
+
+        if self.params.stop:
             return
 
         self.params.local_path += "/"+str(self.params.seed)
@@ -56,8 +61,6 @@ class EA():
         population = self.eaLoop()
 
         self.eaFinish(start_time, population)
-
-        # if self.params.cancelled == False: time.sleep(30.0)
 
     def eaFinish(self, start_time, population):
 
@@ -190,6 +193,7 @@ class EA():
                 if len(data) > 0:
                     print(line[0:-1])
                     self.update(data)
+        self.runtime()
 
     def runtime(self):
         restricted = ["objective", "num_threads"]
@@ -223,11 +227,11 @@ class EA():
         if data[0] == "stop":
             self.params.saveCSV = False
             self.params.generations = 0
-            self.params.cancelled = True
+            self.params.stop = True
         if data[0] == "cancel":
             self.params.saveOutput = False
             self.params.saveCSV = False
             self.params.saveBest = False
             self.params.generations = 0
-            self.params.cancelled = True
+            self.params.stop = True
 
