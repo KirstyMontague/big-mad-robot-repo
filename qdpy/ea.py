@@ -217,7 +217,14 @@ class EA():
         output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
         output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
         
-        if generation % 100 == 0 or generation == self.params.generations or invalid_new > 0: print (output_string)
+        if generation % 100 == 0 or generation == self.params.generations or invalid_new > 0:
+            print (output_string)
+
+        if (generation % 10 == 0):
+            filename = self.params.shared_path+"/qdpy/console"+str(self.params.deapSeed)+".txt"
+            with open(filename, 'a') as f:
+                f.write(output_string+"\n")
+
 
     def assignFitness(self, offspring, fitness):
         offspring.fitness.values = (fitness[0],)

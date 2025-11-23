@@ -159,14 +159,20 @@ class EA():
         if self.best == None or best.fitness.getValues()[0] > self.best.fitness.getValues()[0]:
             self.best = best
 
+        output = "\t"+str(self.params.seed)+" - "
+        output += str(generation)+" - "
+        output += str("%.7f" % best.fitness.getValues()[0]) + "\t"
+        output += str("%.7f" % self.best.fitness.getValues()[0]) + "\t"
+        output += "invalid "+str(invalid_new)+" / "+str(invalid_orig)+" "
+        output += "(matched "+str(matched[0])+" & "+str(matched[1])+")"
+
         if (generation % 10 == 0 or invalid_new > 0):
-            output = "\t"+str(self.params.seed)+" - "
-            output += str(generation)+" - "
-            output += str("%.7f" % best.fitness.getValues()[0]) + "\t"
-            output += str("%.7f" % self.best.fitness.getValues()[0]) + "\t"
-            output += "invalid "+str(invalid_new)+" / "+str(invalid_orig)+" "
-            output += "(matched "+str(matched[0])+" & "+str(matched[1])+")"
             print(output)
+
+        if (generation % 10 == 0):
+            filename = self.params.shared_path+"/cma-es/console"+str(self.params.seed)+".txt"
+            with open(filename, 'a') as f:
+                f.write(output+"\n")
 
     def transferTrimmedFitnessScores(self, invalid_ind, trimmed):
         for i in range(len(invalid_ind)):

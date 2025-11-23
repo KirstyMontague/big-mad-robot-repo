@@ -147,9 +147,16 @@ class EA():
         else:
             length = str(len(best[0]))+" "
         
+        output = "\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")"
+
         if generation % 100 == 0 or generation == self.params.generations or invalid_new > 0:
-            print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
+            print (output)
         
+        if (generation % 10 == 0):
+            filename = self.params.shared_path+"/gp/console"+str(self.params.deapSeed)+".txt"
+            with open(filename, 'a') as f:
+                f.write(output+"\n")
+
         if generation != 0 and generation % 100 == 0 and invalid_new == 0:
             time.sleep(10.0)
 
