@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#SBATCH -c 8
+#SBATCH -t 1
+#SBATCH --array=1-2
+
+echo "
+output from task ${SLURM_ARRAY_TASK_ID} 
+" > /cluster/sharedscratch/bmrr/cma-es/console${SLURM_ARRAY_TASK_ID}.txt
+
+apptainer exec /cluster/sharedscratch/bmrr/bmrr.sif /home/tests/run.sh cma-es ${SLURM_ARRAY_TASK_ID} >> /cluster/sharedscratch/bmrr/cma-es/console${SLURM_ARRAY_TASK_ID}.txt
+
+echo "
+
+" >> /cluster/sharedscratch/bmrr/cma-es/console${SLURM_ARRAY_TASK_ID}.txt
+
+ls >> /cluster/sharedscratch/bmrr/cma-es/console${SLURM_ARRAY_TASK_ID}.txt

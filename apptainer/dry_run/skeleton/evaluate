@@ -1,0 +1,2 @@
+
+./argos $1 $2 > $1/result$2.txt

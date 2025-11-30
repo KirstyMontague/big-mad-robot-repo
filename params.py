@@ -136,8 +136,11 @@ class eaParams():
 
     def basePath(self):
         path = self.shared_path+"/"+self.algorithm+"/"+self.description
-        if self.description == "foraging":
-            path += "/"+self.repertoire_type+str(self.repertoire_size)
+        if self.description == "foraging" and self.algorithm == "gp":
+            if self.using_repertoire:
+                path += "/"+self.repertoire_type+str(self.repertoire_size)
+            else:
+                path += "/baseline"
         return path
 
     def csvInputFilename(self, gen, query): return self.basePath()+"/"+query+str(gen)+"-"+str(self.deapSeed)+".csv"

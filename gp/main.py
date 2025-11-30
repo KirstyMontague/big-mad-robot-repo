@@ -84,6 +84,7 @@ if not params.stop:
         if params.saveOutput or params.saveCSV or params.saveCheckpoint:
             Path(params.shared_path+"/"+params.algorithm+"/").mkdir(parents=False, exist_ok=True)
             Path(params.shared_path+"/"+params.algorithm+"/"+params.description+"/").mkdir(parents=False, exist_ok=True)
+            Path(params.basePath()).mkdir(parents=False, exist_ok=True)
 
         if params.saveOutput or params.saveCheckpoint:
             Path(params.path()).mkdir(parents=False, exist_ok=True)

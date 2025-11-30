@@ -1,0 +1,26 @@
+#!/bin/bash
+
+#SBATCH -c 1
+#SBATCH -t 1
+
+echo "
+
+output from task 1
+
+" > test1.txt
+
+apptainer exec ./bmrr.sif /home/tests/run.sh cma-es 1 >> test1.txt
+
+echo "
+
+" >> test1.txt
+
+ls >> test1.txt
+
+echo "
+
+" >> test1.txt
+
+cat test1.txt > /cluster/sharedscratch/slurm.txt
+
+rm test1.txt

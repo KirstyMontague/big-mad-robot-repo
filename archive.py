@@ -48,7 +48,12 @@ class Archive():
 
         directory_path = self.params.input_path
         if self.params.description == "foraging":
-            results_directory = self.params.foraging_path+"/"+self.params.repertoire_type+str(self.params.repertoire_size)
+            results_directory = self.params.foraging_path
+            if self.params.algorithm == "gp":
+                if self.params.using_repertoire:
+                    results_directory += "/"+self.params.repertoire_type+str(self.params.repertoire_size)
+                else:
+                    results_directory += "/baseline"
         else:
             results_directory = self.params.subbehaviours_path+"/"+self.params.description
 
@@ -92,15 +97,16 @@ class Archive():
 
     def saveArchive(self, redundancy, generation):
 
-        if self.params.saveOutput and generation % self.params.csv_save_period == 0:
-            archive = self.getCompleteArchive()
-            archive_string = ""
-            archive_dict = {}
-            for chromosome, scores in archive.items():
-                archive_dict.update({str(chromosome) : scores})
+        if self.params.saveOutput:
+            if generation % self.params.csv_save_period == 0 or generation == self.params.generations:
+                archive = self.getCompleteArchive()
+                archive_string = ""
+                archive_dict = {}
+                for chromosome, scores in archive.items():
+                    archive_dict.update({str(chromosome) : scores})
 
-            with open(self.params.path()+"archive.pkl", "wb") as archive_file:
-                 pickle.dump(archive_dict, archive_file)
+                with open(self.params.path()+"archive.pkl", "wb") as archive_file:
+                     pickle.dump(archive_dict, archive_file)
 
     def mapNodesToArchive(self, chromosome):
         mapping = {

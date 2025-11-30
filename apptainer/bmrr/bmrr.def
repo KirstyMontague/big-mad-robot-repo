@@ -1,0 +1,59 @@
+BootStrap: docker
+From: ubuntu:22.04
+
+%files
+
+    ./install_argos.sh /home/tests/
+    ./build_bmrr.sh /home/tests/
+    ./path.txt /home/tests/
+    ./run.sh /home/tests/
+
+%post
+
+    # argos and big mad robot repo dependencies
+    apt-get update > /dev/null 2>&1
+    apt-get install -y git > /dev/null 2>&1
+    apt-get install -y build-essential > /dev/null 2>&1
+    apt-get install -y cmake > /dev/null 2>&1
+    apt-get install -y libfreeimage-dev > /dev/null 2>&1
+    apt-get install -y libfreeimageplus-dev > /dev/null 2>&1
+    apt-get install -y qtbase5-dev > /dev/null 2>&1
+    apt-get install -y qt5-qmake > /dev/null 2>&1
+    apt-get install -y freeglut3-dev > /dev/null 2>&1
+    apt-get install -y libxi-dev > /dev/null 2>&1
+    apt-get install -y libxmu-dev > /dev/null 2>&1
+    apt-get install -y liblua5.3-dev > /dev/null 2>&1
+    apt-get install -y lua5.3 > /dev/null 2>&1
+    apt-get install -y doxygen > /dev/null 2>&1
+    apt-get install -y graphviz > /dev/null 2>&1
+    apt-get install -y libgraphviz-dev > /dev/null 2>&1
+    apt-get update > /dev/null 2>&1
+    
+    # DEAP and QDPY
+    TZ=Europe/London
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+    apt-get install -y python3 > /dev/null 2>&1
+    apt-get install -y python3-pip > /dev/null 2>&1
+    pip3 install numpy==1.24.0 > /dev/null 2>&1
+    apt-get install -y python3-deap > /dev/null 2>&1
+    pip3 install qdpy > /dev/null 2>&1
+    apt-get update > /dev/null 2>&1
+    
+
+    chmod +x /home/tests/install_argos.sh
+    chmod +x /home/tests/build_bmrr.sh
+    chmod +x /home/tests/run.sh
+
+    # install argos
+    git clone https://github.com/ilpincy/argos3.git ./argos3
+    mv argos3 /home/tests/
+    /home/tests/install_argos.sh
+    ldconfig
+
+    # build big mad robot repo
+    git clone https://github.com/KirstyMontague/big-mad-robot-repo.git ./big-mad-robot-repo
+    mv big-mad-robot-repo /home/tests/
+    mv /home/tests/path.txt /home/tests/big-mad-robot-repo/
+    /home/tests/build_bmrr.sh
+
+

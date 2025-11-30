@@ -1,0 +1,8 @@
+#!/bin/bash
+
+#SBATCH -c 1
+#SBATCH -t 1
+
+pwd
+echo ""
+ls

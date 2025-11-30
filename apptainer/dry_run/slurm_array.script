@@ -1,0 +1,13 @@
+#!/bin/bash
+
+#SBATCH -c 1
+#SBATCH -t 1
+#SBATCH --array=1-2
+
+echo "output from task ${SLURM_ARRAY_TASK_ID} " > test${SLURM_ARRAY_TASK_ID}.txt
+
+apptainer exec /cluster/sharedscratch/dry_run.sif /home/tests/skeleton/run ${SLURM_ARRAY_TASK_ID} >> test${SLURM_ARRAY_TASK_ID}.txt
+
+cat test${SLURM_ARRAY_TASK_ID}.txt >> /cluster/sharedscratch/slurm.txt
+
+rm test${SLURM_ARRAY_TASK_ID}.txt
