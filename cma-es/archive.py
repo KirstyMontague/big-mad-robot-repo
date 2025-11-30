@@ -42,6 +42,8 @@ class Archive():
 
         use_temp_archive = (self.input_path == self.params.shared_path+"/cma-es")
 
+        output = ""
+
         for i in range(15):
             archive_path = self.input_path+"/"+self.input_directory+"/"
             if not use_temp_archive or self.params.seed != i + 1:
@@ -49,7 +51,7 @@ class Archive():
                     with open(archive_path+"archive"+str(i+1)+".pkl", "rb") as archive_file:
                         cumulative_archive.update(pickle.load(archive_file))
             else:
-                print ("disregarding "+str(i + 1))
+                output += "disregarding "+str(i + 1)+"\n"
 
         temp_archive = {}
         if use_temp_archive and os.path.exists(self.output_directory+"/archive"+str(self.params.seed)+".pkl"):
@@ -65,8 +67,10 @@ class Archive():
 
         self.setArchive(archive)
 
-        print("archive length "+str(len(archive)))
-        print("cumulative archive length "+str(len(cumulative_archive)))
+        output += "archive length "+str(len(archive))+"\n"
+        output += "cumulative archive length "+str(len(cumulative_archive))+"\n"
+
+        self.params.console(output)
 
     def saveArchive(self):
 
@@ -88,10 +92,11 @@ class Archive():
             # should only be true if chromosome is new but duplicated in this generation, otherwise would have been caught by assignDuplicateFitnessScores
             expected = self.archive[chromosome_string]
             if expected != ind.fitness.values[0]:
-                print ("\nWRONG FITNESS\n")
-                print (ind)
-                print (self.archive[str(chromosome_string)])
-                print (ind.fitness.values)
+                output = "\nWRONG FITNESS\n\n"
+                output += ind+"\n"
+                output += self.archive[str(chromosome_string)]+"\n"
+                output += ind.fitness.values+"\n"
+                self.params.console(output)
         else:
             self.archive.update({chromosome_string : ind.fitness.values[0]})
             self.verbose_archive.update({chromosome_string : ind.fitness.values[0]})

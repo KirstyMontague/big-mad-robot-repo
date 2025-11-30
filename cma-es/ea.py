@@ -24,13 +24,13 @@ class EA():
 
         if self.params.seed == 0: self.params.seed = self.parseArguments()
         if self.params.seed == None:
-            print("no seed")
+            print("\nno seed\n")
             return
 
         self.configure()
 
         if self.params.cancelled:
-            print("\naborted\n")
+            self.params.console("\naborted\n")
             return
 
         if self.params.stop:
@@ -123,8 +123,8 @@ class EA():
 
             except Exception as e:
                 now = datetime.now()
-                print(e)
-                with open(self.params.shared_path+'/errors'+str(self.params.seed)+'.txt', 'a') as f:
+                self.params.console(str(e))
+                with open(self.params.shared_path+'/cma-es/errors'+str(self.params.seed)+'.txt', 'a') as f:
                     f.write(now.strftime("%H:%M %d/%m/%Y")+" ")
                     f.write(str(e))
                     f.write("\n")
@@ -172,13 +172,10 @@ class EA():
         output += "invalid "+str(invalid_new)+" / "+str(invalid_orig)+" "
         output += "(matched "+str(matched[0])+" & "+str(matched[1])+")"
 
-        if (generation % 10 == 0 or invalid_new > 0):
-            print(output)
-
-        if (generation % 10 == 0):
-            filename = self.params.shared_path+"/cma-es/console"+str(self.params.seed)+".txt"
-            with open(filename, 'a') as f:
-                f.write(output+"\n")
+        write_out = False
+        if generation % self.params.output_interval == 0 and invalid_new > 0: write_out = True
+        if generation % 100 == 0 or generation == self.params.generations: write_out = True
+        if write_out: self.params.console(output)
 
     def transferTrimmedFitnessScores(self, invalid_ind, trimmed):
         for i in range(len(invalid_ind)):
@@ -203,8 +200,8 @@ class EA():
             for line in f:
                 data = line.split()
                 if len(data) > 0:
-                    print(line[0:-1])
                     self.update(data)
+                    self.params.console(line[0:-1])
         self.runtime()
 
     def runtime(self):
@@ -214,18 +211,18 @@ class EA():
                 data = line.split()
                 if len(data) > 0:
                     if data[0] not in restricted:
-                        print(line[0:-1])
                         self.update(data)
+                        self.params.console(line[0:-1])
                     else:
-                        print(data[0] +" not supported at runtime")
+                        self.params.console(data[0] +" not supported at runtime")
         if os.path.exists(self.params.local_path+"/runtime.txt"):
             with open(self.params.local_path+"/runtime.txt", 'r') as f:
                 for line in f:
                     data = line.split()
                     if len(data) > 0:
                         if data[0] not in restricted:
-                            print(line[0:-1])
                             self.update(data)
+                            self.params.console(line[0:-1])
 
     def update(self, data):
         if data[0] == "objective":
@@ -237,6 +234,8 @@ class EA():
         if data[0] == "saveCSV": self.params.saveCSV = False if data[1] == "False" else True
         if data[0] == "saveBest": self.params.saveBest = False if data[1] == "False" else True
         if data[0] == "num_threads": self.params.num_threads = int(data[1])
+        if data[0] == "output_to_file": self.params.output_to_file = False if data[1] == "False" else True
+        if data[0] == "output_interval": self.params.output_interval = int(data[1])
         if data[0] == "num_hidden":
             self.params.num_hidden = int(data[1])
             self.params.individualSize()
@@ -250,4 +249,3 @@ class EA():
             self.params.saveBest = False
             self.params.generations = 0
             self.params.stop = True
-

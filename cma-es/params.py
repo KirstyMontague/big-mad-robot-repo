@@ -29,6 +29,8 @@ class Params():
         self.seed = 0
         self.stop = False
         self.num_threads = 8
+        self.output_to_file = True
+        self.output_interval = 10
 
         self.num_inputs = num_inputs
         self.num_hidden = num_hidden
@@ -62,3 +64,10 @@ class Params():
 
     def bestFilename(self):
         return self.shared_path+"/cma-es/"+self.objective+"/best-"+str(self.seed)+".txt"
+
+    def console(self, text):
+        if self.output_to_file:
+            with open(self.shared_path+"/cma-es/console"+str(self.seed)+".txt", "a") as f:
+                f.write(text+"\n")
+        else:
+            print(text)

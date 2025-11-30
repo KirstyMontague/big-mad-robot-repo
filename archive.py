@@ -40,7 +40,7 @@ class Archive():
     def getArchives(self, redundancy):
 
         if not self.params.useArchive:
-            print("\nDisregarding archive\n")
+            self.params.console("\nDisregarding archive\n")
             return
 
         archive = self.getArchive()
@@ -59,7 +59,7 @@ class Archive():
 
         use_temp_archive = (directory_path == self.params.shared_path and results_directory == self.params.description)
 
-        print()
+        output = "\n"
 
         for i in range(30):
             archive_path = directory_path+"/gp/"+results_directory+"/"+str(i+1)+"/"
@@ -68,7 +68,7 @@ class Archive():
                     with open(archive_path+"archive.pkl", "rb") as archive_file:
                         cumulative_archive.update(pickle.load(archive_file))
             else:
-                print ("disregarding "+archive_path)
+                output += "disregarding "+archive_path+"\n"
 
         for i in range(30):
             archive_path = directory_path+"/qdpy/"+results_directory+"/"+str(i+1)+"/"
@@ -77,7 +77,7 @@ class Archive():
                     with open(archive_path+"archive.pkl", "rb") as archive_file:
                         cumulative_archive.update(pickle.load(archive_file))
             else:
-                print ("disregarding "+archive_path)
+                output += "disregarding "+archive_path+"\n"
 
         temp_archive = {}
         if use_temp_archive and os.path.exists(self.params.path()+"archive.pkl"):
@@ -91,9 +91,10 @@ class Archive():
         self.setCumulativeArchive(cumulative_archive)
         self.setCompleteArchive(temp_archive)
 
-        print("archive length "+str(len(archive)))
-        print("cumulative archive length "+str(len(cumulative_archive)))
-        print()
+        output += "archive length "+str(len(archive))+"\n"
+        output += "cumulative archive length "+str(len(cumulative_archive))+"\n"
+
+        self.params.console(output)
 
     def saveArchive(self, redundancy, generation):
 
@@ -165,15 +166,13 @@ class Archive():
             expected = self.archive[mapped_chromosome]
             if expected[0] != fitness[0] or expected[1] != fitness[1] or expected[2] != fitness[2]:
 
-                print ("\nWRONG FITNESS\n")
-                print (chromosome)
-                print("\n")
-                print (new_chromosome)
-                print("\n")
-                print (mapped_chromosome)
-                print("\n")
-                print (self.archive[str(mapped_chromosome)])
-                print (fitness)
+                output = "\nWRONG FITNESS\n\n"
+                output += chromosome+"\n\n"
+                output += new_chromosome+"\n\n"
+                output += mapped_chromosome+"\n\n"
+                output += self.archive[str(mapped_chromosome)]+"\n\n"
+                output += fitness+"\n"
+                self.params.console(output)
         else:
             self.verbose_archive.update({str(new_chromosome) : fitness})
             self.archive.update({mapped_chromosome : fitness})

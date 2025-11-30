@@ -77,6 +77,9 @@ class eaParams():
             self.save_period = 2200
             self.csv_save_period = 2200
 
+        self.output_interval = 10
+        self.output_to_file = True
+
         if self.description != "foraging":
             self.using_repertoire = False
             self.features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)]
@@ -159,8 +162,8 @@ class eaParams():
             for line in f:
                 data = line.split()
                 if len(data) > 0:
-                    print(line[0:-1])
                     self.update(data)
+                    self.console(line[0:-1])
         self.runtime()
 
     def runtime(self):
@@ -170,18 +173,18 @@ class eaParams():
                 data = line.split()
                 if len(data) > 0:
                     if data[0] not in restricted:
-                        print(line[0:-1])
                         self.update(data)
+                        self.console(line[0:-1])
                     else:
-                        print(data[0] +" not supported at runtime")
+                        self.console(data[0] +" not supported at runtime")
         if os.path.exists(self.local_path+"/runtime.txt"):
             with open(self.local_path+"/runtime.txt", 'r') as f:
                 for line in f:
                     data = line.split()
                     if len(data) > 0:
                         if data[0] not in restricted:
-                            print(line[0:-1])
                             self.update(data)
+                            self.console(line[0:-1])
 
     def update(self, data):
         if data[0] == "indexes":
@@ -242,6 +245,8 @@ class eaParams():
         if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
         if data[0] == "csv_save_interval": self.csv_save_interval = int(data[1])
         if data[0] == "best_save_period": self.best_save_period = int(data[1])
+        if data[0] == "output_to_file": self.output_to_file = False if data[1] == "False" else True
+        if data[0] == "output_interval": self.output_interval = int(data[1])
         if data[0] == "num_threads": self.num_threads = int(data[1])
         if data[0] == "stop":
             if len(data) > 1 and data[1] == "False":
@@ -255,6 +260,13 @@ class eaParams():
             self.saveOutput = False
             self.saveCSV = False
             self.generations = 0
+
+    def console(self, text):
+        if self.output_to_file:
+            with open(self.shared_path+"/"+self.algorithm+"/console"+str(self.deapSeed)+".txt", "a") as f:
+                f.write(text+"\n")
+        else:
+            print(text)
 
     def getRepertoireFilename(self):
         filename = self.shared_path+"/"+self.algorithm+"/"+self.description+"/"

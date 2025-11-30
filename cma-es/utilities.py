@@ -98,8 +98,8 @@ class Utilities():
             os.remove(self.params.local_path+"/result"+str(thread_index)+".txt")
         except Exception as e:
             now = datetime.now()
-            print(e)
-            with open(self.params.shared_path+"/errors"+str(self.params.seed)+".txt", "a") as f:
+            self.params.console(str(e))
+            with open(self.params.shared_path+"/cma-es/errors"+str(self.params.seed)+".txt", "a") as f:
                 f.write(now.strftime("%H:%M %d/%m/%Y")+" ")
                 f.write(str(e))
                 f.write("\n")
@@ -142,16 +142,18 @@ class Utilities():
 
     def printPopulationFitness(self, population):
         
+        fitnesses = ""
         for i in population:
-            print(i.fitness.getValues()[0])
-        print()
+            fitnesses += str(i.fitness.getValues()[0])+"\n"
+        fitnesses += "\n"
+        self.params.console(fitnesses)
 
     def printDuration(self, start_time, end_time):
 
         duration = end_time - start_time
         minutes = (duration / 1000) / 60
         minutes_str = str("%.2f" % minutes)
-        print("\nDuration " +minutes_str+" minutes\n")
+        self.params.console("\nDuration " +minutes_str+" minutes\n")
 
     def trimPopulationPrecision(self, population):
 

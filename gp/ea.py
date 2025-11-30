@@ -147,20 +147,17 @@ class EA():
         else:
             length = str(len(best[0]))+" "
         
-        output = "\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")"
+        output = "\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\t"
+        output += "invalid "+str(invalid_new)+" / "+str(invalid_orig)+" "
+        output += "(matched "+str(matched[0])+" & "+str(matched[1])+")"
 
-        if generation % 100 == 0 or generation == self.params.generations or invalid_new > 0:
-            print (output)
-        
-        if (generation % 10 == 0):
-            filename = self.params.shared_path+"/gp/console"+str(self.params.deapSeed)+".txt"
-            with open(filename, 'a') as f:
-                f.write(output+"\n")
+        write_out = False
+        if generation % self.params.output_interval == 0 and invalid_new > 0: write_out = True
+        if generation % 100 == 0 or generation == self.params.generations: write_out = True
+        if write_out: self.params.console(output)
 
         if generation != 0 and generation % 100 == 0 and invalid_new == 0:
             time.sleep(10.0)
-
-        # print ("\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+str(len(best[0]))+"\tinvalid "+str(invalid_new)+" / "+str(invalid_orig)+" (matched "+str(matched[0])+" & "+str(matched[1])+")")
 
         self.logs.logFitness(generation, best)
         self.logs.logQdScore(generation, self.grid.getQDScores())
@@ -172,35 +169,30 @@ class EA():
         performance = ""
         for fitness in ind.fitness.values:
             performance += str("%.9f" % fitness) + "  \t"
-        print (performance)
+        self.params.console(performance)
 
     def printIndividuals(self, population, print_individuals):
-        
         if print_individuals:
-            print ("")
+            individuals = "\n"
             for b in population:
-                # print (b.fitness)
-                print (self.utilities.formatChromosome(b))
-                print ("")
-            print ("")
+                individuals += self.utilities.formatChromosome(b)+"\n"
+            self.params.console(individuals)
 
     def printScores(self, population, print_scores):
         if print_scores:
-            print ("")
+            scores = "\n"
             for ind in population:
-                performance = ""
                 for f in ind.fitness.values:
-                    performance += str("%.16f" % f) + " \t"
-                print (performance)
+                    scores += str("%.16f" % f) + " \t"
+                scores += "\n"
                 if self.params.printBestIndividuals:
-                    print (self.utilities.formatChromosome(ind))
-            print ("")
-                    
+                    scores += self.utilities.formatChromosome(ind)+"\n"
+            self.params.console(scores)
 
     def eaInit(self):
 
         if self.params.cancelled:
-            print("\naborted\n")
+            self.params.console("\naborted\n")
             return
 
         start_time = round(time.time() * 1000)

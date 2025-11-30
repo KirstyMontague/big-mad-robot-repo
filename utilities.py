@@ -128,11 +128,9 @@ class Utilities():
             # result from file
             with open(self.params.local_path+"/result"+str(thread_index)+".txt", "r") as f:
 
-                # print ("")
                 for line in f:
                     first = line[0:line.find(" ")]
                     if (first == "result"):
-                        # print (line[0:-1])
                         lines = line.split()
                         robotId = int(float(lines[1]))
                         robots[robotId] = []
@@ -169,8 +167,8 @@ class Utilities():
             os.remove(self.params.local_path+"/result"+str(thread_index)+".txt")
         except Exception as e:
             now = datetime.now()
-            print(e)
-            with open(self.params.shared_path+"/errors"+str(self.params.deapSeed)+".txt", "a") as f:
+            self.params.console(str(e))
+            with open(self.params.shared_path+"/"+self.params.algorithm+"/errors"+str(self.params.deapSeed)+".txt", "a") as f:
                 f.write(now.strftime("%H:%M %d/%m/%Y")+" ")
                 f.write(str(e))
                 f.write("\n")
@@ -201,10 +199,8 @@ class Utilities():
         return thisFitness
     
     def getAvgAndDerate(self, score, individual, deratingFactor):
-        # print (score)
         fitness = score / self.params.iterations
         fitness = fitness / len(self.params.arenaParams)
-        # print (fitness)
         fitness /= deratingFactor
         return fitness
 
@@ -245,19 +241,21 @@ class Utilities():
         return trimmed
 
     def printContainer(self, container):
-        
+
+        output = "\nPrint all individuals in container\n\n"
+
         for idx, inds in container.solutions.items():
             if len(inds) == 0:
                 continue
             for ind in inds:
-                performance = ""
                 for fitness in ind.fitness.values:
-                    performance += str("%.9f" % fitness) + "  \t"
+                    output += str("%.9f" % fitness) + "  \t"
                 for f in ind.features:
-                    performance += str("%.4f" % f) + " \t"
-                print (performance)
+                    output += str("%.4f" % f) + " \t"
+                output += "\n"
                 # print (self.printTree(ind))
-            print ("---")
+            output += "---\n"
+        self.params.console(output)
 
     def printBestMax(self, container, qty = 1):
         
@@ -276,26 +274,15 @@ class Utilities():
                 
                 if ind.fitness.values[0] > worst:
                     best[worstIndex] = ind
-            
-        # for ind in best:
-            # performance = str("%.5f" % ind.fitness.values[0]) + "  \t"
-            # for f in ind.features:
-                # performance += str("%.5f" % f) + " \t"
-            # print (performance)
-            # print (self.formatChromosome(ind))
-        
-            
-        print ("")
-        print ("Print best individual(s)")
-        print ("")
+
+        output = "\nPrint best individual(s)\n\n"
         for ind in best:
-            performance = str("%.9f" % ind.fitness.values[0]) + "  \t"
+            output += str("%.9f" % ind.fitness.values[0]) + "  \t"
             for f in ind.features:
-                performance += str("%.4f" % f) + " \t"
-            print (performance)
-            print (ind)
-        
-        print ("")
+                output += str("%.4f" % f) + " \t"
+            output += "\n"+str(ind)+"\n"
+
+        self.params.console(output)
     
     def getBestMax(self, container, qty = 1):
         
@@ -315,75 +302,6 @@ class Utilities():
                 if ind.fitness.values[0] > worst:
                     best[worstIndex] = ind
         return best
-    
-    def printBestMin(self, container, qty = 1):
-        
-        best = []
-        for ind in container:
-            if len(best) < qty:
-                best.append(ind)
-            else:
-                worst = 0.0
-                worstIndex = qty
-                for i in range(qty):
-                    if best[i].fitness.values[0] > worst:
-                        worst = best[i].fitness.values[0]
-                        worstIndex = i
-                
-                if ind.fitness.values[0] < worst:
-                    best[worstIndex] = ind
-        
-        for ind in best:
-            performance = str("%.9f" % ind.fitness.values[0]) + "  \t"
-            for f in ind.features:
-                performance += str("%.4f" % f) + " \t"
-            print (performance)
-        
-        print ("")
-    
-    def printExtrema(self, container):
-        
-        minVals = [1.0,1.0,1.0]
-        maxVals = [0.0,0.0,0.0]
-        minIndividuals = [None, None, None]
-        maxIndividuals = [None, None, None]
-        
-        for idx, inds in container.solutions.items():
-            if len(inds) == 0:
-                continue
-            
-            for i in range(len(self.params.nb_bins)):
-                for ind in inds:
-                    if minVals[i] > ind.features[i]:
-                        minVals[i] = ind.features[i]
-                        minIndividuals[i] = ind
-                    if maxVals[i] < ind.features[i]:
-                        maxVals[i] = ind.features[i]
-                        maxIndividuals[i] = ind
-            
-        # for ind in minIndividuals:
-            # performance = str("%.5f" % ind.fitness.values[0]) + "  \t"
-            # for f in ind.features:
-                # performance += str("%.5f" % f) + " \t"
-            # print (performance)
-        # print ("---")
-
-        # for ind in maxIndividuals:
-            # performance = str("%.5f" % ind.fitness.values[0]) + "  \t"
-            # for f in ind.features:
-                # performance += str("%.5f" % f) + " \t"
-            # print (performance)
-        # print ("---")
-        # print ("=============")
-
-        # print ("== extrema ==")
-        vals = ""
-        for i in minVals:
-            vals += str("%.5f" % i)+"\t\t"
-        vals += "\n"
-        for i in maxVals:
-            vals += str("%.5f" % i)+"\t\t"
-        print (vals)
 
     def getBestHDRandom(self, population, feature = -1, derate = True):
 
@@ -427,7 +345,6 @@ class Utilities():
 
 
     def removeDuplicates(self, offspring, container):
-        # print ("\ncheck for duplicates\n")
         for i in reversed(range(len(offspring))):
             ind = offspring[i]
             duplicate = ""
@@ -444,7 +361,6 @@ class Utilities():
             
             if len(duplicate) > 0: 
                 output = duplicate + "\t" + performance
-                # print (output)
                 offspring.pop(i)
 
     def convertToNewGrid(self, container, objective, objective_index, features, shape, fitness_domain, features_domain):
@@ -633,7 +549,6 @@ class Utilities():
             if len(inds) == 0:
                 continue
             for ind in inds:
-                # print (ind.fitness.values[0])
                 total_fitness += ind.fitness.values[0]
         total_fitness /= shape[0]*shape[1]*shape[2]
         
@@ -641,28 +556,6 @@ class Utilities():
 
     def saveQDScore(self, container, iteration, mode="a"):
                 
-        # shape = self.params.nb_bins
-                
-        # grid = self.convertToNewGrid(container,
-                                     # self.params.objective,
-                                     # self.params.objective_index,
-                                     # self.params.features,
-                                     # shape,
-                                     # self.params.fitness_domain,
-                                     # self.params.features_domain)
-        # print("\n\nflat grid\n")
-        # self.printContainer(grid)
-        
-        # total_fitness = 0.0
-        # for idx, inds in grid.solutions.items():
-            # if len(inds) == 0:
-                # continue
-            # for ind in inds:
-                # print (ind.fitness.values[0])
-                # total_fitness += ind.fitness.values[0]
-        # total_fitness /= shape[0]*shape[0]*shape[0]
-        
-        
         total_fitness = self.getQDScore(container)
         
         output = str(iteration)+","+str(total_fitness)+"\n"
@@ -729,14 +622,12 @@ class Utilities():
         duration = end_time - start_time
         minutes = (duration / 1000) / 60
         minutes_str = str("%.2f" % minutes)
-        print("Duration " +minutes_str+"\n")
+        self.params.console("Duration " +minutes_str+"\n")
 
         if self.params.saveOutput:
             with open(self.params.path()+"params.txt", 'a') as f:
                 f.write("generations: "+str(self.params.generations) + "\n")
                 f.write("duration: "+str(duration) + " ms ("+minutes_str+" minutes)\n")
-
-
 
     def evaluate(self, assign_fitness, invalid_ind):
 

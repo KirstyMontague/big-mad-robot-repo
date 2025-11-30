@@ -59,7 +59,7 @@ class EA():
     def run(self, init_batch = None, **kwargs):
 
         if self.params.cancelled:
-            print("\naborted\n")
+            self.params.console("\naborted\n")
             return
 
         start_time = round(time.time() * 1000)
@@ -160,13 +160,14 @@ class EA():
             self.archive.addToArchive(str(ind), tuple([ind.fitness.values[0]] + ind.features))
             
         if self.params.printOffspring:
-            print ("\nPrint all offspring\n")
+            output = "\nPrint all offspring\n\n"
             for ind in offspring:
-                performance = str("%.5f" % ind.fitness.values[0]) + "  \t"
+                output += str("%.5f" % ind.fitness.values[0]) + "  \t"
                 for f in ind.features:
-                    performance += str("%.5f" % f) + " \t"
-                print (performance)
-            print ("---")
+                    output += str("%.5f" % f) + " \t"
+                output += "\n"
+            output += "---"
+            self.params.console(output)
         
         # removing duplicates here because container throws away the individual that would have been replaced before throwing away the duplicate
         self.utilities.removeDuplicates(offspring, container)
@@ -176,16 +177,15 @@ class EA():
         self.printOutput(generation, invalid_new, invalid_orig, matched)
 
         if (self.params.printContainer):
-            print ("\nPrint all individuals in container\n")
             self.utilities.printContainer(container)
 
         if (self.params.printBestIndividuals):
             self.utilities.printBestMax(container)
             qdscore = self.utilities.getQDScore(container)
             coverage = self.utilities.getCoverage(container)
-            print("QD Score: "+str("%.9f" % qdscore))
-            print("Coverage: "+str("%.9f" % coverage))
-            print("")
+            qd_score_and_coverage = "QD Score: "+str("%.9f" % qdscore)+"\n"
+            qd_score_and_coverage += "Coverage: "+str("%.9f" % coverage)+"\n"
+            self.params.console(qd_score_and_coverage)
 
         if self.params.saveCSV or self.params.saveCheckpoint: # all seeds
             self.logs.logFitness(generation, self.utilities.getBestMax(container))
@@ -217,14 +217,10 @@ class EA():
         output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
         output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
         
-        if generation % 100 == 0 or generation == self.params.generations or invalid_new > 0:
-            print (output_string)
-
-        if (generation % 10 == 0):
-            filename = self.params.shared_path+"/qdpy/console"+str(self.params.deapSeed)+".txt"
-            with open(filename, 'a') as f:
-                f.write(output_string+"\n")
-
+        write_out = False
+        if generation % self.params.output_interval == 0 and invalid_new > 0: write_out = True
+        if generation % 100 == 0 or generation == self.params.generations: write_out = True
+        if write_out: self.params.console(output_string)
 
     def assignFitness(self, offspring, fitness):
         offspring.fitness.values = (fitness[0],)
