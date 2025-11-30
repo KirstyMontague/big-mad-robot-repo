@@ -50,6 +50,8 @@ class eaParams():
         self.readCheckpoint = False
         self.loadCheckpoint = False
         self.saveCheckpoint = False
+
+        self.useArchive = False
         self.saveOutput = False
         self.saveCSV = False
 
@@ -159,7 +161,7 @@ class eaParams():
         self.runtime()
 
     def runtime(self):
-        restricted = ["indexes", "bins_per_axis", "using_repertoire", "tournamentSize", "populationSize", "csv_save_interval", "num_threads"]
+        restricted = ["indexes", "bins_per_axis", "using_repertoire", "tournamentSize", "populationSize", "csv_save_interval", "num_threads", "useArchive"]
         with open(self.shared_path+"/runtime.txt", "r") as f:
             for line in f:
                 data = line.split()
@@ -230,6 +232,7 @@ class eaParams():
         if data[0] == "printEliteScores": self.printEliteScores = False if data[1] == "False" else True
         if data[0] == "printFitnessScores": self.printFitnessScores = False if data[1] == "False" else True
         if data[0] == "printBestIndividuals": self.printBestIndividuals = False if data[1] == "False" else True
+        if data[0] == "useArchive": self.useArchive = True if data[1] == "True" else False
         if data[0] == "saveOutput": self.saveOutput = False if data[1] == "False" else True
         if data[0] == "saveCSV": self.saveCSV = False if data[1] == "False" else True
         if data[0] == "save_period": self.save_period = int(data[1])

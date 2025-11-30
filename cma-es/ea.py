@@ -40,8 +40,10 @@ class EA():
         Path(self.params.local_path+"/").mkdir(parents=False, exist_ok=True)
 
         self.utilities = Utilities(self.params)
-        self.archive = Archive(self.utilities, self.params)
-        self.archive.loadArchives()
+
+        if self.params.useArchive:
+            self.archive = Archive(self.utilities, self.params)
+            self.archive.loadArchives()
 
         self.utilities.setSeed()
         self.best = None
@@ -86,7 +88,7 @@ class EA():
                     f.write(" ")
                     f.write(str(s))
 
-        if self.params.saveOutput:
+        if self.params.saveOutput and self.params.useArchive:
             self.archive.saveArchive()
 
         if self.params.saveCSV:
@@ -94,10 +96,12 @@ class EA():
             if not os.path.exists(self.params.csvFilename()):
                 csv_string += "Objective,"
                 csv_string += "Seed,"
+                csv_string += "Hidden Nodes,"
                 csv_string += ","+str(self.params.generations)+",,"
                 csv_string += "Chromosome\n"
             csv_string += str(self.params.objective) +","
             csv_string += str(self.params.seed) +","
+            csv_string += str(self.params.num_hidden) +","
             csv_string += ","+str(self.best.fitness.getValues()[0]) +",,"
             for c in self.best:
                 csv_string += str(c) + " "
@@ -138,8 +142,10 @@ class EA():
         invalid_orig = len(invalid_ind)
 
         matched = [0,0]
-        invalid_ind = self.archive.assignDuplicateFitness(invalid_ind, self.assignFitness, matched)
-        archive_ind = invalid_ind
+
+        if self.params.useArchive:
+            invalid_ind = self.archive.assignDuplicateFitness(invalid_ind, self.assignFitness, matched)
+            archive_ind = invalid_ind
 
         invalid_ind = [ind for ind in population if not ind.fitness.valid]
         invalid_new = len(invalid_ind)
@@ -148,11 +154,11 @@ class EA():
         self.utilities.evaluate(self.assignPopulationFitness, trimmed)
         self.transferTrimmedFitnessScores(invalid_ind, trimmed)
 
-        for ind in invalid_ind:
-            self.archive.addToArchive(ind)
-
-        for ind in archive_ind:
-            self.archive.addToCompleteArchive(ind)
+        if self.params.useArchive:
+            for ind in invalid_ind:
+                self.archive.addToArchive(ind)
+            for ind in archive_ind:
+                self.archive.addToCompleteArchive(ind)
 
         best = self.utilities.getBest(population)[0]
 
@@ -202,7 +208,7 @@ class EA():
         self.runtime()
 
     def runtime(self):
-        restricted = ["objective", "num_threads"]
+        restricted = ["objective", "num_threads", "num_hidden", "useArchive"]
         with open(self.params.shared_path+"/runtime.txt", 'r') as f:
             for line in f:
                 data = line.split()
@@ -226,10 +232,14 @@ class EA():
             self.params.objective_index = int(data[1])
             self.params.objective = self.params.objectives[self.params.objective_index]
         if data[0] == "generations": self.params.generations = int(data[1])
+        if data[0] == "useArchive": self.params.useArchive = True if data[1] == "True" else False
         if data[0] == "saveOutput": self.params.saveOutput = False if data[1] == "False" else True
         if data[0] == "saveCSV": self.params.saveCSV = False if data[1] == "False" else True
         if data[0] == "saveBest": self.params.saveBest = False if data[1] == "False" else True
         if data[0] == "num_threads": self.params.num_threads = int(data[1])
+        if data[0] == "num_hidden":
+            self.params.num_hidden = int(data[1])
+            self.params.individualSize()
         if data[0] == "stop":
             self.params.saveCSV = False
             self.params.generations = 0

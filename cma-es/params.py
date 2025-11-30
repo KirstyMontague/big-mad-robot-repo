@@ -7,6 +7,8 @@ class Params():
 
         self.objective_index = 0
         self.generations = 0
+
+        self.useArchive = False
         self.saveOutput = False
         self.saveCSV = False
         self.saveBest = False
@@ -31,7 +33,7 @@ class Params():
         self.num_inputs = num_inputs
         self.num_hidden = num_hidden
         self.num_outputs = num_outputs
-        self.ind_size = (num_inputs * num_hidden) + num_hidden + (num_hidden * num_outputs) + num_outputs
+        self.individualSize()
 
         self.objective = self.objectives[self.objective_index]
 
@@ -48,6 +50,12 @@ class Params():
             self.saveBest = False
 
         self.cancelled = "repro" in self.shared_path
+
+    def individualSize(self):
+        self.ind_size = self.num_inputs * self.num_hidden
+        self.ind_size += self.num_hidden
+        self.ind_size += self.num_hidden * self.num_outputs
+        self.ind_size += self.num_outputs
 
     def csvFilename(self):
         return self.shared_path+"/cma-es/"+self.objective+"/best"+str(self.generations)+"-"+str(self.seed)+".csv"

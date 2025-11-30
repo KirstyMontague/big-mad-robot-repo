@@ -39,6 +39,10 @@ class Archive():
 
     def getArchives(self, redundancy):
 
+        if not self.params.useArchive:
+            print("\nDisregarding archive\n")
+            return
+
         archive = self.getArchive()
         cumulative_archive = self.getCumulativeArchive()
 
