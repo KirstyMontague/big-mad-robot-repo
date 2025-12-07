@@ -303,9 +303,9 @@ void CFootBotBT::rangeAndBearing(bool tracking)
         density += it->second;
     }
     m_blackBoard->updateDensityVector(density, (tracking ? std::stoi(GetId()) : -1));
-    if (m_count == 2 || m_count % 4 == 0)
+    if (m_count % m_trialLength == 2 || m_count % 4 == 0)
     {
-        m_blackBoard->setDensity((m_count == 2), (tracking ? std::stoi(GetId()) : -1));
+        m_blackBoard->setDensity((m_count % m_trialLength == 2), (tracking ? std::stoi(GetId()) : -1));
     }
     m_blackBoard->setFirstDensityChange(m_count);
     
@@ -330,16 +330,16 @@ void CFootBotBT::rangeAndBearing(bool tracking)
     
     // save distance to nest and change in distance
     m_blackBoard->updateDistNestVector(distanceToNest, tracking ? std::stoi(GetId()) : -1);
-    if (m_count == 2 || m_count % 4 == 0)
+    if (m_count % m_trialLength == 2 || m_count % 4 == 0)
     {
-        m_blackBoard->setDistNest((m_count == 2), (tracking ? std::stoi(GetId()) : -1));
+        m_blackBoard->setDistNest((m_count % m_trialLength == 2), (tracking ? std::stoi(GetId()) : -1));
     }
     
     // save distance to food and change in distance
     m_blackBoard->updateDistFoodVector(distanceToFood, (tracking ? std::stoi(GetId()) : -1));
-    if (m_count == 2 || m_count % 4 == 0)
+    if (m_count % m_trialLength == 2 || m_count % 4 == 0)
     {
-        m_blackBoard->setDistFood((m_count == 2), (tracking ? std::stoi(GetId()) : -1));
+        m_blackBoard->setDistFood((m_count % m_trialLength == 2), (tracking ? std::stoi(GetId()) : -1));
     }
     
     // navigation
@@ -423,7 +423,7 @@ void CFootBotBT::ControlStep()
     {
         sensing();
     }
-    
+
     if (m_count % 4 == 0)
     {
         m_blackBoard->setMotors(0);
@@ -442,11 +442,11 @@ void CFootBotBT::ControlStep()
         //if (tracking) std::cout << m_blackBoard->getConditionality() << std::endl;
     }
     
-    if (m_count > 1)
+    if (m_count % m_trialLength != 1)
     {
         actuation();
     }
-    
+
     if (m_blackBoard->getMotors() > 0 && m_count % 4 == 0)
     {
         m_blackBoard->addMovement();

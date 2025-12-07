@@ -101,6 +101,8 @@ void CBlackBoard::setFinalDistanceFromNest(int robotID)
     }
     distance /= m_distNestVector.size();
     m_finalDistanceFromNest = distance;
+    m_distNestVector.clear();
+
     if (robotID != -1) std::cout << "m_finalDistanceFromNest = " << distance << "\n";
 }
 
@@ -239,6 +241,8 @@ void CBlackBoard::setFinalDistanceFromFood(int robotID)
     }
     distance /= m_distFoodVector.size();
     m_finalDistanceFromFood = distance;
+    m_distFoodVector.clear();
+
     if (robotID != -1) std::cout << "m_finalDistanceFromFood = " << distance << "\n";
 }
 
@@ -301,8 +305,10 @@ void CBlackBoard::setFinalDensity(int robotID)
         density += d;
     }
     density /= m_densityVector.size();
-    if (robotID != -1) std::cout << "m_finalDensity: " << density << std::endl;
     m_finalDensity = density;
+    m_densityVector.clear();
+
+    if (robotID != -1) std::cout << "m_finalDensity: " << m_finalDensity << std::endl;
 }
 
 float CBlackBoard::getDifferenceInDensity(int robotID)
