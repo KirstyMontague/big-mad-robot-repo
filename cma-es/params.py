@@ -5,6 +5,8 @@ class Params():
 
         self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
 
+        self.experiment = "vanilla"
+
         self.objective_index = 0
         self.generations = 0
 
@@ -60,10 +62,10 @@ class Params():
         self.ind_size += self.num_outputs
 
     def csvFilename(self):
-        return self.shared_path+"/cma-es/"+self.objective+"/best"+str(self.generations)+"-"+str(self.seed)+".csv"
+        return self.shared_path+"/cma-es/"+self.experiment+"/"+self.objective+"/best"+str(self.generations)+"-"+str(self.seed)+".csv"
 
     def bestFilename(self):
-        return self.shared_path+"/cma-es/"+self.objective+"/best-"+str(self.seed)+".txt"
+        return self.shared_path+"/cma-es/"+self.experiment+"/"+self.objective+"/best-"+str(self.seed)+".txt"
 
     def console(self, text):
         if self.output_to_file:

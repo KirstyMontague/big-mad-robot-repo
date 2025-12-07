@@ -48,14 +48,17 @@ class Archive():
 
         directory_path = self.params.input_path
         if self.params.description == "foraging":
-            results_directory = self.params.foraging_path
+            results_directory = self.params.experiment+"/"+self.params.foraging_path
             if self.params.algorithm == "gp":
                 if self.params.using_repertoire:
                     results_directory += "/"+self.params.repertoire_type+str(self.params.repertoire_size)
                 else:
                     results_directory += "/baseline"
         else:
-            results_directory = self.params.subbehaviours_path+"/"+self.params.description
+            if len(self.params.subbehaviours_path) > 0:
+                results_directory = self.params.subbehaviours_path+"/"+self.params.experiment+"/"+self.params.description
+            else:
+                results_directory = self.params.experiment+"/"+self.params.description
 
         use_temp_archive = (directory_path == self.params.shared_path and results_directory == self.params.description)
 

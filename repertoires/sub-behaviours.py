@@ -17,10 +17,13 @@ class SubBehaviours():
 
         self.save = True
         self.runs = 30
+        self.generation = 10
+        self.go_away_from_food = "absolute"
 
         self.pset = local.PrimitiveSetExtended("MAIN", 0)
         self.params = eaParams()
         self.params.addUnpackedNodes(self.pset)
+        self.params.configure()
 
         if self.params.using_repertoire:
             self.params.using_repertoire = False
@@ -44,16 +47,18 @@ class SubBehaviours():
         self.subsets = ["food-idensity-inest", "density-nest-ifood"]
 
         self.input_path = self.params.input_path
-        self.input_dir = self.params.subbehaviours_path
+        self.input_dir = self.params.experiment
+        if len(self.params.subbehaviours_path) > 0:
+            self.input_dir += "/"+self.params.subbehaviours_path
 
-        self.output_path = self.params.shared_path+"/gp/foraging/"
+        self.output_path = self.params.shared_path+"/gp/"+self.params.experiment+"/foraging/"
         self.output_path += self.params.repertoire_type+str(self.params.repertoire_size)
         self.output_filename = self.output_path+"/sub-behaviours.txt"
 
         self.cancelled = "repro" in self.params.shared_path
 
         if self.save and not self.cancelled:
-            Path(self.output_path+"/").mkdir(parents=False, exist_ok=True)
+            Path(self.output_path+"/").mkdir(parents=True, exist_ok=True)
 
     def run(self):
 
@@ -74,20 +79,20 @@ class SubBehaviours():
 
             containers = []
 
-            results_dir = objective
+            results_dir = self.input_path+"/qdpy/"+self.input_dir+"/"+objective
             if objective == "ifood":
-                results_dir = "ifood-perceived-position"
+                results_dir += "-"+self.go_away_from_food+"-position"
 
             for seed in range(1, self.runs + 1):
 
-                input_filename = self.input_path+"/qdpy/"+self.input_dir+"/"+results_dir+"/"+str(seed)+"/seed"+str(seed)+"-iteration1000.p"
+                input_filename = results_dir+"/"+str(seed)+"/checkpoint-"+objective+"-"+str(seed)+"-"+str(self.generation)+".pkl"
 
                 with open(input_filename, "rb") as f:
                     data = pickle.load(f)
 
                 for i in data:
-                    if str(i) == "container":
-                        container = data[i]
+                    if str(i) == "containers":
+                        container = data[i][0]
 
                 containers.append(container)
 
@@ -131,15 +136,15 @@ class SubBehaviours():
 
             subset = self.subsets[combination]
             sublist = self.sublists[combination]
-            results_dir = subset
 
+            results_dir = self.input_path+"/gp/"+self.input_dir+"/"+subset
             if subset == "density-nest-ifood":
-                results_dir = "density-nest-ifood-perceived-position"
+                results_dir += "-"+self.go_away_from_food+"-position"
 
             seeds = []
             for seed in range(1, self.runs + 1):
 
-                input_filename = self.input_path+"/gp/"+self.input_dir+"/"+results_dir+"/"+str(seed)+"/checkpoint-"+subset+"-"+str(seed)+"-1000.pkl"
+                input_filename = results_dir+"/"+str(seed)+"/checkpoint-"+subset+"-"+str(seed)+"-"+str(self.generation)+".pkl"
                 with open(input_filename, "rb") as f:
                     checkpoint = pickle.load(f)
 

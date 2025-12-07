@@ -12,9 +12,9 @@ class Archive():
         self.cumulative_archive = {}
         self.verbose_archive = {}
         self.complete_archive = {}
-        self.input_path = self.params.input_path+"/cma-es"
+        self.input_path = self.params.input_path+"/cma-es/"+self.params.experiment
         self.input_directory = self.params.objective
-        self.output_directory = self.params.shared_path+"/cma-es/"+self.params.objective
+        self.output_directory = self.params.shared_path+"/cma-es/"+self.params.experiment+"/"+self.params.objective
 
     def getArchive(self):
         return self.archive

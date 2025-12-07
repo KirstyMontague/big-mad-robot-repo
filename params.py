@@ -1,34 +1,16 @@
 import numpy
 import os
-
-"""
-
-to switch between foraging and sub-behaviours/baseline:
-
-indexes
-generations, using_repertoire (baseline only)
-
-
-to change repertoire
-
-params.py - update repertoire_size and repertoire_type
-archive.py - update archive path for re-running old experiments
-update foraging results directory
-
-"""
+from pathlib import Path
 
 class eaParams():
 
     def __init__(self):
 
         self.characteristics = 3
-        self.saveHeatmap = False
         self.start_point = "final"
-        self.max_size = 1000000
         self.max_items_per_bin = 3
         self.nb_bins = [8,8,8]
         self.fitness_domain = [(0., numpy.inf)]
-        self.verbose = False
         self.show_warnings = True
         self.printOffspring = False
         self.printContainer = False
@@ -56,6 +38,8 @@ class eaParams():
         self.saveCSV = False
 
         self.stop = False
+
+        self.experiment = "vanilla"
 
         self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
 
@@ -138,7 +122,7 @@ class eaParams():
         self.cancelled = "repro" in self.shared_path
 
     def basePath(self):
-        path = self.shared_path+"/"+self.algorithm+"/"+self.description
+        path = self.shared_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description
         if self.description == "foraging" and self.algorithm == "gp":
             if self.using_repertoire:
                 path += "/"+self.repertoire_type+str(self.repertoire_size)
@@ -157,6 +141,31 @@ class eaParams():
     def iteration_filename(self): return self.path() + "seed"+str(self.deapSeed)+"-iteration%i.p"
     def final_filename(self): return self.path() + "seed"+str(self.deapSeed)+"-final.p"
 
+    def makePaths(self):
+
+        if self.experiment == "":
+            self.experiment = "vanilla"
+
+        self.local_path += "/"+str(self.deapSeed)
+        Path(self.local_path+"/").mkdir(parents=False, exist_ok=True)
+
+        if self.saveOutput or self.saveCSV or self.saveCheckpoint:
+            Path(self.basePath()).mkdir(parents=True, exist_ok=True)
+
+        if self.saveOutput or self.saveCheckpoint:
+            Path(self.path()).mkdir(parents=True, exist_ok=True)
+
+    def deleteTempFiles(self):
+
+        if os.path.exists(self.local_path+"/runtime.txt"):
+            os.remove(self.local_path+"/runtime.txt")
+        if os.path.exists(self.local_path+"/current.txt"):
+            os.remove(self.local_path+"/current.txt")
+        os.remove(self.local_path+"/configuration.txt")
+
+        if len(os.listdir(self.local_path)) == 0:
+            os.rmdir(self.local_path)
+
     def configure(self):
         with open(self.shared_path+"/config.txt", "r") as f:
             for line in f:
@@ -167,7 +176,11 @@ class eaParams():
         self.runtime()
 
     def runtime(self):
-        restricted = ["indexes", "bins_per_axis", "using_repertoire", "tournamentSize", "populationSize", "csv_save_interval", "num_threads", "useArchive"]
+
+        restricted = ["experiment", "indexes", "bins_per_axis", "using_repertoire",
+                      "tournamentSize", "populationSize",
+                      "csv_save_interval", "num_threads", "useArchive"]
+
         with open(self.shared_path+"/runtime.txt", "r") as f:
             for line in f:
                 data = line.split()
@@ -187,6 +200,10 @@ class eaParams():
                             self.console(line[0:-1])
 
     def update(self, data):
+
+        if data[0] == "experiment" and len(data) > 1:
+            self.experiment = data[1]
+
         if data[0] == "indexes":
             self.indexes = []
             for i in range(1, len(data)):
@@ -214,10 +231,6 @@ class eaParams():
             else:
                 self.features_domain = [(-200.0, 200.0), (-200.0, 200.0), (0.0, 1.0)]
 
-        if data[0] == "bins_per_axis":
-            self.bins_per_axis = int(data[1])
-            self.repertoire_size = self.bins_per_axis ** self.characteristics
-
         if data[0] == "using_repertoire":
             self.using_repertoire = False if data[1] == "False" else True
             self.save_period = 1000
@@ -225,6 +238,13 @@ class eaParams():
             if self.description == "foraging" and not self.using_repertoire:
                 self.save_period = 2200
                 self.csv_save_period = 2200
+
+        if data[0] == "repertoire_type":
+            self.repertoire_type = data[1]
+
+        if data[0] == "bins_per_axis":
+            self.bins_per_axis = int(data[1])
+            self.repertoire_size = self.bins_per_axis ** self.characteristics
 
         if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
         if data[0] == "populationSize": self.populationSize = int(data[1])
@@ -241,6 +261,7 @@ class eaParams():
         if data[0] == "useArchive": self.useArchive = True if data[1] == "True" else False
         if data[0] == "saveOutput": self.saveOutput = False if data[1] == "False" else True
         if data[0] == "saveCSV": self.saveCSV = False if data[1] == "False" else True
+        if data[0] == "saveCheckpoint": self.saveCheckpoint = False if data[1] == "False" else True
         if data[0] == "save_period": self.save_period = int(data[1])
         if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
         if data[0] == "csv_save_interval": self.csv_save_interval = int(data[1])
@@ -269,7 +290,7 @@ class eaParams():
             print(text)
 
     def getRepertoireFilename(self):
-        filename = self.shared_path+"/"+self.algorithm+"/"+self.description+"/"
+        filename = self.shared_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description+"/"
         filename += self.repertoire_type+str(self.repertoire_size)+"/sub-behaviours.txt"
         return filename
 

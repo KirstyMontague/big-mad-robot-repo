@@ -78,8 +78,8 @@ class EA():
             os.rmdir(self.params.local_path)
 
         if self.params.saveOutput or self.params.saveCSV or self.params.saveBest:
-            Path(self.params.shared_path+"/cma-es/").mkdir(parents=False, exist_ok=True)
-            Path(self.params.shared_path+"/cma-es/"+self.params.objective+"/").mkdir(parents=False, exist_ok=True)
+            output_path = self.params.shared_path+"/cma-es/"+self.params.experiment+"/"+self.params.objective+"/"
+            Path(output_path).mkdir(parents=True, exist_ok=True)
 
         if self.params.saveBest:
             with open(self.params.bestFilename(), "w") as f:
@@ -225,6 +225,8 @@ class EA():
                             self.params.console(line[0:-1])
 
     def update(self, data):
+        if data[0] == "experiment" and len(data) > 1:
+            self.params.experiment = data[1]
         if data[0] == "objective":
             self.params.objective_index = int(data[1])
             self.params.objective = self.params.objectives[self.params.objective_index]

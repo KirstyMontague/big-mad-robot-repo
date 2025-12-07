@@ -19,6 +19,7 @@ class Aggregator():
                 if data[0] == "shared": self.shared_path = data[1][0:-1]
 
         self.algorithm = "gp"
+        self.experiment = "vanilla"
         self.using_repertoire = False
         self.repertoire_type = "qd"
         self.repertoire_size = 1
@@ -31,8 +32,11 @@ class Aggregator():
         self.configure()
         self.cancelled = self.cancelled or "repro" in self.shared_path
 
+        self.input_path = self.addRepertoireDir(self.shared_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.objective)
+        self.output_path = self.addRepertoireDir(self.home_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.objective)
+
     def configure(self):
-        permitted = ["algorithm", "using_repertoire", "repertoire_type", "repertoire_size", "objective", "runs", "generations"]
+        permitted = ["algorithm", "experiment", "using_repertoire", "repertoire_type", "repertoire_size", "objective", "runs", "generations"]
         with open(self.local_path+"/config.txt", 'r') as f:
             for line in f:
                 data = line.split()
@@ -52,6 +56,7 @@ class Aggregator():
             else:
                 print("\nalgorithm not recognised: "+data[1]+"\n")
                 self.cancelled = True
+        if data[0] == "experiment" and len(data) > 1: self.experiment = data[1]
         if data[0] == "using_repertoire": self.using_repertoire = True if data[1] == "True" else False
         if data[0] == "repertoire_type": self.repertoire_type = data[1]
         if data[0] == "repertoire_size": self.repertoire_size = int(data[1])
@@ -69,9 +74,7 @@ class Aggregator():
 
     def getResults(self):
 
-        path = self.shared_path+"/"+self.algorithm+"/"+self.objective
-        path = self.addRepertoireDir(path)
-        print("\nreading from "+path+"\n")
+        print("\nReading from "+self.input_path+"\n")
 
         results_per_query = []
 
@@ -81,7 +84,7 @@ class Aggregator():
 
             for i in range(1, self.runs + 1):
 
-                filename = path+"/"+query+str(self.generations)+"-"+str(i)+".csv"
+                filename = self.input_path+"/"+query+str(self.generations)+"-"+str(i)+".csv"
 
                 if os.path.exists(filename):
 
@@ -110,13 +113,17 @@ class Aggregator():
 
     def writeCSV(self, results_per_query):
 
-        Path(self.home_path+"/"+self.algorithm+"/").mkdir(parents=False, exist_ok=True)
-        
-        filepath = self.home_path+"/"+self.algorithm+"/"+self.objective
-        Path(filepath).mkdir(parents=False, exist_ok=True)
+        write = False
+        for results in results_per_query:
+            if len(results) > 0:
+                write = True
+                break
 
-        filepath = self.addRepertoireDir(filepath)
-        Path(filepath).mkdir(parents=False, exist_ok=True)
+        if not write:
+            print("\nNo data\n")
+            return False
+
+        Path(self.output_path).mkdir(parents=True, exist_ok=True)
 
         print()
         confirmed = False
@@ -128,11 +135,11 @@ class Aggregator():
 
             if len(entries) > 0:
 
-                filename = filepath+"/"+query+str(self.generations)+".csv"
+                filename = self.output_path+"/"+query+str(self.generations)+".csv"
 
                 if not confirmed and os.path.exists(filename):
 
-                    test = input("Output files already exist at "+filepath+"\nContinue? (y/N)\n")
+                    test = input("Output files already exist at "+self.output_path+"\nContinue? (y/N)\n")
                     if test == "y":
                         confirmed = True
                         print()
@@ -140,7 +147,7 @@ class Aggregator():
                         print("\ncancelled\n")
                         return False
 
-                print("Writing "+filename)
+                print("Writing to "+filename)
                 with open(filename, "w") as f:
                     for entry in entries:
                         f.write(entry)
@@ -150,20 +157,16 @@ class Aggregator():
     def removeOldFiles(self):
 
         print()
-        test = input("Delete input files? (y/N)\n")
+        test = input("\nDelete input files from "+self.input_path+"? (y/N)\n")
         if test != "y":
-            print("\ncancelled\n")
+            print("\nCancelled\n")
             return
-
-        path = self.shared_path+"/"+self.algorithm+"/"+self.objective
-        path = self.addRepertoireDir(path)
-        print("\ndeleting from "+path)
 
         for query in self.queries:
 
             for i in range(1, self.runs + 1):
 
-                filename = path+"/"+query+str(self.generations)+"-"+str(i)+".csv"
+                filename = self.input_path+"/"+query+str(self.generations)+"-"+str(i)+".csv"
 
                 if os.path.exists(filename):
                     os.remove(filename)

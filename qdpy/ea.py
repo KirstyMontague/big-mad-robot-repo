@@ -8,8 +8,6 @@ import pickle
 import warnings
 warnings.filterwarnings("error")
 
-from pathlib import Path
-
 from qdpy.phenotype import *
 from containers import *
 
@@ -33,18 +31,7 @@ class EA():
         self.params.is_qdpy = True
         random.seed(self.params.deapSeed)
 
-        self.params.local_path += "/"+str(self.params.deapSeed)
-        Path(self.params.local_path+"/").mkdir(parents=False, exist_ok=True)
-
-        if self.params.saveOutput or self.params.saveCSV or self.params.saveCheckpoint:
-            Path(self.params.shared_path+"/"+self.params.algorithm+"/").mkdir(parents=False, exist_ok=True)
-            Path(self.params.shared_path+"/"+self.params.algorithm+"/"+self.params.description+"/").mkdir(parents=False, exist_ok=True)
-
-        if self.params.saveOutput or self.params.saveCheckpoint:
-            Path(self.params.path()).mkdir(parents=False, exist_ok=True)
-
-        if self.params.saveOutput:
-            Path(self.params.path()+"/csvs").mkdir(parents=False, exist_ok=True)
+        self.params.makePaths()
 
         self.utilities = Utilities(params)
         self.utilities.setupToolbox(self.selTournament)
@@ -94,13 +81,7 @@ class EA():
         self.archive.saveArchive(self.redundancy, self.params.generations)
         self.utilities.saveBestIndividuals(self.utilities.getBestMax(self.container, 25), self.params.generations)
 
-        if os.path.exists(self.params.local_path+"/runtime.txt"):
-            os.remove(self.params.local_path+"/runtime.txt")
-        if os.path.exists(self.params.local_path+"/current.txt"):
-            os.remove(self.params.local_path+"/current.txt")
-        os.remove(self.params.local_path+"/configuration.txt")
-        if len(os.listdir(self.params.local_path)) == 0:
-            os.rmdir(self.params.local_path)
+        self.params.deleteTempFiles()
 
         end_time = round(time.time() * 1000)
         self.utilities.saveDuration(start_time, end_time)
@@ -187,15 +168,10 @@ class EA():
             qd_score_and_coverage += "Coverage: "+str("%.9f" % coverage)+"\n"
             self.params.console(qd_score_and_coverage)
 
-        if self.params.saveCSV or self.params.saveCheckpoint: # all seeds
+        if self.params.saveCSV or self.params.saveCheckpoint:
             self.logs.logFitness(generation, self.utilities.getBestMax(container))
             self.logs.logQdScore(generation, [self.utilities.getQDScore(container)])
             self.logs.logCoverage(generation, self.utilities.getCoverage(container))
-
-        if self.params.saveOutput: # one seed
-            self.utilities.saveQDScore(container, generation, mode)
-            self.utilities.saveCoverage(container, generation, mode)
-            self.utilities.saveBestToCsv(container, generation, mode)
 
     def printOutput(self, generation, invalid_new, invalid_orig, matched):
         

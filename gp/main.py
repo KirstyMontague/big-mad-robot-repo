@@ -31,8 +31,6 @@ params.configure()
 if not params.stop:
 
     import os
-    from pathlib import Path
-
     from ea import EA
 
     def evaluateOneIndividual():
@@ -79,28 +77,12 @@ if not params.stop:
         # trimOneIndividual()
         # return
 
-        params.local_path += "/"+str(params.deapSeed)
-        Path(params.local_path+"/").mkdir(parents=False, exist_ok=True)
-
-        if params.saveOutput or params.saveCSV or params.saveCheckpoint:
-            Path(params.shared_path+"/"+params.algorithm+"/").mkdir(parents=False, exist_ok=True)
-            Path(params.shared_path+"/"+params.algorithm+"/"+params.description+"/").mkdir(parents=False, exist_ok=True)
-            Path(params.basePath()).mkdir(parents=False, exist_ok=True)
-
-        if params.saveOutput or params.saveCheckpoint:
-            Path(params.path()).mkdir(parents=False, exist_ok=True)
+        params.makePaths()
 
         ea = EA(params)
         ea.eaInit()
 
-
-        if os.path.exists(params.local_path+"/runtime.txt"):
-            os.remove(params.local_path+"/runtime.txt")
-        if os.path.exists(params.local_path+"/current.txt"):
-            os.remove(params.local_path+"/current.txt")
-        os.remove(params.local_path+"/configuration.txt")
-        if len(os.listdir(params.local_path)) == 0:
-            os.rmdir(params.local_path)
+        params.deleteTempFiles()
 
 
     if __name__ == "__main__":

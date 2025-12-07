@@ -255,6 +255,7 @@ class Utilities():
                 output += "\n"
                 # print (self.printTree(ind))
             output += "---\n"
+
         self.params.console(output)
 
     def printBestMax(self, container, qty = 1):
@@ -553,49 +554,6 @@ class Utilities():
         total_fitness /= shape[0]*shape[1]*shape[2]
         
         return total_fitness
-
-    def saveQDScore(self, container, iteration, mode="a"):
-                
-        total_fitness = self.getQDScore(container)
-        
-        output = str(iteration)+","+str(total_fitness)+"\n"
-
-        filename = self.params.path() + "csvs/qd-scores-"+str(self.params.deapSeed)+".csv"
-        with open(filename, mode) as f:
-            f.write(output)
-
-    def saveBestToCsv(self, container, iteration, mode="a"):
-        
-        filename = self.params.path() + "csvs/best-"+str(self.params.deapSeed)+".csv"
-        best = self.getBestMax(container)
-        
-        output = str(iteration)
-        for i in range(self.params.features):
-            output += ","+str(best[i].fitness.values[i])
-        output += "\n"
-
-        with open(filename, mode) as f:
-            f.write(output)
-
-    def saveCoverage(self, container, iteration, mode="a"):
-
-        filename = self.params.path() + "csvs/coverage-"+str(self.params.deapSeed)+".csv"
-        coverage = self.getCoverage(container)
-
-        output = str(iteration) + "," + str(coverage) + "\n"
-
-        with open(filename, mode) as f:
-            f.write(output)
-
-    def saveHeatmap(self, container, iteration):
-
-        plot_path = self.params.path() + "heatmaps/heatmap-"+str(self.params.deapSeed)+"-iteration"+str(iteration)+".png"
-        plotGridSubplots(container.quality_array[... ,0],
-                         plot_path,
-                         plt.get_cmap("nipy_spectral"),
-                         container.features_domain,
-                         container.fitness_extrema[0],
-                         nbTicks=None)
 
     def saveConfigurationFile(self):
 
