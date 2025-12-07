@@ -15,6 +15,12 @@ CFootBotBT::CFootBotBT() :
     m_pcRABS(NULL),
     m_rWheelVelocity(5.0f),
     m_lWheelVelocity(5.0f),
+    m_nestRadius(0.0),
+    m_foodRadius(0.0),
+    m_offset(0.0),
+    m_commsRange(0),
+    m_distNest(0.0),
+    m_distFood(0.0),
     m_gap(0.0),
     m_trialLength(0),
     m_trackingID(0),
@@ -98,10 +104,24 @@ void CFootBotBT::createBlackBoard(int numRobots)
 
 void CFootBotBT::calculateDistances(double x, double y)
 {
+    calculateDistancesExp2(x, y);
+}
+
+void CFootBotBT::calculateDistancesExp1(double x, double y)
+{
     double distanceFromCentre = sqrt((x * x) + (y * y));
 
     double distNest = distanceFromCentre - m_nestRadius;
     double distFood = (m_gap + 0.5) - distanceFromCentre;
+
+    m_distNest = distNest < 0.0 ? 0.0 : distNest;
+    m_distFood = distFood < 0.0 ? 0.0 : distFood;
+}
+
+void CFootBotBT::calculateDistancesExp2(double x, double y)
+{
+    double distNest = sqrt((x * x) + ((y - m_offset) * (y - m_offset))) - m_nestRadius;
+    double distFood = sqrt((x * x) + ((y + m_offset) * (y + m_offset))) - m_foodRadius;
 
     m_distNest = distNest < 0.0 ? 0.0 : distNest;
     m_distFood = distFood < 0.0 ? 0.0 : distFood;
@@ -119,11 +139,13 @@ void CFootBotBT::setColour()
     }
 }
 
-void CFootBotBT::setParams(float nest, float food, float gap, int trialLength)
+void CFootBotBT::setParams(float nest, float food, float offset, float gap, int commsRange, int trialLength)
 {
     m_nestRadius = nest;
     m_foodRadius = food;
+    m_offset = offset;
     m_gap = gap;
+    m_commsRange = commsRange;
     m_trialLength = trialLength;
 }
 
@@ -236,13 +258,15 @@ void CFootBotBT::position(bool tracking)
 
 void CFootBotBT::rangeAndBearing(bool tracking)
 {
+    float maxDistance = 500;
+
     // range and bearing data
     const CCI_RangeAndBearingSensor::TReadings& tPackets = m_pcRABS->GetReadings();
     
     // map for density of robots and defaults for distance to food or nest
     std::map<int, double> IDs;
-    float distanceToNest = m_blackBoard->getInNest() ? 0 : 500;
-    float distanceToFood = m_blackBoard->getDetectedFood() ? 0 : 500;
+    float distanceToNest = m_blackBoard->getInNest() ? 0 : maxDistance;
+    float distanceToFood = m_blackBoard->getDetectedFood() ? 0 : maxDistance;
     CRadians closestNestDirection;
     CRadians closestFoodDirection;
     CRadians closestNeighbourDirection;
@@ -256,7 +280,7 @@ void CFootBotBT::rangeAndBearing(bool tracking)
             continue;
         }
         
-        if (tPackets[i].Range > 100) {
+        if (tPackets[i].Range > m_commsRange) {
             continue;
         }
         
@@ -271,7 +295,7 @@ void CFootBotBT::rangeAndBearing(bool tracking)
         data >> nest;
         data >> food;
         data >> signal;
-        
+
         // if we haven't already received a signal from this robot in the current timestep
         if (IDs.find(id) == IDs.end())
         {
@@ -305,7 +329,7 @@ void CFootBotBT::rangeAndBearing(bool tracking)
     m_blackBoard->updateDensityVector(density, (tracking ? std::stoi(GetId()) : -1));
     if (m_count % m_trialLength == 2 || m_count % 4 == 0)
     {
-        m_blackBoard->setDensity((m_count % m_trialLength == 2), (tracking ? std::stoi(GetId()) : -1));
+        m_blackBoard->setDensity(tracking ? std::stoi(GetId()) : -1);
     }
     m_blackBoard->setFirstDensityChange(m_count);
     
@@ -332,24 +356,24 @@ void CFootBotBT::rangeAndBearing(bool tracking)
     m_blackBoard->updateDistNestVector(distanceToNest, tracking ? std::stoi(GetId()) : -1);
     if (m_count % m_trialLength == 2 || m_count % 4 == 0)
     {
-        m_blackBoard->setDistNest((m_count % m_trialLength == 2), (tracking ? std::stoi(GetId()) : -1));
+        m_blackBoard->setDistNest(tracking ? std::stoi(GetId()) : -1);
     }
     
     // save distance to food and change in distance
     m_blackBoard->updateDistFoodVector(distanceToFood, (tracking ? std::stoi(GetId()) : -1));
     if (m_count % m_trialLength == 2 || m_count % 4 == 0)
     {
-        m_blackBoard->setDistFood((m_count % m_trialLength == 2), (tracking ? std::stoi(GetId()) : -1));
+        m_blackBoard->setDistFood(tracking ? std::stoi(GetId()) : -1);
     }
     
     // navigation
     Real nestDirectionDegrees = closestNestDirection.GetValue() * CRadians::RADIANS_TO_DEGREES;
     Real foodDirectionDegrees = closestFoodDirection.GetValue() * CRadians::RADIANS_TO_DEGREES;
     
-    m_blackBoard->setNestToRight(distanceToNest < 500 && distanceToNest > 0 && nestDirectionDegrees < 0.0);
-    m_blackBoard->setNestToLeft(distanceToNest < 500 && distanceToNest > 0 && nestDirectionDegrees > 0.0);
-    m_blackBoard->setFoodToRight(distanceToFood < 500 && distanceToFood > 0 && foodDirectionDegrees < 0.0);
-    m_blackBoard->setFoodToLeft(distanceToFood < 500 && distanceToFood > 0 && foodDirectionDegrees > 0.0);
+    m_blackBoard->setNestToRight(distanceToNest < maxDistance && distanceToNest > 0 && nestDirectionDegrees < 0.0);
+    m_blackBoard->setNestToLeft(distanceToNest < maxDistance && distanceToNest > 0 && nestDirectionDegrees > 0.0);
+    m_blackBoard->setFoodToRight(distanceToFood < maxDistance && distanceToFood > 0 && foodDirectionDegrees < 0.0);
+    m_blackBoard->setFoodToLeft(distanceToFood < maxDistance && distanceToFood > 0 && foodDirectionDegrees > 0.0);
 }
 
 void CFootBotBT::groundSensor(bool tracking) 
@@ -373,7 +397,6 @@ void CFootBotBT::sensing()
     position(tracking);
     proximity(tracking);
     rangeAndBearing(tracking);
-    
 }
 
 void CFootBotBT::actuation() 
@@ -430,18 +453,10 @@ void CFootBotBT::ControlStep()
         std::string output;
         std::string result = m_rootNode->evaluate(m_blackBoard, output);
         
-        // uncomment to print all nodes traversed on each tick
-        //if (m_playback)
-        //{
-            //if (inTrackingIDs()) std::cout << output << std::endl;
-        //}
-        
-        //if (tracking) std::cout << output << std::endl;
-        //if (tracking) std::cout << m_blackBoard->getConditions() << std::endl;
-        //if (tracking) std::cout << m_blackBoard->getActions() << std::endl;
-        //if (tracking) std::cout << m_blackBoard->getConditionality() << std::endl;
+        // print all nodes traversed on each tick
+        // if (m_playback && inTrackingIDs()) std::cout << output << std::endl;
     }
-    
+
     if (m_count % m_trialLength != 1)
     {
         actuation();
@@ -474,6 +489,7 @@ void CFootBotBT::ControlStep()
         m_scores[3].push_back(m_blackBoard->getDifferenceInDensityInverse());
         m_scores[4].push_back(m_blackBoard->getDifferenceInDistanceFromNestInverse());
         m_scores[5].push_back(m_blackBoard->getDifferenceInDistanceFromFoodInverse(tracking ? std::stoi(GetId()) : -1));
+        //m_scores[5].push_back(m_blackBoard->getAbsoluteDifferenceInDistanceFromFoodInverse(tracking ? std::stoi(GetId()) : -1));
         
         m_scores[6].push_back(static_cast<float>(m_food));
         

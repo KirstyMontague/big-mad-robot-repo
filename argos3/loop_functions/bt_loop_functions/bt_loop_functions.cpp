@@ -16,7 +16,12 @@ using namespace std::chrono;
 CBTLoopFunctions::CBTLoopFunctions() :
     m_pcFloor(NULL),
     m_count(0),
+    m_sqrtRobots(0),
+    m_iterations(0.0),
     m_nest(0.0),
+    m_food(0.0),
+    m_offset(0.0),
+    m_commsRange(0),
     m_gap(0.0),
     m_experimentLength(0)
 {
@@ -55,7 +60,6 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
     std::string configFilename = path+"/configuration.txt";
     std::ifstream configFile(configFilename);
     std::string line = "";
-    int trialLength = 0;
     std::string repertoireFilename = "";
     while( getline(configFile, line) )
     {
@@ -63,10 +67,14 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
         std::string key = line.substr(0, delimiter);
         std::string value = line.substr(delimiter + 1);
 
+        if (key == "iterations")
+        {
+            m_iterations = std::stoi(value);
+        }
         if (key == "experimentLength")
         {
-            m_experimentLength = std::stoi(value) * 8; // eight ticks per second
-            trialLength = (std::stoi(value) * 8) / 5; // five trials per experiment
+            // eight ticks per second
+            m_experimentLength = std::stoi(value) * 8;
         }
         if (key == "repertoireFilename")
         {
@@ -80,14 +88,26 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
         {
             m_food = std::stof(value);
         }
+        if (key == "offset")
+        {
+            m_offset = std::stof(value);
+        }
+        if (key == "commsRange")
+        {
+            m_commsRange = std::stoi(value);
+        }
     }
 
-    if (m_experimentLength == 0 || repertoireFilename == "" || m_nest == 0.0 || m_food == 0.0)
+    if (m_iterations == 0 || m_experimentLength == 0 || repertoireFilename == "" ||
+        m_nest == 0.0 || m_food == 0.0 || m_offset == 0.0 || m_commsRange == 0)
     {
+        std::cout << "iterations: " << std::to_string(m_iterations) << "\n";
         std::cout << "experimentLength: " << std::to_string(m_experimentLength) << "\n";
         std::cout << "repertoireFilename: " << repertoireFilename << "\n";
         std::cout << "nestRadius: " << std::to_string(m_nest) << "\n";
         std::cout << "foodRadius: " << std::to_string(m_food) << "\n";
+        std::cout << "offset: " << std::to_string(m_offset) << "\n";
+        std::cout << "commsRange: " << std::to_string(m_commsRange) << "\n";
         return;
     }
 
@@ -116,14 +136,13 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
     std::string chromosomeFilename = path+"/"+filename;
     std::ifstream chromosomeFile(chromosomeFilename);
     line = "";
-    int sqrtRobots = 0;
     std::string chromosome;
     while( getline(chromosomeFile, line) )
     {
         // number of robots
-        if (sqrtRobots == 0)
+        if (m_sqrtRobots == 0)
         {
-            sqrtRobots = std::stoi(line);
+            m_sqrtRobots = std::stoi(line);
         }
         // chromosome
         else
@@ -139,9 +158,9 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
         }
     }
 
-    if (sqrtRobots == 0 || chromosome == "")
+    if (m_sqrtRobots == 0 || chromosome == "")
     {
-        std::cout << "sqrtRobots: " << std::to_string(sqrtRobots) << "\n";
+        std::cout << "sqrtRobots: " << std::to_string(m_sqrtRobots) << "\n";
         std::cout << "chromosome: " << chromosome << "\n";
         return;
     }
@@ -229,50 +248,24 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
     std::cout << std::endl;
 
     // add robots
-    for (int i = 0; i < sqrtRobots; ++i)
+    for (int i = 0; i < m_sqrtRobots; ++i)
     {
-        for (int j = 0; j < sqrtRobots; ++j)
+        for (int j = 0; j < m_sqrtRobots; ++j)
         {
             //std::cout << "add robots " << j << std::endl;
-            CFootBotEntity* pcFB = new CFootBotEntity(std::to_string(i*sqrtRobots+j), "fswc");
+            CFootBotEntity* pcFB = new CFootBotEntity(std::to_string(i*m_sqrtRobots+j), "fswc");
             m_footbots.push_back(pcFB);
             AddEntity(*pcFB);
-            
-            CVector3 cFBPos;
-            CQuaternion cFBRot;
-            
-            // position
-            //double x = ((double) i - floor(sqrtRobots / 2)) / 4;
-            //double y = ((double) j - floor(sqrtRobots / 2)) / 4;
-            //cFBPos.Set(x, y, 0.0f);
-            //cFBPos.Set(-1.0f,0.0f,0.0f); --- uncomment to hard code robot position
-            
-            // rotation
-            auto r = m_pcRNG->Uniform(CRadians::UNSIGNED_RANGE);
-            cFBRot.FromAngleAxis(r, CVector3::Z);
-            // cFBRot.FromAngleAxis(CRadians(), CVector3::Z); --- uncomment to hard code robot orientation
-            
-            // random positions
-            CRange<Real> areaRange(-1.0, 1.0);
-            for (int k = 0; k < 10; ++k)
-            {
-                //std::cout << std::to_string(k) << std::endl;
-                double x = m_pcRNG->Uniform(areaRange) + 0.0;
-                double y = m_pcRNG->Uniform(areaRange) + 0.0;
-                cFBPos.Set(x, y, 0.0f);
-                
-                // place robot
-                if (MoveEntity(pcFB->GetEmbodiedEntity(), cFBPos, cFBRot))
-                {
-                    break;
-                }
-            }
+
+            //latticeFormation(pcFB, i, j);
+            randomFormation(pcFB);
 
             // create robot
             CFootBotBT& controller = dynamic_cast<CFootBotBT&>(pcFB->GetControllableEntity().GetController());
             controller.buildTree(tokens);
-            controller.createBlackBoard(sqrtRobots * sqrtRobots);
-            controller.setParams(m_nest, m_food, m_gap, trialLength);
+            controller.createBlackBoard(m_sqrtRobots * m_sqrtRobots);
+            controller.setParams(m_nest, m_food, m_offset, m_gap, m_commsRange, m_experimentLength / m_iterations);
+
             if (filename == "best.txt")
             {
                 controller.setPlayback(true);
@@ -282,6 +275,11 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 }
 
 CColor CBTLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane)
+{
+    return getFloorColorExp2(c_position_on_plane);
+}
+
+CColor CBTLoopFunctions::getFloorColorExp1(const CVector2& c_position_on_plane)
 {
     double x = c_position_on_plane.GetX();
     double y = c_position_on_plane.GetY();
@@ -305,40 +303,104 @@ CColor CBTLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane)
     return CColor::GRAY50; // food
 }
 
+CColor CBTLoopFunctions::getFloorColorExp2(const CVector2& c_position_on_plane)
+{
+    double x = c_position_on_plane.GetX();
+    double y = c_position_on_plane.GetY();
+
+    double rNest = sqrt((x * x) + ((y - m_offset) * (y - m_offset)));
+    double rFood = sqrt((x * x) + ((y + m_offset) * (y + m_offset)));
+
+    if (fmod(x, 1) == 0 || fmod(y, 1) == 0)
+    {
+        return CColor::GRAY80; // tile edges
+    }
+
+    else if (rNest < m_nest)
+    {
+        return CColor::RED; // nest
+    }
+
+    else if (rFood < m_food)
+    {
+        return CColor::GREEN; // food
+    }
+
+    return CColor::WHITE; // remaining space
+}
+
 void CBTLoopFunctions::PostStep()
 {
+    postStepRandom();
+}
+
+void CBTLoopFunctions::postStepRandom()
+{
     m_count++;
-    if (m_count % (m_experimentLength / 5) == 0) // evaluation time 160 for subbehaviours, 800 for foraging
-    {      
+    if (m_count % (m_experimentLength / m_iterations) == 0)
+    {
         for (CFootBotEntity* footbot : m_footbots)
         {
-            CVector3 cFBPos;
-            CQuaternion cFBRot;
-            
-            // rotation
-            auto r = m_pcRNG->Uniform(CRadians::UNSIGNED_RANGE);
-            cFBRot.FromAngleAxis(r, CVector3::Z);
-            // cFBRot.FromAngleAxis(CRadians(), CVector3::Z); --- uncomment to hard code robot orientation
-            
-            // random positions
-            CRange<Real> areaRange(-1.0, 1.0);
-            for (int k = 0; k < 10; ++k)
-            {
-                double x = m_pcRNG->Uniform(areaRange) + 0.0;
-                double y = m_pcRNG->Uniform(areaRange) + 0.0;
-                cFBPos.Set(x, y, 0.0f);
-                
-                // place robot
-                if (MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot))
-                {
-                    CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
-                    controller.setColour();
-                    break;
-                }
-            }
-        
+            randomFormation(footbot);
         }
     }
+}
+
+void CBTLoopFunctions::randomFormation(CFootBotEntity* footbot)
+{
+    CVector3 cFBPos;
+    CQuaternion cFBRot;
+
+    auto r = m_pcRNG->Uniform(CRadians::UNSIGNED_RANGE);
+    cFBRot.FromAngleAxis(r, CVector3::Z);
+
+    CRange<Real> areaRange(-1.0, 1.0);
+    for (int k = 0; k < 10; ++k)
+    {
+        double x = m_pcRNG->Uniform(areaRange) + 0.0;
+        double y = m_pcRNG->Uniform(areaRange) + 0.0;
+        cFBPos.Set(x, y, 0.0f);
+
+        if (MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot))
+        {
+            break;
+        }
+    }
+}
+
+void CBTLoopFunctions::postStepLattice()
+{
+    m_count++;
+    if (m_count % (m_experimentLength / m_iterations) == 0)
+    {
+        for (int i = 0; i < m_sqrtRobots; ++i)
+        {
+            for (int j = 0; j < m_sqrtRobots; ++j)
+            {
+                CFootBotEntity* footbot = m_footbots[i * m_sqrtRobots + j];
+                latticeFormation(footbot, i, j);
+            }
+        }
+    }
+}
+
+void CBTLoopFunctions::latticeFormation(CFootBotEntity* footbot, int i, int j)
+{
+    CVector3 cFBPos;
+    CQuaternion cFBRot;
+
+    auto r = m_pcRNG->Uniform(CRadians::UNSIGNED_RANGE);
+    cFBRot.FromAngleAxis(r, CVector3::Z);
+    // cFBRot.FromAngleAxis(CRadians(), CVector3::Z); --- uncomment to hard code robot orientation
+
+    double x = ((double) i - floor(m_sqrtRobots / 2)) / 1.2;
+    double y = ((double) j - floor(m_sqrtRobots / 2)) / 1.2;
+    cFBPos.Set(x, y, 0.0f);
+    //cFBPos.Set(-1.0f,0.0f,0.0f); // --- uncomment to hard code robot position
+
+    //std::cout << "add robots " << std::to_string(x) << " " << std::to_string(y) << std::endl;
+
+    MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot);
 }
 
 bool CBTLoopFunctions::IsExperimentFinished()

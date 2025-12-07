@@ -16,7 +16,7 @@ class eaParams():
         self.printContainer = False
 
         self.sqrtRobots = 3
-        self.iterations = 5
+        self.iterations = 10
         self.num_threads = 8
 
         self.indexes = [0]
@@ -84,8 +84,11 @@ class eaParams():
         self.trialSleep = 0.0
 
         # evaluation parameters for evolving and testing
-        self.nest = 0.5
-        self.arenaParams = [.5, .7]
+        self.nest_radius = 0.5
+        self.food_radius = 0.5
+        self.offset = 0.75
+        self.comms_range = 100
+        self.arenaParams = [.5]
         self.unseenIterations = 10
         self.unseenParams = [.3, .4, .5, .6, .7, .8, .9, 1.0]
 
@@ -176,11 +179,9 @@ class eaParams():
         self.runtime()
 
     def runtime(self):
-
-        restricted = ["experiment", "indexes", "bins_per_axis", "using_repertoire",
-                      "tournamentSize", "populationSize",
+        restricted = ["experiment", "indexes", "using_repertoire", "repertoire_type", "bins_per_axis",
+                      "tournamentSize", "populationSize", "food", "nest", "offset", "comms_range",
                       "csv_save_interval", "num_threads", "useArchive"]
-
         with open(self.shared_path+"/runtime.txt", "r") as f:
             for line in f:
                 data = line.split()
@@ -248,6 +249,10 @@ class eaParams():
 
         if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
         if data[0] == "populationSize": self.populationSize = int(data[1])
+        if data[0] == "food_radius": self.food_radius = float(data[1])
+        if data[0] == "nest_radius": self.nest_radius = float(data[1])
+        if data[0] == "offset": self.offset = float(data[1])
+        if data[0] == "comms_range": self.comms_range = float(data[1])
         if data[0] == "loadCheckpoint": self.loadCheckpoint = False if data[1] == "False" else True
         if data[0] == "runs": self.runs = int(data[1])
         if data[0] == "start_gen": self.start_gen = int(data[1])
@@ -269,6 +274,7 @@ class eaParams():
         if data[0] == "output_to_file": self.output_to_file = False if data[1] == "False" else True
         if data[0] == "output_interval": self.output_interval = int(data[1])
         if data[0] == "num_threads": self.num_threads = int(data[1])
+
         if data[0] == "stop":
             if len(data) > 1 and data[1] == "False":
                 self.stop = False
@@ -276,6 +282,7 @@ class eaParams():
                 self.stop = True
                 self.saveCSV = False
                 self.generations = 0
+
         if data[0] == "cancel":
             self.stop = True
             self.saveOutput = False

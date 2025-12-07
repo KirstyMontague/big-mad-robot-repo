@@ -30,8 +30,10 @@ public:
 
     void buildTree(std::vector<std::string> tokens);
     void createBlackBoard(int numRobots);
-    void setParams(float nest, float food, float gap, int trialLength);
+    void setParams(float nest, float food, float offset, float gap, int commsRange, int trialLength);
     void calculateDistances(double x, double y);
+    void calculateDistancesExp1(double x, double y);
+    void calculateDistancesExp2(double x, double y);
     void setColour();
     void setPlayback(bool playback);
 
@@ -61,10 +63,12 @@ private:
     CBlackBoard* m_blackBoard;
     float m_nestRadius;
     float m_foodRadius;
+    float m_offset;
+    float m_gap;
+    int m_commsRange;
+    int m_trialLength;
     float m_distFood;
     float m_distNest;
-    float m_gap;
-    int m_trialLength;
     int m_count;
     int m_food;
     int m_trackingID;

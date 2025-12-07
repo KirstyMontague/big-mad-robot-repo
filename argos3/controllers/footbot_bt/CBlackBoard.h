@@ -16,7 +16,6 @@ class CBlackBoard
             m_initialDistanceFromNest(-1.0),
             m_finalDistanceFromNest(-1.0),
             m_timeInNest(0),
-            m_distNestChange(0),
             m_firstEnteredNest(-1),
             m_inNest(false),
             
@@ -26,14 +25,12 @@ class CBlackBoard
             m_initialAbsoluteDistanceFromFood(-1.0),
             m_finalDistanceFromFood(-1.0),
             m_finalAbsoluteDistanceFromFood(-1.0),
-            m_distFoodChange(0),
             m_firstDetectedFood(-1),
             m_detectedFood(false), 
             m_carryingFood(false),
             
             // density
             m_density(0),
-            m_densityChange(0),
             m_totalDensity(0.0),
             m_firstDensityChange(-1),
             m_initialDensity(0.0),
@@ -70,9 +67,8 @@ class CBlackBoard
         float getFirstDetectedFood();
         
         float getDistFood() {return m_distFood;}
-        float getFoodChange() {return m_distFoodChange;}
         void updateDistFoodVector(float distance, int robotID = -1);
-        void setDistFood(bool first = false, int robotID = -1);
+        void setDistFood(int robotID);
         
         float getInitialDistanceFromFood() {return m_initialDistanceFromFood;}
         void setInitialDistanceFromFood(int robotID);
@@ -80,7 +76,7 @@ class CBlackBoard
         float getFinalDistanceFromFood() {return m_finalDistanceFromFood;}
         float getDifferenceInDistanceFromFood();
         float getDifferenceInDistanceFromFoodInverse(int robotID);
-        float getAbsoluteDifferenceInDistanceFromFoodInverse(float radius, int robotID);
+        float getAbsoluteDifferenceInDistanceFromFoodInverse(int robotID);
         void setFinalDistanceFromFood(int robotID);
         void setFinalAbsoluteDistanceFromFood(double distance, int robotID);
         
@@ -94,9 +90,8 @@ class CBlackBoard
         int getTimeInNest() {return m_timeInNest;}
         
         float getDistNest() {return m_distNest;}
-        float getNestChange() {return m_distNestChange;}
         void updateDistNestVector(float distance, int robotID);
-        void setDistNest(bool first = false, int robotID = -1);
+        void setDistNest(int robotID);
         
         float getInitialDistanceFromNest() {return m_initialDistanceFromNest;}
         void setInitialDistanceFromNest(int robotID);
@@ -108,10 +103,9 @@ class CBlackBoard
         // density
         
         float getDensity() {return m_density;}
-        float getDensityChange() {return m_densityChange;}
         float getAvgDensity(int count);
         void updateDensityVector(float density, int robotID = -1);
-        void setDensity(bool first = false, int robotID = -1);
+        void setDensity(int robotID);
         
         void setInitialDensity(int robotID = -1);
         float getInitialDensity() {return m_initialDensity;}
@@ -194,7 +188,6 @@ class CBlackBoard
         bool m_carryingFood;
         
         float m_distFood;
-        float m_distFoodChange;
         std::vector<float> m_distFoodVector;
         
         float m_initialDistanceFromFood;
@@ -205,7 +198,6 @@ class CBlackBoard
         // nest
         
         float m_distNest;
-        float m_distNestChange;
         std::vector<float> m_distNestVector;
         
         float m_initialDistanceFromNest;
@@ -219,7 +211,6 @@ class CBlackBoard
         
         float m_density;
         
-        float m_densityChange;
         std::vector<float> m_densityVector;
         float m_totalDensity;
         

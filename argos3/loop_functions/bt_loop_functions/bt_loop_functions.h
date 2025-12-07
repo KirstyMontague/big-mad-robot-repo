@@ -15,15 +15,26 @@ public:
     void Init(TConfigurationNode& t_tree) override;
 
     CColor GetFloorColor(const CVector2& c_position_on_plane) override;
+    CColor getFloorColorExp1(const CVector2& c_position_on_plane);
+    CColor getFloorColorExp2(const CVector2& c_position_on_plane);
+
     bool IsExperimentFinished() override;
     void PostStep() override;
+    void postStepRandom();
+    void postStepLattice();
+    void randomFormation(CFootBotEntity* pcFB);
+    void latticeFormation(CFootBotEntity* pcFB, int i, int j);
 
 private:
 
     CFloorEntity* m_pcFloor;
+    float m_sqrtRobots;
+    uint m_iterations;
     float m_nest;
     float m_food;
+    float m_offset;
     float m_gap;
+    int m_commsRange;
     uint m_experimentLength;
     uint m_count;
     CRandom::CRNG* m_pcRNG;
