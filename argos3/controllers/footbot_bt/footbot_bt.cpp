@@ -15,6 +15,7 @@ CFootBotBT::CFootBotBT() :
     m_pcRABS(NULL),
     m_rWheelVelocity(5.0f),
     m_lWheelVelocity(5.0f),
+    m_arenaLayout(0),
     m_nestRadius(0.0),
     m_foodRadius(0.0),
     m_offset(0.0),
@@ -38,10 +39,10 @@ CFootBotBT::~CFootBotBT()
     //3 inverse density
     //4 inverse nest
     //5 inverse food
-    //6 movement
-    //7 rotation
-    //8 conditionality
-    //9 food collected
+    //6 food collected
+    //7 movement
+    //8 rotation
+    //9 conditionality
     
     std::vector<int> x{0,1,2,3,4,5,6,7,8,9};
     for (int i : x)
@@ -104,7 +105,18 @@ void CFootBotBT::createBlackBoard(int numRobots)
 
 void CFootBotBT::calculateDistances(double x, double y)
 {
-    calculateDistancesExp2(x, y);
+    if (m_arenaLayout == 2)
+    {
+        calculateDistancesExp2(x, y);
+    }
+    else if (m_arenaLayout == 3)
+    {
+        calculateDistancesExp3(x, y);
+    }
+    else
+    {
+        calculateDistancesExp1(x, y);
+    }
 }
 
 void CFootBotBT::calculateDistancesExp1(double x, double y)
@@ -127,6 +139,19 @@ void CFootBotBT::calculateDistancesExp2(double x, double y)
     m_distFood = distFood < 0.0 ? 0.0 : distFood;
 }
 
+void CFootBotBT::calculateDistancesExp3(double x, double y)
+{
+    double foodX = x > 0.0 ? m_offset : m_offset * -1;
+    double foodY = y > 0.0 ? m_offset : m_offset * -1;
+
+    double distFood = sqrt(((x - foodX) * (x - foodX)) + ((y - foodY) * (y - foodY))) - m_foodRadius;
+
+    double distNest = sqrt((x * x) + (y * y)) - m_nestRadius;
+
+    m_distNest = distNest < 0.0 ? 0.0 : distNest;
+    m_distFood = distFood < 0.0 ? 0.0 : distFood;
+}
+
 void CFootBotBT::setColour()
 {
     if (m_blackBoard->getCarryingFood())
@@ -139,8 +164,9 @@ void CFootBotBT::setColour()
     }
 }
 
-void CFootBotBT::setParams(float nest, float food, float offset, float gap, int commsRange, int trialLength)
+void CFootBotBT::setParams(int arenaLayout, float nest, float food, float offset, float gap, int commsRange, int trialLength)
 {
+    m_arenaLayout = arenaLayout;
     m_nestRadius = nest;
     m_foodRadius = food;
     m_offset = offset;

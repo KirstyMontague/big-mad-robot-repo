@@ -35,10 +35,12 @@ if not params.stop:
 
     def evaluateOneIndividual():
 
-        ea = EA(params)
+        from pathlib import Path
+        params.local_path += "/1"
+        Path(params.local_path+"/").mkdir(parents=False, exist_ok=True)
+
         individual = ""
         sqrtRobots = 0
-
         with open(params.path()+"/best.txt", "r") as f:
             for line in f:
                 if sqrtRobots == 0:
@@ -46,6 +48,7 @@ if not params.stop:
                 elif individual == "":
                     individual = line
 
+        ea = EA(params)
         fitness = ea.utilities.evaluateRobot(individual, 1)
         print (fitness)
 

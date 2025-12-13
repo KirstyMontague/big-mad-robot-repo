@@ -17,6 +17,7 @@ public:
     CColor GetFloorColor(const CVector2& c_position_on_plane) override;
     CColor getFloorColorExp1(const CVector2& c_position_on_plane);
     CColor getFloorColorExp2(const CVector2& c_position_on_plane);
+    CColor getFloorColorExp3(const CVector2& c_position_on_plane);
 
     bool IsExperimentFinished() override;
     void PostStep() override;
@@ -30,6 +31,7 @@ private:
     CFloorEntity* m_pcFloor;
     float m_sqrtRobots;
     uint m_iterations;
+    int m_arenaLayout;
     float m_nest;
     float m_food;
     float m_offset;

@@ -1,3 +1,4 @@
+import math
 import numpy
 import os
 from pathlib import Path
@@ -83,12 +84,15 @@ class eaParams():
         self.evalSleep = 0.0
         self.trialSleep = 0.0
 
-        # evaluation parameters for evolving and testing
+        # arena parameters
         self.nest_radius = 0.5
         self.food_radius = 0.5
-        self.offset = 0.75
         self.comms_range = 100
+        self.arena_layout = 1
         self.arenaParams = [.5]
+        self.arenaOffset()
+
+        # evaluation parameters for testing
         self.unseenIterations = 10
         self.unseenParams = [.3, .4, .5, .6, .7, .8, .9, 1.0]
 
@@ -180,7 +184,7 @@ class eaParams():
 
     def runtime(self):
         restricted = ["experiment", "indexes", "using_repertoire", "repertoire_type", "bins_per_axis",
-                      "tournamentSize", "populationSize", "food", "nest", "offset", "comms_range",
+                      "tournamentSize", "populationSize", "arena_layout", "food_radius", "nest_radius", "offset", "comms_range",
                       "csv_save_interval", "num_threads", "useArchive"]
         with open(self.shared_path+"/runtime.txt", "r") as f:
             for line in f:
@@ -247,6 +251,10 @@ class eaParams():
             self.bins_per_axis = int(data[1])
             self.repertoire_size = self.bins_per_axis ** self.characteristics
 
+        if data[0] == "arena_layout":
+            self.arena_layout = int(data[1])
+            self.arenaOffset()
+
         if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
         if data[0] == "populationSize": self.populationSize = int(data[1])
         if data[0] == "food_radius": self.food_radius = float(data[1])
@@ -295,6 +303,19 @@ class eaParams():
                 f.write(text+"\n")
         else:
             print(text)
+
+    def arenaOffset(self):
+
+        default = self.nest_radius + self.food_radius + 0.5
+
+        if self.arena_layout == 2:
+            self.offset = default / 2
+
+        elif self.arena_layout == 3:
+            self.offset = math.sqrt((default * default) / 2)
+
+        else:
+            self.offset = 0.5
 
     def getRepertoireFilename(self):
         filename = self.shared_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description+"/"

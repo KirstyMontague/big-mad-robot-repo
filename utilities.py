@@ -570,6 +570,7 @@ class Utilities():
             f.write("foodRadius:"+str(self.params.food_radius)+"\n")
             f.write("offset:"+str(self.params.offset)+"\n")
             f.write("commsRange:"+str(self.params.comms_range)+"\n")
+            f.write("arenaLayout:"+str(self.params.arena_layout)+"\n")
 
     def saveParams(self):
 
