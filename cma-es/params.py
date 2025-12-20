@@ -67,6 +67,9 @@ class Params():
     def bestFilename(self):
         return self.shared_path+"/cma-es/"+self.experiment+"/"+self.objective+"/best-"+str(self.seed)+".txt"
 
+    def paramsFilename(self):
+        return self.shared_path+"/cma-es/"+self.experiment+"/"+self.objective+"/params-"+str(self.seed)+".txt"
+
     def console(self, text):
         if self.output_to_file:
             with open(self.shared_path+"/cma-es/console"+str(self.seed)+".txt", "a") as f:

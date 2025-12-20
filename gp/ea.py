@@ -159,6 +159,9 @@ class EA():
         if generation != 0 and generation % 100 == 0 and invalid_new == 0:
             time.sleep(10.0)
 
+        if invalid_new > 0:
+            time.sleep(self.params.genSleep)
+
         self.logs.logFitness(generation, best)
         self.logs.logQdScore(generation, self.grid.getQDScores())
         self.logs.logCoverage(generation, self.utilities.getCoverage(self.grid.grids[0]))
@@ -223,7 +226,6 @@ class EA():
 
         # get the best individual at the end of the evolutionary run
         best = self.utilities.getBestAll(population)
-        self.printIndividuals(best, True)
 
         self.checkpoint.save(self.params.generations, population, self.grid.grids, self.logs)
         self.archive.saveArchive(self.redundancy, self.params.generations)
@@ -245,8 +247,6 @@ class EA():
 
             generation += 1
 
-            time.sleep(self.params.genSleep)
-        
             elites = []
             for i in range(self.params.features):
                 elite = self.utilities.getBestHDRandom(population, i)

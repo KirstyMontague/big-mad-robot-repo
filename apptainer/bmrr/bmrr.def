@@ -56,4 +56,7 @@ From: ubuntu:22.04
     mv /home/tests/path.txt /home/tests/big-mad-robot-repo/
     /home/tests/build_bmrr.sh
 
+    cd /home/tests/big-mad-robot-repo
+    git rev-parse HEAD > ./revision.txt
+
 

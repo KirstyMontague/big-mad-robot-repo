@@ -5,6 +5,7 @@ import os
 import random
 import subprocess
 import threading
+import time
 
 from deap import tools
 from deap import base
@@ -148,12 +149,40 @@ class Utilities():
         fitnesses += "\n"
         self.params.console(fitnesses)
 
-    def printDuration(self, start_time, end_time):
+    def saveParams(self):
+
+        if self.params.saveOutput or self.params.saveCSV or self.params.saveBest:
+
+            params_string = "---\n\n"
+
+            with open("../revision.txt", "r") as f:
+                for line in f:
+                    params_string += "revision "+line+"\n"
+
+            params_string += "time: "+str(time.ctime()) + "\n"
+            params_string += "seed: "+str(self.params.seed) + "\n"
+            params_string += "\n"
+
+            with open(self.params.shared_path+"/config.txt", "r") as f:
+                for line in f:
+                    params_string += line
+
+            with open(self.params.paramsFilename(), 'a') as f:
+                f.write("\n"+params_string+"\n")
+
+    def saveDuration(self, start_time, end_time):
 
         duration = end_time - start_time
         minutes = (duration / 1000) / 60
         minutes_str = str("%.2f" % minutes)
         self.params.console("\nDuration " +minutes_str+" minutes\n")
+
+        if self.params.saveOutput or self.params.saveCSV or self.params.saveBest:
+            with open(self.params.paramsFilename(), 'a') as f:
+                f.write("---\n\n")
+                f.write("generations: "+str(self.params.generations) + "\n")
+                f.write("duration: "+minutes_str+" minutes ("+str(duration) + " ms)\n")
+                f.write("\n")
 
     def trimPopulationPrecision(self, population):
 

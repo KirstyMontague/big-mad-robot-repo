@@ -138,10 +138,11 @@ class eaParams():
                 path += "/baseline"
         return path
 
-    def csvInputFilename(self, gen, query): return self.basePath()+"/"+query+str(gen)+"-"+str(self.deapSeed)+".csv"
-    def csvOutputFilename(self, gen, query): return self.basePath()+"/"+query+str(gen)+"-"+str(self.deapSeed)+".csv"
-
     def path(self): return self.basePath()+"/"+str(self.deapSeed)+"/"
+
+    def csvInputFilename(self, gen, query): return self.path()+"/"+query+str(gen)+"-"+str(self.deapSeed)+".csv"
+    def csvOutputFilename(self, gen, query): return self.path()+"/"+query+str(gen)+"-"+str(self.deapSeed)+".csv"
+
     def checkpointInputFilename(self, gen): return self.path() + "checkpoint-"+self.description+"-"+str(self.deapSeed)+"-"+str(gen)
     def checkpointOutputFilename(self, gen): return self.path() + "checkpoint-"+self.description+"-"+str(self.deapSeed)+"-"+str(gen)
 
@@ -158,9 +159,6 @@ class eaParams():
         Path(self.local_path+"/").mkdir(parents=False, exist_ok=True)
 
         if self.saveOutput or self.saveCSV or self.saveCheckpoint:
-            Path(self.basePath()).mkdir(parents=True, exist_ok=True)
-
-        if self.saveOutput or self.saveCheckpoint:
             Path(self.path()).mkdir(parents=True, exist_ok=True)
 
     def deleteTempFiles(self):

@@ -612,27 +612,38 @@ class Utilities():
 
     def saveParams(self):
 
-        if self.params.saveOutput or self.params.saveCheckpoint:
+        if self.params.saveOutput or self.params.saveCheckpoint or self.params.saveCSV:
+
+            params_string = "---\n\n"
+
+            with open("../revision.txt", "r") as f:
+                for line in f:
+                    params_string += "revision "+line+"\n"
+
+            params_string += "time: "+str(time.ctime()) + "\n"
+            params_string += "seed: "+str(self.params.deapSeed) + "\n"
+            params_string += "\n"
+
+            with open(self.params.shared_path+"/config.txt", "r") as f:
+                for line in f:
+                    params_string += line
+
             with open(self.params.path()+"params.txt", 'a') as f:
-                f.write("\n")
-                f.write("time: "+str(time.ctime()) + "\n")
-                f.write("deapSeed: "+str(self.params.deapSeed) + "\n")
-                f.write("populationSize: "+str(self.params.populationSize) + "\n")
-                f.write("tournamentSize: "+str(self.params.tournamentSize) + "\n")
-                f.write("features: "+str(self.params.features) + "\n")
-                f.write("description: "+self.params.description + "\n")
+                f.write("\n"+params_string+"\n")
 
     def saveDuration(self, start_time, end_time):
 
         duration = end_time - start_time
         minutes = (duration / 1000) / 60
         minutes_str = str("%.2f" % minutes)
-        self.params.console("Duration " +minutes_str+"\n")
+        self.params.console("\nDuration " +minutes_str+" minutes\n")
 
-        if self.params.saveOutput:
+        if self.params.saveOutput or self.params.saveCheckpoint or self.params.saveCSV:
             with open(self.params.path()+"params.txt", 'a') as f:
+                f.write("---\n\n")
                 f.write("generations: "+str(self.params.generations) + "\n")
-                f.write("duration: "+str(duration) + " ms ("+minutes_str+" minutes)\n")
+                f.write("duration: "+minutes_str+" minutes ("+str(duration) + " ms)\n")
+                f.write("\n")
 
     def evaluate(self, assign_fitness, invalid_ind):
 

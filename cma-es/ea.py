@@ -28,6 +28,7 @@ class EA():
             return
 
         self.configure()
+        print()
 
         if self.params.cancelled:
             self.params.console("\naborted\n")
@@ -67,7 +68,6 @@ class EA():
     def eaFinish(self, start_time, population):
 
         end_time = round(time.time() * 1000)
-        self.utilities.printDuration(start_time, end_time)
 
         if os.path.exists(self.params.local_path+"/runtime.txt"):
             os.remove(self.params.local_path+"/runtime.txt")
@@ -80,6 +80,8 @@ class EA():
         if self.params.saveOutput or self.params.saveCSV or self.params.saveBest:
             output_path = self.params.shared_path+"/cma-es/"+self.params.experiment+"/"+self.params.objective+"/"
             Path(output_path).mkdir(parents=True, exist_ok=True)
+            self.utilities.saveParams()
+            self.utilities.saveDuration(start_time, end_time)
 
         if self.params.saveBest:
             with open(self.params.bestFilename(), "w") as f:
