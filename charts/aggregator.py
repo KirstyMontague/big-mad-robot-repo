@@ -72,6 +72,30 @@ class Aggregator():
                 path += "/baseline"
         return path
 
+    def checkFilesExist(self):
+
+        message = ""
+
+        for query in self.queries:
+
+            missing = 0
+            for i in range(1, self.runs + 1):
+
+                filename = self.input_path+"/"+query+str(self.generations)+"-"+str(i)+".csv"
+
+                if not os.path.exists(filename):
+                    missing += 1
+
+            if missing > 0:
+                message += str(missing)+" files missing for "+query+"\n"
+
+        if len(message) == 0:
+            print("\nFound all files\n")
+
+        else:
+            print("\n"+message)
+            self.cancelled = True
+
     def getResults(self):
 
         print("\nReading from "+self.input_path+"\n")
@@ -103,9 +127,6 @@ class Aggregator():
                             if columns[0] not in ["Type", "Objective"]:
                                 entries.append(line)
                                 break
-
-                else:
-                    print(filename+" not found")
 
             results_per_query.append(entries)
 
@@ -144,36 +165,40 @@ class Aggregator():
                         confirmed = True
                         print()
                     else:
-                        print("\ncancelled\n")
-                        return False
+                        self.cancelled = True
+                        print("\nCancelled\n")
+                        return
 
                 print("Writing to "+filename)
                 with open(filename, "w") as f:
                     for entry in entries:
                         f.write(entry)
 
-        return True
 
     def removeOldFiles(self):
 
         print()
-        test = input("\nDelete input files from "+self.input_path+"? (y/N)\n")
+        test = input("Delete input files from "+self.input_path+"? (y/N)\n")
         if test != "y":
             print("\nCancelled\n")
             return
 
+        print("\nDeleting from "+self.input_path+"\n")
+
         for query in self.queries:
+
+            removed = 0
 
             for i in range(1, self.runs + 1):
 
                 filename = self.input_path+"/"+query+str(self.generations)+"-"+str(i)+".csv"
 
                 if os.path.exists(filename):
+                    removed += 1
                     os.remove(filename)
-                    print(filename+" removed")
-                else:
-                    print(filename+" not found")
-            print()
+
+            print("Removed "+str(removed)+" files for "+query)
+        print()
 
 
 if __name__ == "__main__":
@@ -181,15 +206,18 @@ if __name__ == "__main__":
     aggregator = Aggregator()
 
     if aggregator.cancelled:
-        print("\naborted\n")
+        print("\nAborted\n")
 
     else:
         aggregator.queries = ["best", "qd-scores", "coverage"]
         if aggregator.algorithm == "cma-es":
             aggregator.queries = ["best"]
 
-        results_per_query = aggregator.getResults()
-        results_saved = aggregator.writeCSV(results_per_query)
+        aggregator.checkFilesExist()
 
-        if results_saved:
-           aggregator.removeOldFiles()
+        if not aggregator.cancelled:
+            results_per_query = aggregator.getResults()
+            aggregator.writeCSV(results_per_query)
+
+        if not aggregator.cancelled:
+            aggregator.removeOldFiles()

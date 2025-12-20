@@ -45,13 +45,14 @@ class Utilities():
     def __init__(self, params, behaviours = None):
         self.params = params
         self.behaviours = behaviours
+        self.primitivetree = gp.PrimitiveTree([])
     
     def setupToolbox(self, tournament):
 
         toolbox = base.Toolbox()
 
-        pset = local.PrimitiveSetExtended("MAIN", 0)
-        self.params.addNodes(pset)
+        self.pset = local.PrimitiveSetExtended("MAIN", 0)
+        self.params.addNodes(self.pset)
 
         weights = [] if self.params.is_qdpy else [(1.0),(1.0),(1.0)]
         for i in range(self.params.features): weights.append(1.0)
@@ -59,7 +60,7 @@ class Utilities():
         creator.create("Fitness", base.Fitness, weights=(weights))
         creator.create("Individual", gp.PrimitiveTree, fitness=creator.Fitness)
 
-        toolbox.register("expr_init", local.genFull, pset=pset, min_=1, max_=4)
+        toolbox.register("expr_init", local.genFull, pset=self.pset, min_=1, max_=4)
 
         toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr_init)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
@@ -74,12 +75,12 @@ class Utilities():
 
         toolbox.register("mate", gp.cxOnePoint)
         toolbox.register("expr_mut", local.genFull, min_=0, max_=2)
-        toolbox.register("mutSubtreeReplace", local.mutUniform, expr=toolbox.expr_mut, pset=pset)
+        toolbox.register("mutSubtreeReplace", local.mutUniform, expr=toolbox.expr_mut, pset=self.pset)
         toolbox.register("mutSubtreeShrink", local.mutShrink)
-        toolbox.register("mutNodeReplace", local.mutNodeReplacement, pset=pset)
+        toolbox.register("mutNodeReplace", local.mutNodeReplacement, pset=self.pset)
 
         # for creating trimmed population
-        toolbox.register("expr_empty", local.genEmpty, pset=pset, min_=1, max_=4)
+        toolbox.register("expr_empty", local.genEmpty, pset=self.pset, min_=1, max_=4)
         toolbox.register("empty_individual", tools.initIterate, creator.Individual, toolbox.expr_empty)
         toolbox.register("empty_population", tools.initRepeat, list, toolbox.empty_individual)
 
@@ -228,13 +229,11 @@ class Utilities():
 
     def getTrimmedPopulation(self, offspring, redundancy):
 
-        primitivetree = gp.PrimitiveTree([])
-        pset = local.PrimitiveSetExtended("MAIN", 0)
         trimmed = self.toolbox.empty_population(n=len(offspring))
 
         for i in range(len(offspring)):
             trimmed_str = redundancy.removeRedundancy(str(offspring[i]))
-            trimmed_tree = primitivetree.from_string(trimmed_str, redundancy.pset)
+            trimmed_tree = self.primitivetree.from_string(trimmed_str, self.pset)
             trimmed_ind = creator.Individual(trimmed_tree)
             trimmed[i] = trimmed_ind
         
@@ -257,6 +256,45 @@ class Utilities():
             output += "---\n"
 
         self.params.console(output)
+
+    def writeContainerToString(self, container):
+
+        container_string = ""
+        for ind in container:
+            container_string += str(ind)+":"
+            container_string += str(ind.fitness)+":"
+            container_string += str(ind.features)+"\n"
+        return container_string
+
+    def readContainerFromString(self, container, filename):
+
+        individuals = []
+        with open(filename, "r") as f:
+            for line in f:
+                parts = line.split(":")
+                ind = parts[0]
+                fitness = float(parts[1][1:-2])
+                features = parts[2][1:-2].split(", ")
+                features[0] = float(features[0])
+                features[1] = float(features[1])
+                features[2] = float(features[2])
+
+                tree = self.primitivetree.from_string(ind, self.pset)
+                individual = creator.Individual(tree)
+                individual.fitness.values = (fitness, )
+                individual.features = features
+
+                individuals.append(individual)
+
+        population = self.toolbox.empty_population(n=len(individuals))
+
+        for j in range(len(population)):
+            population[j] = individuals[j]
+
+        self.removeDuplicates(population, container)
+        container.update(population, issue_warning = True)
+
+        return container
 
     def printBestMax(self, container, qty = 1):
         

@@ -12,7 +12,7 @@ class Checkpoint():
 
     def read(self):
 
-        with open(self.params.checkpointInputFilename(self.params.start_gen), "rb") as checkpoint_file:
+        with open(self.params.checkpointInputFilename(self.params.start_gen)+".pkl", "rb") as checkpoint_file:
             checkpoint = pickle.load(checkpoint_file)
         population = checkpoint["population"]
         containers = checkpoint["containers"]
@@ -52,7 +52,7 @@ class Checkpoint():
 
     def load(self, logs):
 
-        with open(self.params.checkpointInputFilename(self.params.start_gen), "rb") as checkpoint_file:
+        with open(self.params.checkpointInputFilename(self.params.start_gen)+".pkl", "rb") as checkpoint_file:
             checkpoint = pickle.load(checkpoint_file)
 
         random.setstate(checkpoint["rndstate"])
@@ -65,17 +65,26 @@ class Checkpoint():
         return checkpoint["population"], checkpoint["containers"]
 
     def save(self, generation, population, containers, logs):
-        
-        if self.params.saveCheckpoint and (generation % self.params.save_period == 0 or generation == self.params.generations):
 
-            checkpoint = dict(containers=containers,
-                              population=population,
-                              generation=self.params.generations,
-                              fitness=logs.best,
-                              qd_scores=logs.qd_scores,
-                              coverage=logs.coverage,
-                              save_interval=self.params.csv_save_interval,
-                              rndstate=random.getstate())
+        if generation % self.params.save_period == 0 or generation == self.params.generations:
 
-            with open(self.params.checkpointOutputFilename(generation), "wb") as checkpoint_file:
-                 pickle.dump(checkpoint, checkpoint_file)
+            if self.params.saveCheckpoint:
+
+                checkpoint = dict(containers=containers,
+                                  population=population,
+                                  generation=self.params.generations,
+                                  fitness=logs.best,
+                                  qd_scores=logs.qd_scores,
+                                  coverage=logs.coverage,
+                                  save_interval=self.params.csv_save_interval,
+                                  rndstate=random.getstate())
+
+                with open(self.params.checkpointOutputFilename(generation)+".pkl", "wb") as checkpoint_file:
+                     pickle.dump(checkpoint, checkpoint_file)
+
+            if self.params.saveContainer:
+
+                container_string = self.utilities.writeContainerToString(containers[0])
+                filename = self.params.checkpointOutputFilename(generation)+".txt"
+                with open(filename, "w") as f:
+                     f.write(container_string)

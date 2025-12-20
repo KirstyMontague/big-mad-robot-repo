@@ -37,6 +37,7 @@ class eaParams():
         self.useArchive = False
         self.saveOutput = False
         self.saveCSV = False
+        self.saveContainer = False
 
         self.stop = False
 
@@ -141,8 +142,8 @@ class eaParams():
     def csvOutputFilename(self, gen, query): return self.basePath()+"/"+query+str(gen)+"-"+str(self.deapSeed)+".csv"
 
     def path(self): return self.basePath()+"/"+str(self.deapSeed)+"/"
-    def checkpointInputFilename(self, gen): return self.path() + "checkpoint-"+self.description+"-"+str(self.deapSeed)+"-"+str(gen)+".pkl"
-    def checkpointOutputFilename(self, gen): return self.path() + "checkpoint-"+self.description+"-"+str(self.deapSeed)+"-"+str(gen)+".pkl"
+    def checkpointInputFilename(self, gen): return self.path() + "checkpoint-"+self.description+"-"+str(self.deapSeed)+"-"+str(gen)
+    def checkpointOutputFilename(self, gen): return self.path() + "checkpoint-"+self.description+"-"+str(self.deapSeed)+"-"+str(gen)
 
     def input_filename(self): return self.path() + "seed"+str(self.deapSeed)+"-"+self.start_point+".p"
     def iteration_filename(self): return self.path() + "seed"+str(self.deapSeed)+"-iteration%i.p"
@@ -274,7 +275,10 @@ class eaParams():
         if data[0] == "useArchive": self.useArchive = True if data[1] == "True" else False
         if data[0] == "saveOutput": self.saveOutput = False if data[1] == "False" else True
         if data[0] == "saveCSV": self.saveCSV = False if data[1] == "False" else True
+        if data[0] == "readCheckpoint": self.readCheckpoint = False if data[1] == "False" else True
+        if data[0] == "loadCheckpoint": self.loadCheckpoint = False if data[1] == "False" else True
         if data[0] == "saveCheckpoint": self.saveCheckpoint = False if data[1] == "False" else True
+        if data[0] == "saveContainer": self.saveContainer = False if data[1] == "False" else True
         if data[0] == "save_period": self.save_period = int(data[1])
         if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
         if data[0] == "csv_save_interval": self.csv_save_interval = int(data[1])
@@ -282,6 +286,7 @@ class eaParams():
         if data[0] == "output_to_file": self.output_to_file = False if data[1] == "False" else True
         if data[0] == "output_interval": self.output_interval = int(data[1])
         if data[0] == "num_threads": self.num_threads = int(data[1])
+        if data[0] == "input_type": self.input_type = data[1]
 
         if data[0] == "stop":
             if len(data) > 1 and data[1] == "False":

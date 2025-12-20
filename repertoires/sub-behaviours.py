@@ -7,23 +7,36 @@ from pathlib import Path
 
 from deap import creator
 
+from containers import *
 import local
+
 from redundancy import Redundancy
 from params import eaParams
+from utilities import Utilities
 
 class SubBehaviours():
 
     def __init__(self):
 
-        self.save = True
-        self.runs = 30
-        self.generation = 10
-        self.go_away_from_food = "absolute"
+        self.save = False
+        self.runs = 0
+        self.generation = 0
+        self.go_away_from_food = "perceived"
 
         self.pset = local.PrimitiveSetExtended("MAIN", 0)
         self.params = eaParams()
         self.params.addUnpackedNodes(self.pset)
+        self.params.is_qdpy = True
+        self.params.input_type = "separate"
         self.params.configure()
+        print()
+
+        self.save = self.params.saveOutput
+        self.runs = self.params.runs
+        self.generation = self.params.generations
+
+        self.utilities = Utilities(self.params)
+        self.utilities.setupToolbox(self.selTournament)
 
         if self.params.using_repertoire:
             self.params.using_repertoire = False
@@ -77,24 +90,26 @@ class SubBehaviours():
 
         for objective in self.sub_behaviours:
 
-            containers = []
-
             results_dir = self.input_path+"/qdpy/"+self.input_dir+"/"+objective
             if objective == "ifood":
                 results_dir += "-"+self.go_away_from_food+"-position"
 
-            for seed in range(1, self.runs + 1):
+            container = (Grid(shape = [8,8,8],
+                              max_items_per_bin = 3,
+                              fitness_domain = [(0.,1.0),],
+                              features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)],
+                              storage_type=list))
 
-                input_filename = results_dir+"/"+str(seed)+"/checkpoint-"+objective+"-"+str(seed)+"-"+str(self.generation)+".pkl"
-
-                with open(input_filename, "rb") as f:
-                    data = pickle.load(f)
-
-                for i in data:
-                    if str(i) == "containers":
-                        container = data[i][0]
-
-                containers.append(container)
+            if self.params.input_type == "combined":
+                input_filename = self.input_path+"/qdpy/"+self.input_dir+"/"+str(objective)
+                if objective == "ifood":
+                    input_filename += "-"+self.go_away_from_food+"-position"
+                input_filename += ".txt"
+                self.utilities.readContainerFromString(container, input_filename)
+            else:
+                for seed in range(1, self.runs + 1):
+                    input_filename = results_dir+"/"+str(seed)+"/checkpoint-"+objective+"-"+str(seed)+"-"+str(self.generation)+".txt"
+                    self.utilities.readContainerFromString(container, input_filename)
 
             for a in range(self.bins):
 
@@ -111,7 +126,7 @@ class SubBehaviours():
                         index = a*self.bins*self.bins + b*self.bins + c + 1
 
                         output = ""
-                        ind = self.getBestEverFromSubset(containers, objective, xa, yb, zc, self.bins)
+                        ind = self.getBestEverFromSubset([container], objective, xa, yb, zc, self.bins)
 
                         if ind is not None:
                             trimmed = self.redundancy.removeRedundancy(str(ind))
@@ -256,6 +271,9 @@ class SubBehaviours():
                     best = ind
 
         return best
+
+    def selTournament(self):
+        return []
 
 sub_behaviours = SubBehaviours()
 sub_behaviours.run()
