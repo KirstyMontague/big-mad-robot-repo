@@ -16,8 +16,6 @@ class eaParams():
         self.printOffspring = False
         self.printContainer = False
 
-        self.sqrtRobots = 3
-        self.iterations = 10
         self.num_threads = 8
 
         self.indexes = [0]
@@ -86,11 +84,15 @@ class eaParams():
         self.trialSleep = 0.0
 
         # arena parameters
-        self.nest_radius = 0.5
-        self.food_radius = 0.5
+        self.sqrt_robots = 3
+        self.iterations = 5
         self.comms_range = 100
         self.arena_layout = 1
-        self.arenaParams = [.5]
+
+        # food and nest parameters
+        self.nest_radius = 0.5
+        self.food_radius = 0.5
+        self.arenaParams = [.5, 0.7]
         self.arenaOffset()
 
         # evaluation parameters for testing

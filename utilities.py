@@ -93,7 +93,7 @@ class Utilities():
         
         # save number of robots and chromosome to file
         with open(self.params.local_path+'/chromosome'+str(thread_index)+'.txt', 'w') as f:
-            f.write(str(self.params.sqrtRobots))
+            f.write(str(self.params.sqrt_robots))
             f.write("\n")
             f.write(str(individual))
         
@@ -194,9 +194,9 @@ class Utilities():
                 index = (feature * self.params.iterations) + i
                 thisFitness += float(robots[r][index])
         # divide to get average for this iteration, normalise and add to running total
-        thisFitness /= self.params.sqrtRobots * self.params.sqrtRobots
+        thisFitness /= self.params.sqrt_robots * self.params.sqrt_robots
         thisFitness /= maxScore
-        
+
         return thisFitness
     
     def getAvgAndDerate(self, score, individual, deratingFactor):
@@ -445,8 +445,6 @@ class Utilities():
         
         if self.params.saveOutput:
             with open(self.params.path()+'best.txt', 'w') as f:
-                f.write(str(self.params.sqrtRobots))
-                f.write("\n")
                 f.write(str(best))
 
     def saveBestIndividuals(self, population, generation):
@@ -601,6 +599,7 @@ class Utilities():
             experiment_length = 20 * self.params.iterations
 
         with open(self.params.local_path+'/configuration.txt', 'w') as f:
+            f.write("sqrtRobots:"+str(self.params.sqrt_robots)+"\n")
             f.write("iterations:"+str(self.params.iterations)+"\n")
             f.write("experimentLength:"+str(experiment_length)+"\n")
             f.write("repertoireFilename:"+self.params.getRepertoireFilename()+"\n")

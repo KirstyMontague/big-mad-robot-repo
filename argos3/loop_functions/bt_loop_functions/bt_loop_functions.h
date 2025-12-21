@@ -18,6 +18,7 @@ public:
     CColor getFloorColorExp1(const CVector2& c_position_on_plane);
     CColor getFloorColorExp2(const CVector2& c_position_on_plane);
     CColor getFloorColorExp3(const CVector2& c_position_on_plane);
+    CColor getFloorColorExp4(const CVector2& c_position_on_plane);
 
     bool IsExperimentFinished() override;
     void PostStep() override;

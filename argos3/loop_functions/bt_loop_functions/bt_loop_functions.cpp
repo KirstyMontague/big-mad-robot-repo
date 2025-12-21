@@ -68,6 +68,10 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
         std::string key = line.substr(0, delimiter);
         std::string value = line.substr(delimiter + 1);
 
+        if (key == "sqrtRobots")
+        {
+            m_sqrtRobots = std::stoi(value);
+        }
         if (key == "iterations")
         {
             m_iterations = std::stoi(value);
@@ -103,9 +107,11 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
         }
     }
 
-    if (m_iterations == 0 || m_experimentLength == 0 || repertoireFilename == "" ||
+    if (m_sqrtRobots == 0 || m_iterations == 0 || m_experimentLength == 0 || repertoireFilename == "" ||
         m_arenaLayout == 0 || m_nest == 0.0 || m_food == 0.0 || m_offset == 0.0 || m_commsRange == 0)
     {
+        std::cout << "cancelled\n";
+        std::cout << "m_sqrtRobots: " << std::to_string(m_sqrtRobots) << "\n";
         std::cout << "iterations: " << std::to_string(m_iterations) << "\n";
         std::cout << "experimentLength: " << std::to_string(m_experimentLength) << "\n";
         std::cout << "repertoireFilename: " << repertoireFilename << "\n";
@@ -114,6 +120,7 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
         std::cout << "foodRadius: " << std::to_string(m_food) << "\n";
         std::cout << "offset: " << std::to_string(m_offset) << "\n";
         std::cout << "commsRange: " << std::to_string(m_commsRange) << "\n";
+        m_experimentLength = 0;
         return;
     }
 
@@ -133,8 +140,10 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 
     if (seed == -1 || m_gap == 0.0)
     {
+        std::cout << "cancelled\n";
         std::cout << "seed: " << std::to_string(seed) << "\n";
         std::cout << "gap: " << std::to_string(m_gap) << "\n";
+        m_experimentLength = 0;
         return;
     }
 
@@ -145,29 +154,21 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
     std::string chromosome;
     while( getline(chromosomeFile, line) )
     {
-        // number of robots
-        if (m_sqrtRobots == 0)
-        {
-            m_sqrtRobots = std::stoi(line);
-        }
-        // chromosome
-        else
-        {
-            //std::cout << line << std::endl;
-            line.erase(std::remove(line.begin(), line.end(), ','), line.end());
-            
-            std::replace( line.begin(), line.end(), '(', ' ');
-            std::replace( line.begin(), line.end(), ')', ' ');
-            
-            chromosome = line;
-            std::cout << chromosome << std::endl;
-        }
+        //std::cout << line << std::endl;
+        line.erase(std::remove(line.begin(), line.end(), ','), line.end());
+
+        std::replace( line.begin(), line.end(), '(', ' ');
+        std::replace( line.begin(), line.end(), ')', ' ');
+
+        chromosome = line;
+        std::cout << chromosome << std::endl;
     }
 
-    if (m_sqrtRobots == 0 || chromosome == "")
+    if (chromosome == "")
     {
-        std::cout << "sqrtRobots: " << std::to_string(m_sqrtRobots) << "\n";
+        std::cout << "cancelled\n";
         std::cout << "chromosome: " << chromosome << "\n";
+        m_experimentLength = 0;
         return;
     }
 
@@ -284,6 +285,10 @@ CColor CBTLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane)
     {
         return getFloorColorExp3(c_position_on_plane);
     }
+    else if (m_arenaLayout == 4)
+    {
+        return getFloorColorExp4(c_position_on_plane);
+    }
     else
     {
         return getFloorColorExp1(c_position_on_plane);
@@ -362,6 +367,29 @@ CColor CBTLoopFunctions::getFloorColorExp3(const CVector2& c_position_on_plane)
     }
 
     else if (rFood < m_food)
+    {
+        return CColor::GREEN; // food
+    }
+
+    return CColor::GRAY90; // remaining space
+}
+
+CColor CBTLoopFunctions::getFloorColorExp4(const CVector2& c_position_on_plane)
+{
+    double x = c_position_on_plane.GetX();
+    double y = c_position_on_plane.GetY();
+
+    if (fmod(x, 1) == 0 || fmod(y, 1) == 0)
+    {
+        return CColor::GRAY80; // tile edges
+    }
+
+    if (y > m_gap / 2)
+    {
+        return CColor::RED; // nest
+    }
+
+    else if (y < m_gap / 2 * -1)
     {
         return CColor::GREEN; // food
     }

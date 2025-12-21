@@ -35,6 +35,7 @@ public:
     void calculateDistancesExp1(double x, double y);
     void calculateDistancesExp2(double x, double y);
     void calculateDistancesExp3(double x, double y);
+    void calculateDistancesExp4(double x, double y);
     void setColour();
     void setPlayback(bool playback);
 

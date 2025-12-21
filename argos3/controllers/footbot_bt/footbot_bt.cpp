@@ -113,6 +113,10 @@ void CFootBotBT::calculateDistances(double x, double y)
     {
         calculateDistancesExp3(x, y);
     }
+    else if (m_arenaLayout == 4)
+    {
+        calculateDistancesExp4(x, y);
+    }
     else
     {
         calculateDistancesExp1(x, y);
@@ -147,6 +151,15 @@ void CFootBotBT::calculateDistancesExp3(double x, double y)
     double distFood = sqrt(((x - foodX) * (x - foodX)) + ((y - foodY) * (y - foodY))) - m_foodRadius;
 
     double distNest = sqrt((x * x) + (y * y)) - m_nestRadius;
+
+    m_distNest = distNest < 0.0 ? 0.0 : distNest;
+    m_distFood = distFood < 0.0 ? 0.0 : distFood;
+}
+
+void CFootBotBT::calculateDistancesExp4(double x, double y)
+{
+    double distNest = (m_gap / 2) - y;
+    double distFood = (m_gap / 2) + y;
 
     m_distNest = distNest < 0.0 ? 0.0 : distNest;
     m_distFood = distFood < 0.0 ? 0.0 : distFood;
