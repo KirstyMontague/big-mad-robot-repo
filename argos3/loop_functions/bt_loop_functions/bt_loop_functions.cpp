@@ -97,10 +97,6 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
         {
             m_food = std::stof(value);
         }
-        if (key == "offset")
-        {
-            m_offset = std::stof(value);
-        }
         if (key == "commsRange")
         {
             m_commsRange = std::stoi(value);
@@ -108,7 +104,7 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
     }
 
     if (m_sqrtRobots == 0 || m_iterations == 0 || m_experimentLength == 0 || repertoireFilename == "" ||
-        m_arenaLayout == 0 || m_nest == 0.0 || m_food == 0.0 || m_offset == 0.0 || m_commsRange == 0)
+        m_arenaLayout == 0 || m_nest == 0.0 || m_food == 0.0 || m_commsRange == 0)
     {
         std::cout << "cancelled\n";
         std::cout << "m_sqrtRobots: " << std::to_string(m_sqrtRobots) << "\n";
@@ -118,7 +114,6 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
         std::cout << "arenaLayout: " << std::to_string(m_arenaLayout) << "\n";
         std::cout << "nestRadius: " << std::to_string(m_nest) << "\n";
         std::cout << "foodRadius: " << std::to_string(m_food) << "\n";
-        std::cout << "offset: " << std::to_string(m_offset) << "\n";
         std::cout << "commsRange: " << std::to_string(m_commsRange) << "\n";
         m_experimentLength = 0;
         return;
@@ -147,7 +142,7 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
         return;
     }
 
-    // read number of robots and chromosome from file
+    // read chromosome from file
     std::string chromosomeFilename = path+"/"+filename;
     std::ifstream chromosomeFile(chromosomeFilename);
     line = "";
@@ -265,7 +260,7 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
             CFootBotBT& controller = dynamic_cast<CFootBotBT&>(pcFB->GetControllableEntity().GetController());
             controller.buildTree(tokens);
             controller.createBlackBoard(m_sqrtRobots * m_sqrtRobots);
-            controller.setParams(m_arenaLayout, m_nest, m_food, m_offset, m_gap, m_commsRange, m_experimentLength / m_iterations);
+            controller.setParams(m_arenaLayout, m_nest, m_food, m_gap, m_commsRange, m_experimentLength / m_iterations);
 
             if (filename == "best.txt")
             {
@@ -324,8 +319,8 @@ CColor CBTLoopFunctions::getFloorColorExp2(const CVector2& c_position_on_plane)
     double x = c_position_on_plane.GetX();
     double y = c_position_on_plane.GetY();
 
-    double rNest = sqrt((x * x) + ((y - m_offset) * (y - m_offset)));
-    double rFood = sqrt((x * x) + ((y + m_offset) * (y + m_offset)));
+    double rNest = sqrt((x * x) + ((y - m_gap) * (y - m_gap)));
+    double rFood = sqrt((x * x) + ((y + m_gap) * (y + m_gap)));
 
     if (fmod(x, 1) == 0 || fmod(y, 1) == 0)
     {
@@ -350,8 +345,8 @@ CColor CBTLoopFunctions::getFloorColorExp3(const CVector2& c_position_on_plane)
     double x = c_position_on_plane.GetX();
     double y = c_position_on_plane.GetY();
 
-    double foodX = x > 0.0 ? m_offset : m_offset * -1;
-    double foodY = y > 0.0 ? m_offset : m_offset * -1;
+    double foodX = x > 0.0 ? m_gap : m_gap * -1;
+    double foodY = y > 0.0 ? m_gap : m_gap * -1;
     double rFood = sqrt(((x - foodX) * (x - foodX)) + ((y - foodY) * (y - foodY)));
 
     double rNest = sqrt((x * x) + (y * y));

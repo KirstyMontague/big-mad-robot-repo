@@ -18,7 +18,6 @@ CFootBotBT::CFootBotBT() :
     m_arenaLayout(0),
     m_nestRadius(0.0),
     m_foodRadius(0.0),
-    m_offset(0.0),
     m_commsRange(0),
     m_distNest(0.0),
     m_distFood(0.0),
@@ -136,8 +135,8 @@ void CFootBotBT::calculateDistancesExp1(double x, double y)
 
 void CFootBotBT::calculateDistancesExp2(double x, double y)
 {
-    double distNest = sqrt((x * x) + ((y - m_offset) * (y - m_offset))) - m_nestRadius;
-    double distFood = sqrt((x * x) + ((y + m_offset) * (y + m_offset))) - m_foodRadius;
+    double distNest = sqrt((x * x) + ((y - m_gap) * (y - m_gap))) - m_nestRadius;
+    double distFood = sqrt((x * x) + ((y + m_gap) * (y + m_gap))) - m_foodRadius;
 
     m_distNest = distNest < 0.0 ? 0.0 : distNest;
     m_distFood = distFood < 0.0 ? 0.0 : distFood;
@@ -145,9 +144,8 @@ void CFootBotBT::calculateDistancesExp2(double x, double y)
 
 void CFootBotBT::calculateDistancesExp3(double x, double y)
 {
-    double foodX = x > 0.0 ? m_offset : m_offset * -1;
-    double foodY = y > 0.0 ? m_offset : m_offset * -1;
-
+    double foodX = x > 0.0 ? m_gap : m_gap * -1;
+    double foodY = y > 0.0 ? m_gap : m_gap * -1;
     double distFood = sqrt(((x - foodX) * (x - foodX)) + ((y - foodY) * (y - foodY))) - m_foodRadius;
 
     double distNest = sqrt((x * x) + (y * y)) - m_nestRadius;
@@ -177,12 +175,11 @@ void CFootBotBT::setColour()
     }
 }
 
-void CFootBotBT::setParams(int arenaLayout, float nest, float food, float offset, float gap, int commsRange, int trialLength)
+void CFootBotBT::setParams(int arenaLayout, float nest, float food, float gap, int commsRange, int trialLength)
 {
     m_arenaLayout = arenaLayout;
     m_nestRadius = nest;
     m_foodRadius = food;
-    m_offset = offset;
     m_gap = gap;
     m_commsRange = commsRange;
     m_trialLength = trialLength;

@@ -91,10 +91,8 @@ class Utilities():
         # print ("")
         # print (individual)
         
-        # save number of robots and chromosome to file
+        # save chromosome to file
         with open(self.params.local_path+'/chromosome'+str(thread_index)+'.txt', 'w') as f:
-            f.write(str(self.params.sqrt_robots))
-            f.write("\n")
             f.write(str(individual))
         
         totals = []
@@ -114,14 +112,12 @@ class Utilities():
             # get maximum food available with the current gap between the nest and food
             # maxFood = self.calculateMaxFood(i)
             
-            # for j in range(self.params.iterations):
-            
-            # write seed to file
+            # write seed and offset to file
             seed += 1
             with open(self.params.local_path+'/seed'+str(thread_index)+'.txt', 'w') as f:
                 f.write(str(seed))
                 f.write("\n")
-                f.write(str(i))
+                f.write(str(self.params.arenaOffset(i)))
 
             # run argos
             subprocess.call(["/bin/bash", "../evaluate", str(thread_index), self.params.local_path, "./"])
@@ -605,7 +601,6 @@ class Utilities():
             f.write("repertoireFilename:"+self.params.getRepertoireFilename()+"\n")
             f.write("nestRadius:"+str(self.params.nest_radius)+"\n")
             f.write("foodRadius:"+str(self.params.food_radius)+"\n")
-            f.write("offset:"+str(self.params.offset)+"\n")
             f.write("commsRange:"+str(self.params.comms_range)+"\n")
             f.write("arenaLayout:"+str(self.params.arena_layout)+"\n")
 

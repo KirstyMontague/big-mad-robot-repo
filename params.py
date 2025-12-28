@@ -92,8 +92,7 @@ class eaParams():
         # food and nest parameters
         self.nest_radius = 0.5
         self.food_radius = 0.5
-        self.arenaParams = [.5, 0.7]
-        self.arenaOffset()
+        self.arenaParams = [0.5, 0.7]
 
         # evaluation parameters for testing
         self.unseenIterations = 10
@@ -252,15 +251,11 @@ class eaParams():
             self.bins_per_axis = int(data[1])
             self.repertoire_size = self.bins_per_axis ** self.characteristics
 
-        if data[0] == "arena_layout":
-            self.arena_layout = int(data[1])
-            self.arenaOffset()
-
+        if data[0] == "arena_layout": self.arena_layout = int(data[1])
         if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
         if data[0] == "populationSize": self.populationSize = int(data[1])
         if data[0] == "food_radius": self.food_radius = float(data[1])
         if data[0] == "nest_radius": self.nest_radius = float(data[1])
-        if data[0] == "offset": self.offset = float(data[1])
         if data[0] == "comms_range": self.comms_range = float(data[1])
         if data[0] == "loadCheckpoint": self.loadCheckpoint = False if data[1] == "False" else True
         if data[0] == "runs": self.runs = int(data[1])
@@ -309,18 +304,18 @@ class eaParams():
         else:
             print(text)
 
-    def arenaOffset(self):
+    def arenaOffset(self, offset):
 
-        default = self.nest_radius + self.food_radius + 0.5
+        distance = self.nest_radius + self.food_radius + offset
 
         if self.arena_layout == 2:
-            self.offset = default / 2
+            return distance / 2
 
         elif self.arena_layout == 3:
-            self.offset = math.sqrt((default * default) / 2)
+            return math.sqrt((distance * distance) / 2)
 
         else:
-            self.offset = 0.5
+            return offset
 
     def getRepertoireFilename(self):
         filename = self.shared_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description+"/"
