@@ -40,6 +40,7 @@ class eaParams():
         self.stop = False
 
         self.experiment = "vanilla"
+        self.experiments = []
 
         self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
 
@@ -159,7 +160,7 @@ class eaParams():
         self.local_path += "/"+str(self.deapSeed)
         Path(self.local_path+"/").mkdir(parents=False, exist_ok=True)
 
-        if self.saveOutput or self.saveCSV or self.saveCheckpoint:
+        if self.saveOutput or self.saveCSV or self.saveCheckpoint or self.saveContainer:
             Path(self.path()).mkdir(parents=True, exist_ok=True)
 
     def deleteTempFiles(self):
@@ -208,6 +209,10 @@ class eaParams():
 
         if data[0] == "experiment" and len(data) > 1:
             self.experiment = data[1]
+
+        if data[0] == "experiments" and len(data) > 1:
+            for i in range(1, len(data)):
+                self.experiments.append(data[i])
 
         if data[0] == "indexes":
             self.indexes = []

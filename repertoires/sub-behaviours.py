@@ -90,9 +90,8 @@ class SubBehaviours():
 
         for objective in self.sub_behaviours:
 
-            results_dir = self.input_path+"/qdpy/"+self.input_dir+"/"+objective
-            if objective == "ifood":
-                results_dir += "-"+self.go_away_from_food+"-position"
+            objective_name = objective+"-"+self.go_away_from_food+"-position" if objective == "ifood" else objective
+
 
             container = (Grid(shape = [8,8,8],
                               max_items_per_bin = 3,
@@ -101,15 +100,19 @@ class SubBehaviours():
                               storage_type=list))
 
             if self.params.input_type == "combined":
-                input_filename = self.input_path+"/qdpy/"+self.input_dir+"/"+str(objective)
-                if objective == "ifood":
-                    input_filename += "-"+self.go_away_from_food+"-position"
-                input_filename += ".txt"
-                self.utilities.readContainerFromString(container, input_filename)
+                input_filename = self.input_path+"/qdpy/"+self.input_dir+"/"+objective_name+".txt"
+                self.utilities.updateContainerFromString(container, input_filename)
+
+            elif self.params.input_type == "external":
+                for experiment in self.params.experiments:
+                    input_filename = self.input_path+"/gp/"+self.input_dir+"/repertoires/"+experiment+"/"+objective_name+".txt"
+                    self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
+
             else:
+                results_dir = self.input_path+"/qdpy/"+self.input_dir+"/"+objective_name
                 for seed in range(1, self.runs + 1):
                     input_filename = results_dir+"/"+str(seed)+"/checkpoint-"+objective+"-"+str(seed)+"-"+str(self.generation)+".txt"
-                    self.utilities.readContainerFromString(container, input_filename)
+                    self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
 
             for a in range(self.bins):
 

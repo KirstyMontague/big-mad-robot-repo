@@ -262,20 +262,23 @@ class Utilities():
             container_string += str(ind.features)+"\n"
         return container_string
 
-    def readContainerFromString(self, container, filename):
+    def updateContainerFromString(self, redundancy, container, filename):
 
         individuals = []
+
         with open(filename, "r") as f:
             for line in f:
-                parts = line.split(":")
-                ind = parts[0]
-                fitness = float(parts[1][1:-2])
-                features = parts[2][1:-2].split(", ")
+
+                info = line.split(":")
+                ind = info[0]
+                fitness = float(info[1][1:-2])
+                features = info[2][1:-2].split(", ")
                 features[0] = float(features[0])
                 features[1] = float(features[1])
                 features[2] = float(features[2])
 
-                tree = self.primitivetree.from_string(ind, self.pset)
+                trimmed = redundancy.removeRedundancy(str(ind))
+                tree = self.primitivetree.from_string(trimmed, self.pset)
                 individual = creator.Individual(tree)
                 individual.fitness.values = (fitness, )
                 individual.features = features
