@@ -16,7 +16,7 @@ class Logs():
         parameters = self.params.description+","
         parameters += str(time.time())[0:10]+","
         parameters += str(self.params.deapSeed)+","
-        parameters += str(self.params.sqrtRobots)+","
+        parameters += str(self.params.sqrt_robots)+","
         parameters += str(self.params.populationSize)+","
         parameters += str(self.params.tournamentSize)+","
 

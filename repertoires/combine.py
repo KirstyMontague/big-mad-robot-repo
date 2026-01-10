@@ -79,7 +79,7 @@ class Combine():
                 self.experiments.append(data[i])
 
         if data[0] == "experiment" and len(data) > 1: self.params.experiment = data[1]
-        if data[0] == "arena" and len(data) > 1: self.params.arena_layout = data[1]
+        if data[0] == "arena" and len(data) > 1: self.params.arena_layout = int(data[1])
         if data[0] == "runs": self.params.runs = int(data[1])
         if data[0] == "generations": self.params.generations = int(data[1])
 
@@ -178,10 +178,10 @@ class Combine():
         for ind in container:
             invalid_ind.append(ind)
 
-        trimmed = self.utilities.getTrimmedPopulation(invalid_ind, self.redundancy)
-        self.utilities.evaluate(self.assignPopulationFitness, trimmed)
+        self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
         for i in range(len(invalid_ind)):
-            invalid_ind[i] = trimmed[i]
+            container[i].fitness.values = invalid_ind[i].fitness.values
+            container[i].features = invalid_ind[i].features
 
     def writeContainersToFile(self, containers):
 

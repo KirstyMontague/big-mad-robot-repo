@@ -41,16 +41,13 @@ if not params.stop:
 
         individual = ""
         sqrtRobots = 0
-        with open(params.path()+"/best.txt", "r") as f:
+        with open("../argos3/best.txt", "r") as f:
             for line in f:
-                if sqrtRobots == 0:
-                    sqrtRobots = line
-                elif individual == "":
-                    individual = line
+                individual = line
 
         ea = EA(params)
         fitness = ea.utilities.evaluateRobot(individual, 1)
-        print (fitness)
+        print ("\n"+str(fitness)+"\n")
 
     def trimOneIndividual():
 
@@ -58,18 +55,16 @@ if not params.stop:
         individual = ""
         sqrtRobots = 0
 
-        with open(params.path()+"/best.txt", "r") as f:
+        with open("../argos3/best.txt", "r") as f:
             for line in f:
-                if sqrtRobots == 0:
-                    sqrtRobots = line
-                elif individual == "":
-                    individual = line
+                individual = line
 
+        print()
         print(individual)
         try:
             trimmed = ea.redundancy.removeRedundancy(individual)
-            print ()
             print (trimmed)
+            print ()
         except: return
 
     def main():

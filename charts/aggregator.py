@@ -74,6 +74,7 @@ class Aggregator():
 
     def checkFilesExist(self):
 
+        print()
         message = ""
 
         for query in self.queries:
@@ -81,7 +82,7 @@ class Aggregator():
             missing = 0
             for i in range(1, self.runs + 1):
 
-                filename = self.input_path+"/"+query+str(self.generations)+"-"+str(i)+".csv"
+                filename = self.input_path+"/"+str(i)+"/"+query+str(self.generations)+"-"+str(i)+".csv"
 
                 if not os.path.exists(filename):
                     missing += 1
@@ -90,15 +91,15 @@ class Aggregator():
                 message += str(missing)+" files missing for "+query+"\n"
 
         if len(message) == 0:
-            print("\nFound all files\n")
+            print("Found all files\n")
 
         else:
-            print("\n"+message)
+            print(message)
             self.cancelled = True
 
     def getResults(self):
 
-        print("\nReading from "+self.input_path+"\n")
+        print("Reading from "+self.input_path+"\n")
 
         results_per_query = []
 
@@ -108,7 +109,7 @@ class Aggregator():
 
             for i in range(1, self.runs + 1):
 
-                filename = self.input_path+"/"+query+str(self.generations)+"-"+str(i)+".csv"
+                filename = self.input_path+"/"+str(i)+"/"+query+str(self.generations)+"-"+str(i)+".csv"
 
                 if os.path.exists(filename):
 
@@ -141,12 +142,11 @@ class Aggregator():
                 break
 
         if not write:
-            print("\nNo data\n")
+            print("No data\n")
             return False
 
         Path(self.output_path).mkdir(parents=True, exist_ok=True)
 
-        print()
         confirmed = False
 
         for i in range(len(self.queries)):
@@ -160,27 +160,56 @@ class Aggregator():
 
                 if not confirmed and os.path.exists(filename):
 
-                    test = input("Output files already exist at "+self.output_path+"\nContinue? (y/N)\n")
+                    test = input("Output files already exist at "+self.output_path+"\n\nContinue? (y/N)\n")
                     if test == "y":
                         confirmed = True
                         print()
                     else:
                         self.cancelled = True
-                        print("\nCancelled\n")
+                        print("Cancelled\n")
                         return
 
                 print("Writing to "+filename)
                 with open(filename, "w") as f:
                     for entry in entries:
                         f.write(entry)
+        print()
 
+    def copyOtherFiles(self):
+
+        params = ""
+        filename = self.input_path+"/"+str(self.runs)+"/params.txt"
+        if os.path.exists(filename):
+            with open(filename, "r") as f:
+                for line in f:
+                    params += line
+            print("Copying params")
+            with open(self.output_path+"/params.txt", "w") as f:
+                f.write(params)
+        else:
+            print("No params file\n")
+
+        if self.objective == "foraging" and self.using_repertoire:
+
+            sub_behaviours = ""
+            filename = self.input_path+"/sub-behaviours.txt"
+            if os.path.exists(filename):
+                with open(filename, "r") as f:
+                    for line in f:
+                        sub_behaviours += line
+                print("Copying sub-behaviours")
+                with open(self.output_path+"/sub-behaviours.txt", "w") as f:
+                    f.write(sub_behaviours)
+            else:
+                print("No sub-behaviours file\n")
+
+        print()
 
     def removeOldFiles(self):
 
-        print()
         test = input("Delete input files from "+self.input_path+"? (y/N)\n")
         if test != "y":
-            print("\nCancelled\n")
+            print("Cancelled\n")
             return
 
         print("\nDeleting from "+self.input_path+"\n")
@@ -191,7 +220,7 @@ class Aggregator():
 
             for i in range(1, self.runs + 1):
 
-                filename = self.input_path+"/"+query+str(self.generations)+"-"+str(i)+".csv"
+                filename = self.input_path+"/"+str(i)+"/"+query+str(self.generations)+"-"+str(i)+".csv"
 
                 if os.path.exists(filename):
                     removed += 1
@@ -199,6 +228,7 @@ class Aggregator():
 
             print("Removed "+str(removed)+" files for "+query)
         print()
+
 
 
 if __name__ == "__main__":
@@ -220,4 +250,5 @@ if __name__ == "__main__":
             aggregator.writeCSV(results_per_query)
 
         if not aggregator.cancelled:
+            aggregator.copyOtherFiles()
             aggregator.removeOldFiles()
