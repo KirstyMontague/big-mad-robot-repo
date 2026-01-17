@@ -21,19 +21,17 @@ class SubBehaviours():
         self.save = False
         self.runs = 0
         self.generation = 0
+        self.repertoire_type = "qd"
+        self.repertoire_size = 1
+        self.input_type = "separate"
         self.go_away_from_food = "perceived"
 
         self.pset = local.PrimitiveSetExtended("MAIN", 0)
         self.params = eaParams()
         self.params.addUnpackedNodes(self.pset)
         self.params.is_qdpy = True
-        self.params.input_type = "separate"
-        self.params.configure()
+        self.configure()
         print()
-
-        self.save = self.params.saveOutput
-        self.runs = self.params.runs
-        self.generation = self.params.generations
 
         self.utilities = Utilities(self.params)
         self.utilities.setupToolbox(self.selTournament)
@@ -45,7 +43,7 @@ class SubBehaviours():
         else:
             self.redundancy = Redundancy(self.params)
 
-        self.bins = self.params.bins_per_axis
+        self.bins = self.bins_per_axis
 
         self.sub_behaviours = {"density" : "increaseDensity",
                                "nest" : "gotoNest",
@@ -65,13 +63,60 @@ class SubBehaviours():
             self.input_dir += "/"+self.params.subbehaviours_path
 
         self.output_path = self.params.shared_path+"/gp/"+self.params.experiment+"/foraging/"
-        self.output_path += self.params.repertoire_type+str(self.params.repertoire_size)
+        self.output_path += self.repertoire_type+str(self.repertoire_size)
         self.output_filename = self.output_path+"/sub-behaviours.txt"
 
         self.cancelled = "repro" in self.params.shared_path
 
         if self.save and not self.cancelled:
             Path(self.output_path+"/").mkdir(parents=True, exist_ok=True)
+
+    def configure(self):
+        permitted = ["experiment", "experiments", "input_type", "save",
+                     "runs", "generations", "repertoire_type", "bins_per_axis"]
+        with open(self.params.local_path+"/subbehaviours.txt", 'r') as f:
+            for line in f:
+                data = line.split()
+                if len(data) > 0:
+                    if data[0] in permitted:
+                        print(line.strip('\t\n\r'))
+                        self.update(data)
+                    else:
+                        print("\nConfig entry not recognised: "+data[0]+"\n")
+                        self.cancelled = True
+
+    def update(self, data):
+
+        if data[0] == "experiment" and len(data) > 1:
+            self.params.experiment = data[1]
+
+        if data[0] == "experiments" and len(data) > 1:
+            for i in range(1, len(data)):
+                self.params.experiments.append(data[i])
+
+        if data[0] == "input_type":
+            types = ["separate", "combined", "external"]
+            if data[1] in types:
+                self.input_type = data[1]
+            else:
+                print("\nInput type not recognised: "+data[1]+"\n")
+                self.cancelled = True
+
+        if data[0] == "runs":
+                self.runs = int(data[1])
+
+        if data[0] == "generations":
+                self.generation = int(data[1])
+
+        if data[0] == "repertoire_type":
+                self.repertoire_type = data[1]
+
+        if data[0] == "bins_per_axis":
+            self.bins_per_axis = int(data[1])
+            self.repertoire_size = self.bins_per_axis ** self.params.characteristics
+
+        if data[0] == "save":
+            self.save = True if data[1] == "True" else False
 
     def run(self):
 
@@ -83,8 +128,10 @@ class SubBehaviours():
             with open(self.output_filename, 'w') as f:
                 f.write("")
 
-        if self.params.repertoire_type == "mt": self.getMtRepertoire()
-        else: self.getQdRepertoire()
+        if self.repertoire_type == "mt":
+            print("MT not supported")
+        else:
+            self.getQdRepertoire()
 
     def getQdRepertoire(self):
 
@@ -92,20 +139,19 @@ class SubBehaviours():
 
             objective_name = objective+"-"+self.go_away_from_food+"-position" if objective == "ifood" else objective
 
-
             container = (Grid(shape = [8,8,8],
                               max_items_per_bin = 3,
                               fitness_domain = [(0.,1.0),],
                               features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)],
                               storage_type=list))
 
-            if self.params.input_type == "combined":
+            if self.input_type == "combined":
                 input_filename = self.input_path+"/qdpy/"+self.input_dir+"/"+objective_name+".txt"
-                self.utilities.updateContainerFromString(container, input_filename)
+                self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
 
-            elif self.params.input_type == "external":
+            elif self.input_type == "external":
                 for experiment in self.params.experiments:
-                    input_filename = self.input_path+"/gp/"+self.input_dir+"/repertoires/"+experiment+"/"+objective_name+".txt"
+                    input_filename = self.input_path+"/gp/"+self.input_dir+"/repertoires/"+experiment+"/"+objective_name+"-"+str(self.generation)+".txt"
                     self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
 
             else:

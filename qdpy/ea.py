@@ -188,7 +188,7 @@ class EA():
         derated = best.fitness.values[0] * self.utilities.deratingFactor(best)
         fitness = str("%.6f" % derated)+" ("+best_fitness+")"
         
-        output_string = "\t"+str(self.params.deapSeed)+" - "+str(generation)+"\t| "
+        output_string = "\t"+self.params.description+" - "+str(self.params.deapSeed)+" - "+str(generation)+"\t| "
         output_string += avg_string+" | "+fitness+" - "+best_length
         output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
         output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"

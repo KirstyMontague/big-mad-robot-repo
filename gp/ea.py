@@ -146,8 +146,13 @@ class EA():
             length = str(len(best[0]))+" ("+str(self.behaviours.unpack(best[0]))+")"
         else:
             length = str(len(best[0]))+" "
-        
-        output = "\t"+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\t"
+
+        if self.params.description == "foraging" and self.params.using_repertoire:
+            description = self.params.repertoire_type+str(self.params.repertoire_size)+""
+        else:
+            description = self.params.description
+
+        output = "\t"+description+" - "+str(self.params.deapSeed)+" - "+str(generation)+" - "+str(scores)+length+"\t"
         output += "invalid "+str(invalid_new)+" / "+str(invalid_orig)+" "
         output += "(matched "+str(matched[0])+" & "+str(matched[1])+")"
 

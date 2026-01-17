@@ -24,7 +24,7 @@ class eaParams():
         self.start_gen   = 0
         self.generations = 0
 
-        self.using_repertoire = True
+        self.using_repertoire = False
         self.repertoire_type = "qd"
         self.bins_per_axis = 1
 
@@ -41,6 +41,7 @@ class eaParams():
 
         self.experiment = "vanilla"
         self.experiments = []
+        self.command_line_args = []
 
         self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
 
@@ -114,6 +115,11 @@ class eaParams():
         with open("../path.txt", "r") as f:
             for line in f:
                 data = line.split(":")
+                if data[0] == "path": path = data[1][0:-1]
+
+        with open(path, "r") as f:
+            for line in f:
+                data = line.split(":")
                 if data[0] == "home": self.home_path = data[1][0:-1]
                 if data[0] == "local": self.local_path = data[1][0:-1]
                 if data[0] == "shared": self.shared_path = data[1][0:-1]
@@ -175,12 +181,19 @@ class eaParams():
             os.rmdir(self.local_path)
 
     def configure(self):
+        lines = []
+        for arg in self.command_line_args:
+            lines.append(arg)
         with open(self.shared_path+"/config.txt", "r") as f:
             for line in f:
-                data = line.split()
-                if len(data) > 0:
-                    self.update(data)
-                    self.console(line[0:-1])
+                lines.append(line)
+        for line in lines:
+            if "output_to_file" in line:
+                self.applyParameter(line)
+                self.console("")
+        for line in lines:
+            if "output_to_file" not in line:
+                self.applyParameter(line)
         self.runtime()
 
     def runtime(self):
@@ -192,32 +205,35 @@ class eaParams():
                 data = line.split()
                 if len(data) > 0:
                     if data[0] not in restricted:
-                        self.update(data)
-                        self.console(line[0:-1])
+                        self.applyParameter(line)
                     else:
                         self.console(data[0] +" not supported at runtime")
         if os.path.exists(self.local_path+"/runtime.txt"):
             with open(self.local_path+"/runtime.txt", 'r') as f:
                 for line in f:
                     data = line.split()
-                    if len(data) > 0:
-                        if data[0] not in restricted:
-                            self.update(data)
-                            self.console(line[0:-1])
+                    if len(data) > 0 and data[0] not in restricted:
+                        self.applyParameter(line)
+
+    def applyParameter(self, line):
+        data = line.split()
+        if len(data) > 0:
+            self.update(data)
+        self.console(line.strip('\t\n\r'))
 
     def update(self, data):
 
         if data[0] == "experiment" and len(data) > 1:
             self.experiment = data[1]
 
-        if data[0] == "experiments" and len(data) > 1:
+        if data[0] == "experiments":
             for i in range(1, len(data)):
                 self.experiments.append(data[i])
 
-        if data[0] == "indexes":
+        if data[0] == "indexes" and len(data) > 1:
             self.indexes = []
-            for i in range(1, len(data)):
-                self.indexes.append(int(data[i]))
+            for objective in data[1:]:
+                self.indexes.append(int(objective))
 
             description = ""
             for index in self.indexes:
@@ -242,12 +258,8 @@ class eaParams():
                 self.features_domain = [(-200.0, 200.0), (-200.0, 200.0), (0.0, 1.0)]
 
         if data[0] == "using_repertoire":
-            self.using_repertoire = False if data[1] == "False" else True
-            self.save_period = 1000
-            self.csv_save_period = 1000
-            if self.description == "foraging" and not self.using_repertoire:
-                self.save_period = 2200
-                self.csv_save_period = 2200
+            if self.description == "foraging":
+                self.using_repertoire = False if data[1] == "False" else True
 
         if data[0] == "repertoire_type":
             self.repertoire_type = data[1]
@@ -286,7 +298,6 @@ class eaParams():
         if data[0] == "output_to_file": self.output_to_file = False if data[1] == "False" else True
         if data[0] == "output_interval": self.output_interval = int(data[1])
         if data[0] == "num_threads": self.num_threads = int(data[1])
-        if data[0] == "input_type": self.input_type = data[1]
 
         if data[0] == "stop":
             if len(data) > 1 and data[1] == "False":

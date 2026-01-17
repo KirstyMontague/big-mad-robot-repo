@@ -14,6 +14,11 @@ class Aggregator():
         with open("../path.txt", "r") as f:
             for line in f:
                 data = line.split(":")
+                if data[0] == "path": path = data[1][0:-1]
+
+        with open(path, "r") as f:
+            for line in f:
+                data = line.split(":")
                 if data[0] == "home": self.home_path = data[1][0:-1]
                 if data[0] == "local": self.local_path = data[1][0:-1]
                 if data[0] == "shared": self.shared_path = data[1][0:-1]
@@ -23,9 +28,12 @@ class Aggregator():
         self.using_repertoire = False
         self.repertoire_type = "qd"
         self.repertoire_size = 1
+        self.characteristics = 3
         self.objective = self.objectives[0]
         self.runs = 0
         self.generations = 0
+        self.save = False
+        self.delete = False
 
         self.cancelled = False
 
@@ -36,19 +44,21 @@ class Aggregator():
         self.output_path = self.addRepertoireDir(self.home_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.objective)
 
     def configure(self):
-        permitted = ["algorithm", "experiment", "using_repertoire", "repertoire_type", "repertoire_size", "objective", "runs", "generations"]
-        with open(self.local_path+"/config.txt", 'r') as f:
+        permitted = ["algorithm", "experiment", "runs", "generations", "save", "delete",
+                     "objective", "using_repertoire", "repertoire_type", "bins_per_axis"]
+        with open(self.local_path+"/aggregator.txt", 'r') as f:
             for line in f:
                 data = line.split()
                 if len(data) > 0:
                     if data[0] in permitted:
-                        print(line[0:-1])
+                        print(line.strip('\t\n\r'))
                         self.update(data)
                     else:
                         print("\nconfig entry not recognised: "+data[0]+"\n")
                         self.cancelled = True
 
     def update(self, data):
+
         if data[0] == "algorithm":
             algorithms = ["gp", "qdpy", "cma-es"]
             if data[1] in algorithms:
@@ -56,13 +66,18 @@ class Aggregator():
             else:
                 print("\nalgorithm not recognised: "+data[1]+"\n")
                 self.cancelled = True
+
+        if data[0] == "bins_per_axis":
+            self.repertoire_size = int(data[1]) ** self.characteristics
+
         if data[0] == "experiment" and len(data) > 1: self.experiment = data[1]
         if data[0] == "using_repertoire": self.using_repertoire = True if data[1] == "True" else False
         if data[0] == "repertoire_type": self.repertoire_type = data[1]
-        if data[0] == "repertoire_size": self.repertoire_size = int(data[1])
         if data[0] == "objective": self.objective = self.objectives[int(data[1])]
         if data[0] == "runs": self.runs = int(data[1])
         if data[0] == "generations": self.generations = int(data[1])
+        if data[0] == "save": self.save = True if data[1] == "True" else False
+        if data[0] == "delete": self.delete = True if data[1] == "True" else False
 
     def addRepertoireDir(self, path):
         if self.objective == "foraging" and self.algorithm == "gp":
@@ -169,39 +184,57 @@ class Aggregator():
                         print("Cancelled\n")
                         return
 
-                print("Writing to "+filename)
-                with open(filename, "w") as f:
-                    for entry in entries:
-                        f.write(entry)
+                if self.save:
+                    print("Writing to "+filename)
+                    with open(filename, "w") as f:
+                        for entry in entries:
+                            f.write(entry)
+                else:
+                    print("Output filename: "+filename)
         print()
 
     def copyOtherFiles(self):
 
+        test = input("Copy peripheral files to "+self.output_path+"? (y/N)\n")
+        if test != "y":
+            print("Skipped\n")
+            return
+        else:
+            print()
+
         params = ""
         filename = self.input_path+"/"+str(self.runs)+"/params.txt"
         if os.path.exists(filename):
-            with open(filename, "r") as f:
-                for line in f:
-                    params += line
-            print("Copying params")
-            with open(self.output_path+"/params.txt", "w") as f:
-                f.write(params)
+            if self.save:
+                with open(filename, "r") as f:
+                    for line in f:
+                        params += line
+                print("Copying params")
+                with open(self.output_path+"/params.txt", "w") as f:
+                    f.write(params)
+            else:
+                print("Params source: "+filename)
+                print("Params output: "+self.output_path+"/params.txt")
         else:
             print("No params file\n")
 
-        if self.objective == "foraging" and self.using_repertoire:
+        if self.objective == "foraging" and self.using_repertoire and self.input_path != self.output_path:
 
             sub_behaviours = ""
             filename = self.input_path+"/sub-behaviours.txt"
-            if os.path.exists(filename):
-                with open(filename, "r") as f:
-                    for line in f:
-                        sub_behaviours += line
-                print("Copying sub-behaviours")
-                with open(self.output_path+"/sub-behaviours.txt", "w") as f:
-                    f.write(sub_behaviours)
+            if self.save:
+                if os.path.exists(filename):
+                    with open(filename, "r") as f:
+                        for line in f:
+                            sub_behaviours += line
+                    print("Copying sub-behaviours")
+                    with open(self.output_path+"/sub-behaviours.txt", "w") as f:
+                        f.write(sub_behaviours)
+                else:
+                    print("No sub-behaviours file\n")
             else:
-                print("No sub-behaviours file\n")
+                print("Sub-behaviours source: "+filename)
+                print("Sub-behaviours output: "+self.output_path+"/sub-behaviours.txt")
 
         print()
 
@@ -209,7 +242,7 @@ class Aggregator():
 
         test = input("Delete input files from "+self.input_path+"? (y/N)\n")
         if test != "y":
-            print("Cancelled\n")
+            print("Skipped\n")
             return
 
         print("\nDeleting from "+self.input_path+"\n")
@@ -224,9 +257,14 @@ class Aggregator():
 
                 if os.path.exists(filename):
                     removed += 1
-                    os.remove(filename)
+                    if self.save and self.delete:
+                        os.remove(filename)
 
-            print("Removed "+str(removed)+" files for "+query)
+            if self.save and self.delete:
+                print("Removed "+str(removed)+" files for "+query)
+            else:
+                print(str(removed)+" files for "+query+" listed for removal")
+
         print()
 
 

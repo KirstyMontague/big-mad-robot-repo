@@ -10,20 +10,15 @@ def parseArguments():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=None, help="DEAP random seed")
-    parser.add_argument('--start', type=int, default=None, help="Start generation")
-    parser.add_argument('--end', type=int, default=None, help="Max generations")
+    parser.add_argument('--objective', type=int, default=None, help="Single objective")
     args = parser.parse_args()
 
     if args.seed != None:
         params.deapSeed = args.seed
 
-    if args.start != None:
-        params.start_gen = args.start
-        if int(args.start) == 0: params.loadCheckpoint = False
-        if int(args.start) > 0: params.loadCheckpoint = True
+    if args.objective != None:
+        params.command_line_args.append("indexes "+str(args.objective))
 
-    if args.end != None:
-        params.generations = args.end
 
 parseArguments()
 params.configure()

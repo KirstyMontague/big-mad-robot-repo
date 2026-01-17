@@ -10,20 +10,22 @@ def parseArguments():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', type=int, default=None, help="DEAP random seed")
-    parser.add_argument('--start', type=int, default=None, help="Start generation")
-    parser.add_argument('--end', type=int, default=None, help="Max generations")
+    parser.add_argument('--objective', type=int, default=None, help="Single objective")
+    parser.add_argument('--using_repertoire', type=str, default=None, help="Using repertoire")
+    parser.add_argument('--bins_per_axis', type=int, default=None, help="Bins per axis")
     args = parser.parse_args()
 
     if args.seed != None:
         params.deapSeed = args.seed
 
-    if args.start != None:
-        params.start_gen = args.start
-        if int(args.start) == 0: params.loadCheckpoint = False
-        if int(args.start) > 0: params.loadCheckpoint = True
+    if args.objective != None:
+        params.command_line_args.append("indexes "+str(args.objective))
 
-    if args.end != None:
-        params.generations = args.end
+    if args.using_repertoire != None:
+        params.command_line_args.append("using_repertoire "+str(args.using_repertoire))
+
+    if args.bins_per_axis != None:
+        params.command_line_args.append("bins_per_axis "+str(args.bins_per_axis))
 
 parseArguments()
 params.configure()
@@ -47,7 +49,7 @@ if not params.stop:
 
         ea = EA(params)
         fitness = ea.utilities.evaluateRobot(individual, 1)
-        print ("\n"+str(fitness)+"\n")
+        print("\n"+str(fitness)+"\n")
 
     def trimOneIndividual():
 
@@ -61,10 +63,11 @@ if not params.stop:
 
         print()
         print(individual)
+        print()
         try:
             trimmed = ea.redundancy.removeRedundancy(individual)
-            print (trimmed)
-            print ()
+            print(trimmed)
+            print()
         except: return
 
     def main():

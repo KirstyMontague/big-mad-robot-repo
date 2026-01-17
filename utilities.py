@@ -611,19 +611,25 @@ class Utilities():
 
         if self.params.saveOutput or self.params.saveCheckpoint or self.params.saveCSV:
 
-            params_string = "---\n\n"
+            params_string = ""
 
             with open("../revision.txt", "r") as f:
                 for line in f:
-                    params_string += "revision "+line+"\n"
+                    params_string += "------ revision "+line.strip('\t\n\r')+"----------------------------\n\n"
 
             params_string += "time: "+str(time.ctime()) + "\n"
             params_string += "seed: "+str(self.params.deapSeed) + "\n"
-            params_string += "\n"
+
+            params_string += "\n-- config --------------\n\n"
 
             with open(self.params.shared_path+"/config.txt", "r") as f:
                 for line in f:
                     params_string += line
+
+            params_string += "\n-- command line --------\n\n"
+
+            for arg in self.params.command_line_args:
+                params_string += arg+"\n"
 
             with open(self.params.path()+"params.txt", 'a') as f:
                 f.write("\n"+params_string+"\n")
@@ -637,7 +643,7 @@ class Utilities():
 
         if self.params.saveOutput or self.params.saveCheckpoint or self.params.saveCSV:
             with open(self.params.path()+"params.txt", 'a') as f:
-                f.write("---\n\n")
+                f.write("-- finish --------------\n\n")
                 f.write("generations: "+str(self.params.generations) + "\n")
                 f.write("duration: "+minutes_str+" minutes ("+str(duration) + " ms)\n")
                 f.write("\n")

@@ -23,6 +23,8 @@ class Combine():
 
     def __init__(self):
 
+        self.save = False
+        self.output_type = "final"
         self.go_away_from_food = "perceived"
         self.experiments = []
 
@@ -48,13 +50,14 @@ class Combine():
         print()
 
     def configure(self):
-        permitted = ["algorithm", "objective", "experiment", "experiments", "arena", "runs", "generations"]
-        with open(self.params.local_path+"/config.txt", 'r') as f:
+        permitted = ["algorithm", "output_type", "experiment", "experiments",
+                     "arena", "objective", "runs", "generations", "save"]
+        with open(self.params.local_path+"/combine.txt", 'r') as f:
             for line in f:
                 data = line.split()
                 if len(data) > 0:
                     if data[0] in permitted:
-                        print(line[0:-1])
+                        print(line.strip('\t\n\r'))
                         self.update(data)
                     else:
                         print("\nConfig entry not recognised: "+data[0]+"\n")
@@ -70,6 +73,15 @@ class Combine():
                 print("\nAlgorithm not recognised: "+data[1]+"\n")
                 self.cancelled = True
         
+
+        if data[0] == "output_type":
+            algorithms = ["interim", "final"]
+            if data[1] in algorithms:
+                self.output_type = data[1]
+            else:
+                print("\nOutput not recognised: "+data[1]+"\n")
+                self.cancelled = True
+
         if data[0] == "objective":
             self.params.indexes = [int(data[1])]
             self.params.description = self.params.objectives[int(data[1])]
@@ -78,10 +90,11 @@ class Combine():
             for i in range(1, len(data)):
                 self.experiments.append(data[i])
 
-        if data[0] == "experiment" and len(data) > 1: self.params.experiment = data[1]
+        if data[0] == "experiment" and len(data) > 1: self.experiment = data[1]
         if data[0] == "arena" and len(data) > 1: self.params.arena_layout = int(data[1])
         if data[0] == "runs": self.params.runs = int(data[1])
         if data[0] == "generations": self.params.generations = int(data[1])
+        if data[0] == "save": self.save = True if data[1] == "True" else False
 
     def makeContainersFromOtherExperiments(self):
 
@@ -91,14 +104,16 @@ class Combine():
         containers = []
         self.checkContainerFiles()
         self.combineContainers(containers)
-        self.evaluateRepertoires(containers)
+        if self.output_type == "final":
+            self.evaluateRepertoires(containers)
         self.writeContainersToFile(containers)
 
     def checkContainerFiles(self):
 
+        message = ""
+
         for experiment in self.experiments:
 
-            message = ""
             missing = 0
 
             input_path = self.params.shared_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.objective_name
@@ -108,40 +123,50 @@ class Combine():
                     missing += 1
                     
             if missing > 0:
-                message += str(missing)+" files missing for "+experiment
+                message += str(missing)+" files missing for "+experiment+"\n"
 
             if len(message) == 0:
                 print("Found all files for "+experiment)
 
+        if len(message) > 0:
+            print(message)
+            self.cancelled = True
+            return
+        else:
+            print()
+
+        if self.save:
+
+            exists = False
+
+            if self.output_type == "interim":
+                output_path = self.params.shared_path+"/"+self.params.algorithm+"/"+self.experiment
+                output_filename = output_path+"/"+self.objective_name+".txt"
+                if os.path.exists(output_filename):
+                    exists = True
             else:
-                print(message)
-                self.cancelled = True
-                return
+                output_path = self.params.shared_path+"/gp/"+self.experiment+"/repertoires"
+                for experiment in self.experiments:
+                    output_filename = output_path+"/"+experiment+"/"+self.objective_name+"-"+str(self.params.generations)+".txt"
+                    if os.path.exists(output_filename):
+                        exists = True
 
-        exists = False
-        output_path = self.params.shared_path+"/gp/"+self.params.experiment+"/repertoires"
-        for experiment in self.experiments:
-
-            output_filename = output_path+"/"+experiment+"/"+self.objective_name+".txt"
-            if os.path.exists(output_filename):
-                exists = True
-
-        print()
-
-        if exists:
-            confirm = input("Output files already exist at "+output_path+"\n\nContinue? (y/N)\n")
-            if confirm == "y":
-                print()
-            else:
-                self.cancelled = True
-                print("Cancelled\n")
+            if exists:
+                confirm = input("Output files already exist at "+output_path+"\n\nContinue? (y/N)\n")
+                if confirm == "y":
+                    print()
+                else:
+                    self.cancelled = True
+                    print("Cancelled\n")
 
     def combineContainers(self, containers):
 
         if self.cancelled:
-            return
+            return []
 
-        for experiment in self.experiments:
+        experiments = [self.experiment] if self.output_type == "interim" else self.experiments
+
+        for experiment in experiments:
 
             input_path = self.params.shared_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.objective_name
 
@@ -188,22 +213,28 @@ class Combine():
         if self.cancelled:
             return
 
-        print("\nWriting to...")
+        if self.output_type == "interim":
+            experiments = [self.experiment]
+            output_path = self.params.shared_path+"/"+self.params.algorithm+"/"+self.experiment
+        else:
+            experiments = self.experiments
+            output_path = self.params.shared_path+"/gp/"+self.experiment+"/repertoires"
 
-        output_path = self.params.shared_path+"/gp/"+self.params.experiment+"/repertoires"
+        print()
 
-        for i in range(len(self.experiments)):
+        for i in range(len(experiments)):
 
-            experiment = self.experiments[i]
-            container = containers[i]
+            if self.output_type == "interim":
+                output_file = output_path+"/"+self.objective_name+".txt"
+            else:
+                output_file = output_path+"/"+experiments[i]+"/"+self.objective_name+"-"+str(self.params.generations)+".txt"
+            print("Writing to "+output_file)
 
-            Path(output_path+"/"+experiment).mkdir(parents=True, exist_ok=True)
-
-            output_file = output_path+"/"+experiment+"/"+self.objective_name+".txt"
-            container_string = self.utilities.writeContainerToString(container)
-            with open(output_file, "w") as f:
-                f.write(container_string)
-                print(output_file)
+            if self.save:
+                Path(output_path+"/"+experiments[i]).mkdir(parents=True, exist_ok=True)
+                container_string = self.utilities.writeContainerToString(containers[i])
+                with open(output_file, "w") as f:
+                    f.write(container_string)
 
         print()
 
