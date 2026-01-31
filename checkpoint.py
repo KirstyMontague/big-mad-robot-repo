@@ -84,7 +84,8 @@ class Checkpoint():
 
             if self.params.saveContainer:
 
-                container_string = self.utilities.writeContainerToString(containers[0])
-                filename = self.params.checkpointOutputFilename(generation)+".txt"
-                with open(filename, "w") as f:
-                     f.write(container_string)
+                for i in range(len(containers)):
+                    container_string = self.utilities.writeContainerToString(containers[i])
+                    filename = self.params.checkpointOutputFilename(generation)+"-"+self.params.objectives[self.params.indexes[i]]+".txt"
+                    with open(filename, "w") as f:
+                         f.write(container_string)

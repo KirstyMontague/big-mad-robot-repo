@@ -9,7 +9,7 @@ class Aggregator():
 
     def __init__(self):
 
-        self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
+        self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood-perceived-position", "foraging"]
 
         with open("../path.txt", "r") as f:
             for line in f:
@@ -30,6 +30,7 @@ class Aggregator():
         self.repertoire_size = 1
         self.characteristics = 3
         self.objective = self.objectives[0]
+        self.description = "density"
         self.runs = 0
         self.generations = 0
         self.save = False
@@ -40,12 +41,12 @@ class Aggregator():
         self.configure()
         self.cancelled = self.cancelled or "repro" in self.shared_path
 
-        self.input_path = self.addRepertoireDir(self.shared_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.objective)
-        self.output_path = self.addRepertoireDir(self.home_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.objective)
+        self.input_path = self.addRepertoireDir(self.shared_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description)
+        self.output_path = self.addRepertoireDir(self.home_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description)
 
     def configure(self):
         permitted = ["algorithm", "experiment", "runs", "generations", "save", "delete",
-                     "objective", "using_repertoire", "repertoire_type", "bins_per_axis"]
+                     "indexes", "using_repertoire", "repertoire_type", "bins_per_axis"]
         with open(self.local_path+"/aggregator.txt", 'r') as f:
             for line in f:
                 data = line.split()
@@ -60,6 +61,7 @@ class Aggregator():
     def update(self, data):
 
         if data[0] == "algorithm":
+
             algorithms = ["gp", "qdpy", "cma-es"]
             if data[1] in algorithms:
                 self.algorithm = data[1]
@@ -67,13 +69,28 @@ class Aggregator():
                 print("\nalgorithm not recognised: "+data[1]+"\n")
                 self.cancelled = True
 
+        if data[0] == "indexes":
+
+            self.indexes = []
+            for objective in data[1:]:
+                self.indexes.append(int(objective))
+
+            self.objective = self.objectives[self.indexes[0]]
+
+            description = ""
+            for index in self.indexes:
+                description += self.objectives[index]+"-"
+            self.description = description[0:-1]
+
+            self.features = len(self.indexes)
+
         if data[0] == "bins_per_axis":
             self.repertoire_size = int(data[1]) ** self.characteristics
 
         if data[0] == "experiment" and len(data) > 1: self.experiment = data[1]
         if data[0] == "using_repertoire": self.using_repertoire = True if data[1] == "True" else False
         if data[0] == "repertoire_type": self.repertoire_type = data[1]
-        if data[0] == "objective": self.objective = self.objectives[int(data[1])]
+        if data[0] == "repertoire_size": self.repertoire_size = int(data[1])
         if data[0] == "runs": self.runs = int(data[1])
         if data[0] == "generations": self.generations = int(data[1])
         if data[0] == "save": self.save = True if data[1] == "True" else False
@@ -101,6 +118,7 @@ class Aggregator():
 
                 if not os.path.exists(filename):
                     missing += 1
+                    print(filename)
 
             if missing > 0:
                 message += str(missing)+" files missing for "+query+"\n"
@@ -160,7 +178,8 @@ class Aggregator():
             print("No data\n")
             return False
 
-        Path(self.output_path).mkdir(parents=True, exist_ok=True)
+        if self.save:
+            Path(self.output_path).mkdir(parents=True, exist_ok=True)
 
         confirmed = False
 
@@ -199,8 +218,8 @@ class Aggregator():
         if test != "y":
             print("Skipped\n")
             return
-        else:
-            print()
+
+        print()
 
         params = ""
         filename = self.input_path+"/"+str(self.runs)+"/params.txt"
@@ -266,8 +285,6 @@ class Aggregator():
                 print(str(removed)+" files for "+query+" listed for removal")
 
         print()
-
-
 
 if __name__ == "__main__":
 

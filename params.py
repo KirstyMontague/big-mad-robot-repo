@@ -43,7 +43,7 @@ class eaParams():
         self.experiments = []
         self.command_line_args = []
 
-        self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood", "foraging"]
+        self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood-perceived-position", "foraging"]
 
         self.description = ""
         for index in self.indexes:

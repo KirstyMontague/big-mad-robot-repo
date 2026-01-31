@@ -2,14 +2,14 @@
 import sys
 sys.path.insert(0, '..')
 
-import pickle
+import os
 from pathlib import Path
 
 from deap import creator
-
+from deap import gp
 from containers import *
-import local
 
+import local
 from redundancy import Redundancy
 from params import eaParams
 from utilities import Utilities
@@ -19,19 +19,23 @@ class SubBehaviours():
     def __init__(self):
 
         self.save = False
+        self.legacy = False
         self.runs = 0
         self.generation = 0
         self.repertoire_type = "qd"
         self.repertoire_size = 1
         self.input_type = "separate"
-        self.go_away_from_food = "perceived"
 
         self.pset = local.PrimitiveSetExtended("MAIN", 0)
         self.params = eaParams()
         self.params.addUnpackedNodes(self.pset)
         self.params.is_qdpy = True
+
+        self.cancelled = False
         self.configure()
         print()
+
+        self.cancelled = self.cancelled or "repro" in self.params.shared_path
 
         self.utilities = Utilities(self.params)
         self.utilities.setupToolbox(self.selTournament)
@@ -50,12 +54,19 @@ class SubBehaviours():
                                "food" : "gotoFood",
                                "idensity" : "reduceDensity",
                                "inest" : "goAwayFromNest",
-                               "ifood" : "goAwayFromFood"}
+                               "ifood-perceived-position" : "goAwayFromFood"}
 
-        self.sublists = [["food", "idensity", "inest"],
-                         ["density", "nest", "ifood"]]
+        if self.repertoire_type == "mtc":
+            self.sublists = [["density", "nest", "ifood-perceived-position"],
+                             ["food", "idensity", "inest"]]
+            self.subsets = [self.utilities.getExperimentDescription(0, "mtc"),
+                            self.utilities.getExperimentDescription(3, "mtc")]
 
-        self.subsets = ["food-idensity-inest", "density-nest-ifood"]
+        if self.repertoire_type == "mti":
+            self.sublists = [["density", "nest", "food"],
+                             ["idensity", "inest", "ifood-perceived-position"]]
+            self.subsets = [self.utilities.getExperimentDescription(0, "mti"),
+                            self.utilities.getExperimentDescription(3, "mti")]
 
         self.input_path = self.params.input_path
         self.input_dir = self.params.experiment
@@ -66,13 +77,17 @@ class SubBehaviours():
         self.output_path += self.repertoire_type+str(self.repertoire_size)
         self.output_filename = self.output_path+"/sub-behaviours.txt"
 
-        self.cancelled = "repro" in self.params.shared_path
-
-        if self.save and not self.cancelled:
-            Path(self.output_path+"/").mkdir(parents=True, exist_ok=True)
+        if not self.cancelled:
+            if self.save:
+                Path(self.output_path+"/").mkdir(parents=True, exist_ok=True)
+                print("Writing to "+self.output_filename+"\n")
+            else:
+                print("Output filename: "+self.output_filename+"\n")
+        else:
+            print("Cancelled\n")
 
     def configure(self):
-        permitted = ["experiment", "experiments", "input_type", "save",
+        permitted = ["experiment", "experiments", "input_type", "save", "legacy",
                      "runs", "generations", "repertoire_type", "bins_per_axis"]
         with open(self.params.local_path+"/subbehaviours.txt", 'r') as f:
             for line in f:
@@ -109,7 +124,12 @@ class SubBehaviours():
                 self.generation = int(data[1])
 
         if data[0] == "repertoire_type":
+            algorithms = ["mtc", "mti", "qd"]
+            if data[1] in algorithms:
                 self.repertoire_type = data[1]
+            else:
+                print("\nRepertoire type not recognised: "+data[1]+"\n")
+                self.cancelled = True
 
         if data[0] == "bins_per_axis":
             self.bins_per_axis = int(data[1])
@@ -118,26 +138,19 @@ class SubBehaviours():
         if data[0] == "save":
             self.save = True if data[1] == "True" else False
 
-    def run(self):
+        if data[0] == "legacy":
+            self.legacy = True if data[1] == "True" else False
 
-        if self.cancelled:
-            print("\naborted\n")
-            return
+    def getRepertoires(self):
 
-        if self.save:
-            with open(self.output_filename, 'w') as f:
-                f.write("")
+        containers = []
 
-        if self.repertoire_type == "mt":
-            print("MT not supported")
-        else:
-            self.getQdRepertoire()
+        algorithm = "gp" if "mt" in self.repertoire_type or self.input_type == "external" else "qdpy"
 
-    def getQdRepertoire(self):
+        for i in range(len(self.sub_behaviours.items())):
 
-        for objective in self.sub_behaviours:
-
-            objective_name = objective+"-"+self.go_away_from_food+"-position" if objective == "ifood" else objective
+            objective = self.params.objectives[i]
+            description = self.utilities.getExperimentDescription(i, self.repertoire_type)
 
             container = (Grid(shape = [8,8,8],
                               max_items_per_bin = 3,
@@ -145,37 +158,63 @@ class SubBehaviours():
                               features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)],
                               storage_type=list))
 
-            if self.input_type == "combined":
-                input_filename = self.input_path+"/qdpy/"+self.input_dir+"/"+objective_name+".txt"
-                self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
-
-            elif self.input_type == "external":
-                for experiment in self.params.experiments:
-                    input_filename = self.input_path+"/gp/"+self.input_dir+"/repertoires/"+experiment+"/"+objective_name+"-"+str(self.generation)+".txt"
+            try:
+                if self.input_type == "combined":
+                    input_filename = self.input_path+"/"+algorithm+"/"+self.input_dir
+                    if not self.legacy:
+                        input_filename += "/"+description
+                    input_filename += "/"+objective+".txt"
                     self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
 
-            else:
-                results_dir = self.input_path+"/qdpy/"+self.input_dir+"/"+objective_name
-                for seed in range(1, self.runs + 1):
-                    input_filename = results_dir+"/"+str(seed)+"/checkpoint-"+objective+"-"+str(seed)+"-"+str(self.generation)+".txt"
-                    self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
+                elif self.input_type == "external":
+                    for experiment in self.params.experiments:
+                        input_filename = self.input_path+"/"+algorithm+"/"+self.input_dir+"/repertoires"
+                        if not self.legacy:
+                            input_filename += "/"+self.repertoire_type
+                        input_filename += "/"+experiment+"/"+objective+"-"+str(self.generation)+".txt"
+                        self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
+
+                else:
+                    input_path = self.input_path+"/"+algorithm+"/"+self.input_dir+"/"+description
+                    for seed in range(1, self.runs + 1):
+                        input_filename = input_path+"/"+str(seed)+"/checkpoint-"+description+"-"+str(seed)+"-"+str(self.generation)
+                        if not self.legacy:
+                            input_filename += "-"+objective
+                        input_filename += ".txt"
+                        self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
+
+            except FileNotFoundError as e:
+                print(str(e)+"\n")
+                print("Cancelled\n")
+                self.cancelled = True
+                break
+
+            containers.append(container)
+
+        return containers
+
+    def writeRepertoires(self, containers):
+
+        if self.save and not self.cancelled:
+            with open(self.output_filename, 'w') as f:
+                f.write("")
+
+        for i in range(len(self.sub_behaviours.items())):
+
+            objective = self.params.objectives[i]
 
             for a in range(self.bins):
-
-                xa = int(a*8/self.bins)
-
                 for b in range(self.bins):
-
-                    yb = int(b*8/self.bins)
-
                     for c in range(self.bins):
 
+                        xa = int(a*8/self.bins)
+                        yb = int(b*8/self.bins)
                         zc = int(c*8/self.bins)
 
                         index = a*self.bins*self.bins + b*self.bins + c + 1
 
                         output = ""
-                        ind = self.getBestEverFromSubset([container], objective, xa, yb, zc, self.bins)
+                        ind = self.getBestFromSubset(containers[i], xa, yb, zc, self.bins)
 
                         if ind is not None:
                             trimmed = self.redundancy.removeRedundancy(str(ind))
@@ -183,7 +222,6 @@ class SubBehaviours():
 
                             output += self.sub_behaviours[objective]+str(index)
                             output += " "+str(trimmed)
-                            print (output)
 
                             if self.save:
                                 with open(self.output_filename, 'a') as f:
@@ -191,74 +229,11 @@ class SubBehaviours():
                                     f.write("\n")
 
                         else:
-                            output += objective+str(index)+" not found"
-                            print(output)
+                            output += self.sub_behaviours[objective]+str(index)
+                            output += " ("+str(a)+", "+str(b)+", "+str(c)+")"
+                            output += " not found"
 
-    def getMtRepertoire(self):
-
-        for combination in range(len(self.sublists)):
-
-            subset = self.subsets[combination]
-            sublist = self.sublists[combination]
-
-            results_dir = self.input_path+"/gp/"+self.input_dir+"/"+subset
-            if subset == "density-nest-ifood":
-                results_dir += "-"+self.go_away_from_food+"-position"
-
-            seeds = []
-            for seed in range(1, self.runs + 1):
-
-                input_filename = results_dir+"/"+str(seed)+"/checkpoint-"+subset+"-"+str(seed)+"-"+str(self.generation)+".pkl"
-                with open(input_filename, "rb") as f:
-                    checkpoint = pickle.load(f)
-
-                seeds.append(checkpoint["containers"])
-
-            containers = {}
-            for objective in range(0, 3):
-                containers[sublist[objective]] = []
-                for seed in range(0, self.runs):
-                    container = seeds[seed][objective]
-                    containers[sublist[objective]].append(container)
-
-
-            for objective in sublist:
-
-                for a in range(self.bins):
-
-                    xa = int(a*8/self.bins)
-
-                    for b in range(self.bins):
-
-                        yb = int(b*8/self.bins)
-
-                        for c in range(self.bins):
-
-                            zc = int(c*8/self.bins)
-
-                            index = a*self.bins*self.bins + b*self.bins + c + 1
-
-                            output = ""
-                            ind = self.getBestEverFromSubset(containers[objective], objective, xa, yb, zc, self.bins)
-
-                            if ind is not None:
-
-                                trimmed = self.redundancy.removeRedundancy(str(ind))
-                                trimmed = [creator.Individual.from_string(trimmed, self.pset)][0]
-
-                                output += self.sub_behaviours[objective]+str(index)
-                                output += " "+str(trimmed)
-                                print (output)
-
-                                if self.save:
-                                    with open(self.output_filename, 'a') as f:
-                                        f.write(self.sub_behaviours[objective]+str(index)+" "+str(trimmed))
-                                        f.write("\n")
-
-                            else:
-                                output += self.sub_behaviours[objective]+str(index)
-                                output += " "+str(xa)+" "+str(yb)+" "+str(zc)
-                                output += " not found"
+                        print(output)
 
     def deratingFactor(self, individual):
 
@@ -302,27 +277,16 @@ class SubBehaviours():
 
         return best
 
-    def getBestEverFromSubset(self, containers, objective, x, y, z, bins):
-
-        best = None
-
-        for container in containers:
-
-            ind = self.getBestFromSubset(container, x, y, z, bins)
-
-            if best == None:
-                best = ind
-
-            elif not ind == None:
-                ind_fitness = ind.fitness.values[0] * self.deratingFactor(ind)
-                best_fitness = best.fitness.values[0] * self.deratingFactor(best)
-                if ind_fitness > best_fitness:
-                    best = ind
-
-        return best
-
     def selTournament(self):
         return []
 
-sub_behaviours = SubBehaviours()
-sub_behaviours.run()
+if __name__ == "__main__":
+
+    sub_behaviours = SubBehaviours()
+
+    if not sub_behaviours.cancelled:
+        containers = sub_behaviours.getRepertoires()
+
+    if not sub_behaviours.cancelled:
+        sub_behaviours.writeRepertoires(containers)
+

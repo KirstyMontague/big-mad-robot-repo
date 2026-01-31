@@ -141,7 +141,7 @@ class EA():
             else:
                 derated = best[i].fitness.values[i] * self.utilities.deratingFactor(best[i])
             scores += str("%.7f" % derated) + " (" + str("%.7f" % best[i].fitness.values[i]) + ") \t"
-        
+
         if self.params.using_repertoire:
             length = str(len(best[0]))+" ("+str(self.behaviours.unpack(best[0]))+")"
         else:
@@ -222,20 +222,20 @@ class EA():
         else:
             generation = 0
             population = self.startWithNewPopulation()
+
+            best = self.utilities.getBestAll(population)
+
+            self.checkpoint.save(self.params.generations, population, self.grid.grids, self.logs)
+            self.archive.saveArchive(self.redundancy, self.params.generations)
+            self.utilities.saveBestToFile(best[0])
+            self.grid.save(self.params.generations)
+
             self.params.runtime()
 
         self.utilities.saveParams()
         
         # begin evolution
         self.eaLoop(population, generation)
-
-        # get the best individual at the end of the evolutionary run
-        best = self.utilities.getBestAll(population)
-
-        self.checkpoint.save(self.params.generations, population, self.grid.grids, self.logs)
-        self.archive.saveArchive(self.redundancy, self.params.generations)
-        self.utilities.saveBestToFile(best[0])
-        self.grid.save(self.params.generations)
 
         end_time = round(time.time() * 1000)
         self.utilities.saveDuration(start_time, end_time)

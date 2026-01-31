@@ -24,8 +24,8 @@ class Combine():
     def __init__(self):
 
         self.save = False
+        self.legacy = False
         self.output_type = "final"
-        self.go_away_from_food = "perceived"
         self.experiments = []
 
         self.params = eaParams()
@@ -45,13 +45,13 @@ class Combine():
             return
 
         self.objective = self.params.objectives[self.params.indexes[0]]
-        self.objective_name = self.objective+"-"+self.go_away_from_food+"-position" if self.objective == "ifood" else self.objective
+        self.description = self.utilities.getExperimentDescription(self.params.indexes[0], self.params.repertoire_type)
 
         print()
 
     def configure(self):
-        permitted = ["algorithm", "output_type", "experiment", "experiments",
-                     "arena", "objective", "runs", "generations", "save"]
+        permitted = ["algorithm", "output_type", "repertoire_type", "experiment", "experiments",
+                     "arena", "objective", "runs", "generations", "save", "legacy"]
         with open(self.params.local_path+"/combine.txt", 'r') as f:
             for line in f:
                 data = line.split()
@@ -82,6 +82,14 @@ class Combine():
                 print("\nOutput not recognised: "+data[1]+"\n")
                 self.cancelled = True
 
+        if data[0] == "repertoire_type":
+            algorithms = ["gp", "mtc", "mti", "qd"]
+            if data[1] in algorithms:
+                self.params.repertoire_type = data[1]
+            else:
+                print("\nRepertoire type not recognised: "+data[1]+"\n")
+                self.cancelled = True
+
         if data[0] == "objective":
             self.params.indexes = [int(data[1])]
             self.params.description = self.params.objectives[int(data[1])]
@@ -95,6 +103,7 @@ class Combine():
         if data[0] == "runs": self.params.runs = int(data[1])
         if data[0] == "generations": self.params.generations = int(data[1])
         if data[0] == "save": self.save = True if data[1] == "True" else False
+        if data[0] == "legacy": self.legacy = True if data[1] == "True" else False
 
     def makeContainersFromOtherExperiments(self):
 
@@ -116,12 +125,20 @@ class Combine():
 
             missing = 0
 
-            input_path = self.params.shared_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.objective_name
+            input_path = self.params.shared_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.description
+
             for seed in range(1, self.params.runs + 1):
-                input_filename = input_path+"/"+str(seed)+"/checkpoint-"+self.objective+"-"+str(seed)+"-"+str(self.params.generations)+".txt"
+
+                input_filename = input_path+"/"+str(seed)+"/checkpoint-"+self.description
+                input_filename += "-"+str(seed)+"-"+str(self.params.generations)
+                if not self.legacy:
+                    input_filename += "-"+self.objective
+                input_filename += ".txt"
+
                 if not os.path.exists(input_filename):
                     missing += 1
-                    
+                    print(input_filename)
+
             if missing > 0:
                 message += str(missing)+" files missing for "+experiment+"\n"
 
@@ -140,14 +157,14 @@ class Combine():
             exists = False
 
             if self.output_type == "interim":
-                output_path = self.params.shared_path+"/"+self.params.algorithm+"/"+self.experiment
-                output_filename = output_path+"/"+self.objective_name+".txt"
+                output_path = self.params.shared_path+"/"+self.params.algorithm+"/"+self.experiment+"/"+self.description
+                output_filename = output_path+"/"+self.objective+".txt"
                 if os.path.exists(output_filename):
                     exists = True
             else:
-                output_path = self.params.shared_path+"/gp/"+self.experiment+"/repertoires"
+                output_path = self.params.shared_path+"/gp/"+self.experiment+"/repertoires/"+self.params.repertoire_type
                 for experiment in self.experiments:
-                    output_filename = output_path+"/"+experiment+"/"+self.objective_name+"-"+str(self.params.generations)+".txt"
+                    output_filename = output_path+"/"+experiment+"/"+self.objective+"-"+str(self.params.generations)+".txt"
                     if os.path.exists(output_filename):
                         exists = True
 
@@ -168,7 +185,7 @@ class Combine():
 
         for experiment in experiments:
 
-            input_path = self.params.shared_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.objective_name
+            input_path = self.params.shared_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.description
 
             container = (Grid(shape = [8,8,8],
                               max_items_per_bin = 1,
@@ -177,7 +194,10 @@ class Combine():
                               storage_type=list))
 
             for seed in range(1, self.params.runs + 1):
-                input_filename = input_path+"/"+str(seed)+"/checkpoint-"+self.objective+"-"+str(seed)+"-"+str(self.params.generations)+".txt"
+                input_filename = input_path+"/"+str(seed)+"/checkpoint-"+self.description+"-"+str(seed)+"-"+str(self.params.generations)
+                if not self.legacy:
+                    input_filename += "-"+self.objective
+                input_filename += ".txt"
                 container = self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
 
             containers.append(container)
@@ -215,26 +235,29 @@ class Combine():
 
         if self.output_type == "interim":
             experiments = [self.experiment]
-            output_path = self.params.shared_path+"/"+self.params.algorithm+"/"+self.experiment
+            output_path = self.params.shared_path+"/"+self.params.algorithm+"/"+self.experiment+"/"+self.description
         else:
             experiments = self.experiments
-            output_path = self.params.shared_path+"/gp/"+self.experiment+"/repertoires"
+            output_path = self.params.shared_path+"/gp/"+self.experiment+"/repertoires/"+self.params.repertoire_type
 
         print()
 
         for i in range(len(experiments)):
 
             if self.output_type == "interim":
-                output_file = output_path+"/"+self.objective_name+".txt"
+                output_file = output_path+"/"+self.objective+".txt"
             else:
-                output_file = output_path+"/"+experiments[i]+"/"+self.objective_name+"-"+str(self.params.generations)+".txt"
-            print("Writing to "+output_file)
+                output_file = output_path+"/"+experiments[i]+"/"+self.objective+"-"+str(self.params.generations)+".txt"
 
             if self.save:
-                Path(output_path+"/"+experiments[i]).mkdir(parents=True, exist_ok=True)
+                print("Writing to "+output_file)
+                if self.output_type == "final":
+                    Path(output_path+"/"+experiments[i]).mkdir(parents=True, exist_ok=True)
                 container_string = self.utilities.writeContainerToString(containers[i])
                 with open(output_file, "w") as f:
                     f.write(container_string)
+            else:
+                print("Output file: "+output_file)
 
         print()
 

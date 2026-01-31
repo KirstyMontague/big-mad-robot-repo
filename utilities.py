@@ -648,6 +648,38 @@ class Utilities():
                 f.write("duration: "+minutes_str+" minutes ("+str(duration) + " ms)\n")
                 f.write("\n")
 
+    def getCsvIndex(self, objective, algorithm_name):
+        if algorithm_name == "mtc":
+            return self.getMtcIndex(objective["index"])
+        elif algorithm_name == "mti":
+            return self.getMtiIndex(objective["index"])
+        else:
+            return 0
+
+    def getMtcIndex(self, objective):
+        mtc_index = -1
+        if objective in [0, 2]: mtc_index = 0
+        if objective in [1, 3]: mtc_index = 1
+        if objective in [4, 5]: mtc_index = 2
+        return mtc_index
+
+    def getMtiIndex(self, objective):
+        mti_index = -1
+        if objective in [0, 3]: mti_index = 0
+        if objective in [1, 4]: mti_index = 1
+        if objective in [2, 5]: mti_index = 2
+        return mti_index
+
+    def getExperimentDescription(self, objective, algorithm):
+        if algorithm == "mtc":
+            if objective in [0, 1, 5]: return self.params.objectives[0]+"-"+self.params.objectives[1]+"-"+self.params.objectives[5]
+            if objective in [2, 3, 4]: return self.params.objectives[2]+"-"+self.params.objectives[3]+"-"+self.params.objectives[4]
+        elif algorithm == "mti":
+            if objective in [0, 1, 2]: return self.params.objectives[0]+"-"+self.params.objectives[1]+"-"+self.params.objectives[2]
+            if objective in [3, 4, 5]: return self.params.objectives[3]+"-"+self.params.objectives[4]+"-"+self.params.objectives[5]
+        else:
+            return self.params.objectives[objective]
+
     def evaluate(self, assign_fitness, invalid_ind):
 
         # fitnesses = self.toolbox.map(self.toolbox.evaluate, invalid_ind)
