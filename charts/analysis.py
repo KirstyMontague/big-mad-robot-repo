@@ -33,30 +33,37 @@ class Analysis():
         self.objectives = Objectives()
         self.queries = Queries()
 
-    def getData(self, query, deap_algorithms, qdpy_algorithms, objective, generation, runs):
+    def getData(self, query, objective, algorithms, experiments, repertoires, runs, generation):
 
-        # getData is currently only used for drawing one generation so we use that as the interval
-        interval = generation
-        index = int(generation/interval)
+        if objective["name"] == "foraging":
+            for i in range(len(algorithms)):
+                algorithms[i] = "gp"
 
-        deap = []
-        for algorithm in deap_algorithms:
+        result = []
 
-            features = 3 if "mt" in algorithm["name"] else 1
-            csv_index = self.getCsvIndex(objective, algorithm["name"])
+        for algorithm in algorithms:
+            for experiment in experiments:
+                for repertoire in repertoires:
 
-            data = self.getDataFromCSV(query, algorithm["file_index"], generation, interval, objective, runs, objective[algorithm["name"]+"_url"])
-            data = data[csv_index][index] if "mt" in algorithm["name"] and query["name"] != "coverage" else data[0][index]
-            deap.append(data)
+                    generations = self.getGeneration(generation, objective["name"], repertoire)
+                    interval = generations
+                    index = int(generations/interval)
 
-        features = 1
-        qdpy = []
-        for algorithm in qdpy_algorithms:
-            data = self.getDataFromCSV(query, algorithm["file_index"], generation, interval, objective, runs, objective[algorithm["name"]+"_url"])
-            data = data[0][index]
-            qdpy.append(data)
+                    description = self.utilities.getExperimentDescription(objective["index"], algorithm)
+                    path = self.algorithms.info[algorithm]["path"]
 
-        return deap + qdpy
+                    features = 3 if "mt" in algorithm else 1
+                    csv_index = self.utilities.getCsvIndex(objective, algorithm)
+
+                    filename = self.params.input_path+"/"+path+"/"+experiment+"/"+description+"/"
+                    if objective["name"] == "foraging":
+                        filename += repertoire+"/"
+
+                    data = self.getDataFromCSV(query, generations, generations, generations, objective, runs, filename)
+                    data = data[csv_index][index] if "mt" in algorithm and query["name"] != "coverage" else data[0][index]
+                    result.append(data)
+
+        return result
 
     def getDataFromCSV(self, query, file_index, generations, interval, objective, runs, filename):
 
@@ -69,20 +76,25 @@ class Analysis():
 
             indexes = []
             horizontal_data = []
+            first_gen_column = 0
 
             for line in f:
                 
                 data = []
-                columns = line.split(",")
+                sections = line.split("\"")
+                columns = sections[0].split(",")
 
                 if columns[0] in ["Type", "Objective"]:
-                    for i in range(9, len(columns)):
+                    for i in range(0, len(columns)):
+                        if columns[i].isdigit():
+                            if first_gen_column == 0:
+                                first_gen_column = i
                         if columns[i].isdigit() and int(columns[i]) <= generations and int(columns[i]) % interval == 0:
                             indexes.append(i)
 
                 elif columns[0] not in ["Type", "Objective"] and len(indexes) > 0 and len(horizontal_data) < runs:
                     for i in range(generations+1):
-                        index = i + 9
+                        index = i + first_gen_column
                         if index in indexes:
                             if query["name"] == "coverage":
                                 # coverage is represented by only one value even for MT 
@@ -102,7 +114,7 @@ class Analysis():
                                     data.append(scoresList)
 
                     horizontal_data.append(data)
-            
+
         # print ("")
         # print(len(horizontal_data))
         # print(len(horizontal_data[0]))
@@ -147,46 +159,59 @@ class Analysis():
 
         return ttest
 
-    def drawOneGeneration(self, query, objective_name, deap_algorithms, qdpy_algorithms, generation, runs):
+    def drawOneGeneration(self, filename, query, objective, algorithms, experiments, repertoires, runs, generation = 0):
 
-        objective = self.objectives.info[objective_name]
-        data = self.getData(query, deap_algorithms, qdpy_algorithms, objective, generation, runs)
+        objective = self.objectives.info[self.objectives.index[objective]]
+        query = self.queries.info[query]
 
-        if len(data) == 2:
-            if len(data[0]) > 2 and len(data[1]) > 2:
-                ttest = self.checkHypothesis(data[0], data[1])
+        try:
+            data = self.getData(query, objective, algorithms, experiments, repertoires, runs, generation)
+        except FileNotFoundError as e:
+            print("\n"+str(e)+"\n")
+            return
 
-        if len(data) > 2:
-            print ("")
-            for i in range(1, len(data)):
-                self.checkHypothesis(data[0], data[i])
-                ttest = ttest_ind(data[0], data[i])
-            print ("")
+        try:
+            print()
+            for i in range(len(data) - 1):
+                if len(data) == 2:
+                    ttest = self.checkHypothesis(data[i], data[i + 1])
+                    print()
+                if len(data) > 2:
+                    for j in range(i + 1, len(data)):
+                        self.checkHypothesis(data[i], data[j])
+                        ttest = ttest_ind(data[i], data[j])
+                    print()
+        except ValueError as e:
+            print("\nCheck hypothesis failed, not enough data (minimum 3 seeds)")
+            print("\n"+str(e)+"\n")
+            return
 
         consistent = True
         for d in data:
             if len(d) != len(data[0]):
                 consistent = False
 
-        if objective["name"] == "foraging": filename = "./"+query["name"]+"/foraging/temp.png"
-        else:
-            if query["name"] == "best": filename = "./"+query["name"]+"/sub-behaviours/"+objective["name"]+".png"
-            else: filename = "./"+query["name"]+"/"+objective["name"]+".png"
-
         suptitle = objective["description"]+"\n"
         if consistent: title = str(len(data[0]))+' runs at '+str(generation)+' generations\n'
         else: title = query["ylabel"]+' at '+str(generation)+' generations over a mixed number of runs\n'
-        
-        labels = []
-        for algorithm in deap_algorithms + qdpy_algorithms:
-            label = algorithm["code"]
-            if "foraging" in algorithm["name"]:
-                generation = algorithm["generations"]
-                if generation != 1000:
-                    label += "\n("+str(generation)+" generations)\n"
-            labels.append(label)
+        title = objective["description"]+"\n"
 
-        self.drawPlotsBigLabels(data, suptitle, title, labels, query["ylabel"], filename)
+        labels = []
+
+        for algorithm in algorithms:
+            for experiment in experiments:
+                for repertoire in repertoires:
+                    if len(algorithms) > 1: label = self.algorithms.info[algorithm]["description"]
+                    if len(experiments) > 1: label = experiment
+                    if len(repertoires) > 1: label = self.algorithms.getRepertoireName(repertoire)
+                    if objective["name"] == "foraging" and repertoire == "baseline":
+                        generations = self.getGeneration(generation, objective["name"], repertoire)
+                        label += "\n("+str(generations)+" gen)\n"
+                    labels.append(label)
+
+        ylabel = query["ylabel"]
+
+        self.drawPlotsNoLabels(data, suptitle, title, labels, ylabel, filename)
 
     def drawPlotsForaging(self, data, suptitle, title, labels, ylabel, filename):
 
@@ -222,8 +247,9 @@ class Analysis():
 
         plots = ax.boxplot(data, medianprops=dict(color='#000000'), patch_artist=True, labels=labels)
 
-        if len(data) == 4:
-            colors = ['lightgray', 'pink', 'lightblue', 'lightgray']
+        if len(data) == 7:
+            colors = ['lightgray', 'lightblue', 'lightblue', 'lightblue', 'pink', 'pink', 'pink']
+            # colors = ['lightgray', 'lightblue', 'pink', 'lightblue', 'pink', 'lightblue', 'pink']
             for patch, color in zip(plots['boxes'], colors):
                 patch.set_facecolor(color)
 
@@ -242,6 +268,28 @@ class Analysis():
         ax.tick_params(axis='x', labelsize=15) # by algorithm
         # ax.tick_params(axis='x', labelsize=16) # by nest
         ax.tick_params(axis='y', labelsize=16)
+
+        # plt.savefig(filename)
+        print(filename)
+        plt.show()
+
+    def drawPlotsNoLabels(self, data, suptitle, title, labels, ylabel, filename):
+
+        plot_width = 6 + len(data)
+
+        fig, ax = plt.subplots(figsize=(plot_width, 6))
+        plt.subplots_adjust(wspace=0.0, hspace=0.0, bottom=0.1, top=0.97, left=0.1)
+
+        plots = ax.boxplot(data, medianprops=dict(color='#000000'), patch_artist=True, labels=labels)
+
+        for patch in plots['boxes']:
+            patch.set_facecolor('lightblue')
+
+        ax.yaxis.set_label_coords(-0.14,0.5)
+        ax.xaxis.set_label_coords(0.5,-0.09)
+
+        ax.tick_params(axis='x', labelsize=15)
+        ax.tick_params(axis='y', labelsize=15)
 
         # plt.savefig(filename)
         print(filename)
@@ -333,17 +381,26 @@ class Analysis():
         ax.tick_params(axis='x', labelsize=13)
         ax.xaxis.set_label_coords(0.5,0.09)
 
-    def drawEvolution(self, algorithm, query, objective_name, runs, min_gen, max_gen, increment, x_axis_increment):
+    def drawEvolution(self, experiment, algorithm, query, objective, repertoire, runs, min_gen, max_gen, increment, x_axis_increment):
 
-        objective = self.objectives.info[objective_name]
-        url = objective[algorithm["name"]+"_url"]
+        objective = self.objectives.info[objective]
+
+        path = algorithm["path"]
+        description = self.utilities.getExperimentDescription(objective["index"], algorithm["name"])
+        filename = self.params.input_path+"/"+path+"/"+experiment+"/"+description+"/"
+        if objective["name"] == "foraging":
+            filename += repertoire+"/"
 
         raw_data = None
 
-        csv_index = self.getCsvIndex(objective, algorithm["name"])
-        features = 3 if algorithm["type"] in ["MTC", "MTI"] else 1
+        csv_index = self.utilities.getCsvIndex(objective, algorithm["name"])
+        features = 3 if "mt" in algorithm["name"] else 1
 
-        raw_data = self.getDataFromCSV(query, max_gen, max_gen, increment, objective, runs, url)
+        try:
+            raw_data = self.getDataFromCSV(query, max_gen, max_gen, increment, objective, runs, filename)
+        except FileNotFoundError as e:
+            print("\n"+str(e)+"\n")
+            return
         raw_data = raw_data[csv_index]
 
         data = []
@@ -362,10 +419,10 @@ class Analysis():
             else:
                 labels.append("")
 
-        title = objective["description"]+" - "+algorithm["display_name"]+" algorithm"
+        title = objective["description"]+" - "+algorithm["description"]+" algorithm"
 
         settings = str(min_gen)+"-"+str(max_gen)+"-"+str(increment)
-        filename = "./evolution/"+settings+"/"+objective_name+"-"+algorithm["name"]+"-"+settings+".png"
+        filename = "./evolution/"+settings+"/"+objective["name"]+"-"+algorithm["name"]+"-"+settings+".png"
 
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15, 6))
         plt.subplots_adjust(wspace=.3, hspace=.4, bottom=0.1, top=0.8)
@@ -393,6 +450,7 @@ class Analysis():
         ax.yaxis.set_label_coords(-0.09,0.5)
         ax.xaxis.set_label_coords(0.5, -0.1)
 
+        print("Output file: "+filename)
         # plt.savefig(filename)
         plt.show()
 
@@ -412,42 +470,63 @@ class Analysis():
             vals[2].append(max(d))
         return vals
 
-    def drawLineGraph(self, objective, algorithm_name, algorithm_url, query, generations, runs, ylim):
+    def drawLineGraph(self, title, experiment, objective, algorithm, repertoire, query, generations, ylim):
+
+        query = self.queries.info[query]
+        objective = self.objectives.info[objective]
+        algorithm = self.algorithms.info[algorithm]
+        generations = self.getGeneration(generations, objective["name"], repertoire)
 
         csv_data = []
-        csv_index = self.getCsvIndex(objective, algorithm_name)
+        csv_index = self.utilities.getCsvIndex(objective, algorithm)
 
-        input_file = objective[algorithm_url]+query["name"]+str(generations)+".csv"
-        with open(input_file, "r") as f:
-            for line in f:
-                columns = line.split(",")
-                if algorithm_name in ["mtc", "mti"]:
-                    if columns[0] in ["density-nest-food", "density-nest-ifood", "food-idensity-inest", "idensity-inest-ifood"]:
-                        data = []
-                        for scores in columns[9:generations+10]:
-                            score = scores.split(" ")
-                            data.append(float(score[csv_index]))
-                        csv_data.append(data)
-                else:
-                    if columns[0] == objective["name"]:
-                        csv_data.append(columns[9:generations+10])
+        input_path = self.params.input_path+"/"+algorithm["path"]+"/"+experiment
+        if objective["name"] == "foraging":
+            input_path += "/"+self.params.foraging_path+"/"+repertoire
+        else:
+            if self.params.subbehaviours_path != "":
+                input_path += "/"+self.params.subbehaviours_path
+            input_path += "/"+self.utilities.getExperimentDescription(objective["index"], algorithm["name"])
+
+        input_file = input_path+"/"+query["name"]+str(generations)+".csv"
+
+        try:
+            with open(input_file, "r") as f:
+                for line in f:
+                    columns = line.split(",")
+                    if algorithm["name"] in ["mtc", "mti"]:
+                        if columns[0] == self.utilities.getExperimentDescription(objective["index"], algorithm["name"]):
+                            data = []
+                            for scores in columns[9:generations+10]:
+                                score = scores.split(" ")
+                                data.append(float(score[csv_index]))
+                            csv_data.append(data)
+                    else:
+                        if columns[0] == objective["name"]:
+                            csv_data.append(columns[9:generations+10])
+        except FileNotFoundError as e:
+            print("\n"+str(e)+"\n")
+            return
 
         xlabel = "Generations"
 
         data = self.rotateData2D(csv_data)
         vals = self.getMinMaxMed(data)
 
-        self.drawLineChart(vals, objective, query, self.algorithms.info[algorithm_name], runs, xlabel, ylim)
+        if objective["name"] == "foraging":
+            output_file = "./"+query["name"]+"/line-charts/foraging/"
+            if repertoire is not None:
+                output_file += repertoire+".png"
+        else:
+            output_file = "./"+query["name"]+"/line-charts/sub-behaviours/"+objective["name"]+"-"+algorithm["name"]+".png"
 
-    def drawLineChart(self, vals, objective, query, algorithm, runs, xlabel, ylim):
+        self.drawLineChart(title, vals, objective, query, algorithm, xlabel, ylim, output_file)
+
+    def drawLineChart(self, title, vals, objective, query, algorithm, xlabel, ylim, output_file):
 
         ylabel = query["ylabel"]
-        title = objective["description"]+" - "+algorithm["name"]+" algorithm over "+str(runs)+" runs\n"
-        if objective["name"] == "foraging":
-            title = "Foraging with 64 of each sub-behaviour ("+algorithm["code"]+")\n\n"
-        else:
-            title = objective["description"]+" over "+str(runs)+" runs\n\n"
-        title += "Minimum, median and maximum " + query["description"]
+
+        title += "\n\nMinimum, median and maximum " + query["description"]
 
         labels = []
         for i in range(len(vals[0])):
@@ -470,12 +549,7 @@ class Analysis():
 
         ax.set_ylim(ylim)
 
-        if objective["name"] == "foraging":
-            output_file = "./"+query["name"]+"/line-charts/foraging/"+algorithm["code"]+".png"
-        else:
-            output_file = "./"+query["name"]+"/line-charts/sub-behaviours/"+objective["name"]+"-"+algorithm["code"]+".png"
-        print("output_file")
-        print(output_file)
+        print("output_file "+output_file)
         # plt.savefig(output_file)
 
         plt.show()
@@ -490,33 +564,9 @@ class Analysis():
                 fitness = data[i][j]
                 data[i][j] = fitness / max_fitness
 
-    def getCsvIndex(self, objective, algorithm_name):
-        if algorithm_name == "mtc":
-            return self.getMtcIndex(objective["index"])
-        elif algorithm_name == "mti":
-            return self.getMtiIndex(objective["index"])
-        else:
-            return 0
-
-    def getMtcIndex(self, objective):
-        mtc_index = -1
-        if objective in [0, 2]: mtc_index = 0
-        if objective in [1, 3]: mtc_index = 1
-        if objective in [4, 5]: mtc_index = 2
-        return mtc_index
-
-    def getMtiIndex(self, objective):
-        mti_index = -1
-        if objective in [0, 3]: mti_index = 0
-        if objective in [1, 4]: mti_index = 1
-        if objective in [2, 5]: mti_index = 2
-        return mti_index
-
-    def getObjectivesCombination(self, objective, compatible):
-        if compatible:
-            if objective in [0, 1, 5]: return "density-nest-ifood"
-            if objective in [2, 3, 4]: return "food-idensity-inest"
-        else:
-            if objective in [0, 1, 2]: return "density-nest-food"
-            if objective in [3, 4, 5]: return "idensity-inest-ifood"
-
+    def getGeneration(self, generation, objective, repertoire):
+        if generation == 0:
+            generation = 1000
+            if objective == "foraging" and repertoire == "baseline":
+                generation = 2200
+        return generation

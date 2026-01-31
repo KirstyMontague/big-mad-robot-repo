@@ -42,12 +42,24 @@ y = {
 }
 
 
-objective = "density"
+def drawLineGraph(experiment, objective, algorithm, repertoire, query, generations):
+    title = analyse.objectives.info[objective]["description"]+" ("+algorithm.upper()+")"
+    analyse.drawLineGraph(title,
+                          experiment,
+                          objective,
+                          algorithm,
+                          repertoire,
+                          query,
+                          generations,
+                          y[objective][query])
+
+experiment = "arena-1"
+algorithm = "gp"
 query = "best"
-runs = 30
+
+objective = "foraging"
+repertoire = "mti1"
 generations = 1000
 
-analyse.drawLineGraph(analyse.objectives.info[objective], "qdpy", "qdpy_url", analyse.queries.info[query], generations, runs, y[objective][query])
-analyse.drawLineGraph(analyse.objectives.info[objective], "gp", "gp_url", analyse.queries.info[query], generations, runs, y[objective][query])
-analyse.drawLineGraph(analyse.objectives.info[objective], "mtc", "mtc_url", analyse.queries.info[query], generations, runs, y[objective][query])
-analyse.drawLineGraph(analyse.objectives.info[objective], "mti", "mti_url", analyse.queries.info[query], generations, runs, y[objective][query])
+if algorithm in ["gp", "mtc", "mti", "qdpy"]:
+    drawLineGraph(experiment, objective, algorithm, repertoire, query, generations)

@@ -1,43 +1,21 @@
 from analysis import Analysis
 
-analyse = Analysis()
-
-gp_algorithms = []
-qdpy_algorithms = []
-
+analysis = Analysis()
 
 objective = 6
-generation = 1000
+generation = 0
 runs = 30
 
+query = "best"
 
-gp_algorithms.append(analyse.algorithms.info["foraging_baseline_04"])
-gp_algorithms.append(analyse.algorithms.info["foraging_qd1_04"])
-gp_algorithms.append(analyse.algorithms.info["foraging_qd8_04"])
-gp_algorithms.append(analyse.algorithms.info["foraging_qd64_04"])
+algorithms = ["gp"]
+experiments = ["arena-1"]
+repertoires = ["baseline"]
 
-gp_algorithms.append(analyse.algorithms.info["foraging_baseline"])
-gp_algorithms.append(analyse.algorithms.info["foraging_qd1"])
-gp_algorithms.append(analyse.algorithms.info["foraging_qd8"])
-gp_algorithms.append(analyse.algorithms.info["foraging_qd64"])
+# algorithms = ["gp", "mtc", "mti", "qdpy"]
+# experiments = ["arena-1", "arena-2"]
+repertoires = ["baseline", "qd1", "qd8", "qd64"]
 
-gp_algorithms.append(analyse.algorithms.info["foraging_baseline_06"])
-gp_algorithms.append(analyse.algorithms.info["foraging_qd1_06"])
-gp_algorithms.append(analyse.algorithms.info["foraging_qd8_06"])
-gp_algorithms.append(analyse.algorithms.info["foraging_qd64_06"])
+filename = "./"+query+"/no-labels/foraging/arenas2/arena1.png"
 
-# gp_algorithms.append(analyse.algorithms.info["foraging_baseline"])
-# gp_algorithms.append(analyse.algorithms.info["foraging_mt1"])
-# gp_algorithms.append(analyse.algorithms.info["foraging_mt8"])
-# gp_algorithms.append(analyse.algorithms.info["foraging_mt64"])
-
-# gp_algorithms.append(analyse.algorithms.info["gp"])
-# gp_algorithms.append(analyse.algorithms.info["mtc"])
-# gp_algorithms.append(analyse.algorithms.info["mti"])
-
-# qdpy_algorithms.append(analyse.algorithms.info["qdpy"])
-
-analyse.drawOneGenerationCombo(analyse.queries.info["best"], analyse.objectives.index[objective], gp_algorithms, qdpy_algorithms, generation, runs)
-# analyse.drawOneGeneration(analyse.queries.info["qd-score"], analyse.objectives.index[objective], gp_algorithms, qdpy_algorithms, generation, runs)
-# analyse.drawOneGeneration(analyse.queries.info["coverage"], analyse.objectives.index[objective], gp_algorithms, qdpy_algorithms, generation, runs)
-
+analysis.drawOneGeneration(filename, query, objective, algorithms, experiments, repertoires, runs, generation)
