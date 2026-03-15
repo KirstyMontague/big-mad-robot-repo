@@ -35,7 +35,7 @@ class Heatmaps():
         self.generations = self.params.generations
         self.seed = 0
         self.bins = [8,8,8]
-        self.domain = [(-0.15, 0.15), (-0.5, 0.5), (-0.5, 0.5)]
+        self.domain = [(-0.5, 0.5), (-0.5, 0.5), (-0.5, 0.5)]
         self.save = self.params.saveOutput
 
         self.cancelled = False
@@ -44,7 +44,7 @@ class Heatmaps():
 
     def configure(self):
         permitted = ["objective", "experiment", "generations", "seed", "bins", "domain", "save"]
-        with open(self.params.shared_path+"/heatmaps.txt", 'r') as f:
+        with open(self.params.local_path+"/heatmaps.txt", 'r') as f:
             for line in f:
                 data = line.split()
                 if len(data) > 0:
@@ -149,6 +149,31 @@ class Heatmaps():
 
         return rotated_population
 
+    def rotateGrid2D(self, population):
+
+        for i in range(len(population)):
+            output = ""
+            for j in range(len(population[i])):
+                output += str(population[i][j])+" "
+            # print(output+"\n")
+        # print()
+
+        rotated_population = np.zeros((len(population[0]), len(population)))
+
+        for i in range(len(rotated_population)):
+            output = ""
+            for j in range(len(rotated_population[i])):
+                output += str(rotated_population[i][j])+" "
+            # print(output+"\n")
+        # print()
+
+        for i in range(len(population)):
+            for j in range(len(population[0])):
+                # rotated_population[i,j,k] = population[k,j,i]
+                rotated_population[j][i] = population[i][j]
+
+        return rotated_population
+
     def drawColourBar(self, fig, ax, cax, figure_size):
 
         fig.subplots_adjust(right=0.9, wspace=0.40)
@@ -159,23 +184,22 @@ class Heatmaps():
     def writeZTitle(self, index):
         domain = self.domain[0]
         domain_max = domain[1] - domain[0]
-        start = ((domain_max / self.bins[0]) * index) + domain[0]
-        end = ((domain_max / self.bins[0]) * (index + 1)) + domain[0]
-        title = str("%.2f" % start)+"  -  "+str("%.2f" % end)
-        return title
+        title = ((domain_max / self.bins[0]) * index) + domain[0]
+        return str("%.2f" % title)
 
-    def drawHeatmap(self, algorithms):
+    def drawCollapsedDiagram(self, algorithms):
 
-        all_data = []
+        all_verbose = []
         for algorithm in algorithms:
-            all_data.append(self.getCsvData(algorithm))
+            all_verbose.append(self.getCsvData(algorithm))
 
-        fitness_min = -0.5
+        verbose = all_verbose[0]
+
+        data = self.collapse(verbose)
+        all_data = [data]
+
+        fitness_min = -1.0
         fitness_max = 1.0
-        # for data in all_data:
-            # fitness_min = np.min([fitness_min, np.nanmin(data)])
-            # fitness_max = np.max([fitness_max, np.nanmax(data)])
-
         colour_map="YlGnBu"
         colour_bar_label="Fitness"
         features_domain = self.domain
@@ -183,43 +207,51 @@ class Heatmaps():
         ticks = 4
         bin_size_inches = 0.2
 
-        if len(all_data[0].shape) % 2 == 1:
-            for i in range(len(all_data)):
-                all_data[i] = all_data[i].reshape((all_data[i].shape[0], 1) + all_data[i].shape[1:])
-            features_domain = (features_domain[0], (0., 0.)) + tuple(features_domain[1:])
-        bins = all_data[0].shape
+        bins = self.bins
 
         horizontal_bins = bins[::2]
+        print(horizontal_bins)
+        horizontal_bins = [3,10]
         vertical_bins = bins[1::2]
         horizontal_bins_total = reduce(mul, horizontal_bins, 1)
         vertical_bins_total = reduce(mul, vertical_bins, 1)
         vertical_bins_total *= len(all_data)
 
-        figure_size = [3.1 + horizontal_bins_total * bin_size_inches, 1. + vertical_bins_total * bin_size_inches]
+        figure_size = [2.1 + (bins[0] + bins[1] + bins[2]) * bin_size_inches,
+                       1.0 + max(bins) * bin_size_inches]
+        print(figure_size)
 
-        fig, ax = plt.subplots(nrows=len(all_data), ncols=bins[0], figsize=figure_size)
+        fig, ax = plt.subplots(nrows=len(all_data), ncols=len(data), figsize=figure_size)
 
-        for x in range(bins[0]):
-            for y in range(len(all_data)):
-                data = all_data[y]
-                ax = plt.subplot(len(all_data), bins[0], y * bins[0] + x + 1)
+        for d in range(len(all_data)):
+            for x in range(len(data)):
+                ax = plt.subplot(len(all_data), len(data), x + 1)
                 if x == 0:
-                    ax.set_ylabel(algorithms[y].upper(), fontsize=15, rotation='horizontal')
-                    ax.yaxis.set_label_coords(-0.5,0.4)
-                cax = self.drawSubplot(ax,
-                                       data[x, 0, 0:bins[2], 0:bins[3]],
-                                       data_t = data[x, 0, 0:bins[2], 0:bins[3]].T,
-                                       colour_map=colour_map,
-                                       features_domain=features_domain[-2:],
-                                       fitness_domain=fitness_domain[-2:],
-                                       z_index=x, bins=(bins[2], bins[3]), ticks=ticks)
-
+                    ax.set_ylabel(algorithms[0].upper(), fontsize=15, rotation='horizontal')
+                    ax.yaxis.set_label_coords(-0.3,0.4)
+                    ticks = (bins[1],bins[2])
+                    features_domain=self.domain[-2:]
+                    title = "nest (x) vs food (y)"
+                if x == 1:
+                    ticks = (bins[0],bins[2])
+                    features_domain=[self.domain[0],self.domain[2]]
+                    title = "density (x) vs food (y)"
+                if x == 2:
+                    ticks = (bins[0],bins[1])
+                    features_domain=[self.domain[1],self.domain[0]]
+                    title = "nest (x) vs density (y)"
+                cax = self.draw2DSubplot(ax,
+                                         data[x],
+                                         self.rotateGrid2D(data[x]),
+                                         colour_map=colour_map,
+                                         features_domain=features_domain,
+                                         fitness_domain=fitness_domain[-2:],
+                                         title=title, bins=(len(data[0]), len(data[0][0])), ticks=ticks)
 
         plt.tight_layout()
         self.drawColourBar(fig, ax, cax, figure_size)
 
-        output_filename = "./heatmaps/"+self.objective_name+".png"
-        output_filename = "./heatmaps/temp.png"
+        output_filename = "./heatmaps/objectives_cast_to_grid_arena_2/seed-"+str(self.seed)+".png"
         if self.save:
             print("\nWriting to "+output_filename+"\n")
             fig.savefig(output_filename)
@@ -228,45 +260,31 @@ class Heatmaps():
 
         plt.show()
 
-    def drawSubplot(self, ax, data, data_t, colour_map, features_domain, fitness_domain, z_index=0, bins=None, ticks = 4):
+    def draw2DSubplot(self, ax, data, data_t, colour_map, features_domain, fitness_domain, title, bins=None, ticks = 4):
 
         vertical_min = fitness_domain[0]
-        if np.isnan(vertical_min) or np.isinf(vertical_min):
-            vertical_min = np.nanmin(data)
-
         vertical_max = fitness_domain[1]
-        if np.isnan(vertical_max) or np.isinf(vertical_max):
-            vertical_max = np.nanmax(data)
 
         cax = ax.imshow(data_t, interpolation="none", cmap=colour_map, vmin=vertical_min, vmax=vertical_max, aspect="equal")
 
-        num_x_ticks = 5
-        num_y_ticks = 5
+        num_x_ticks = len(data) / 4
+        num_y_ticks = len(data[0]) / 4
 
-        ax.set_title(self.writeZTitle(z_index),fontsize=10)
+        ax.set_title(title,fontsize=14)
 
         ax.xaxis.set_tick_params(which='major', left=True, bottom=True, top=False, right=False)
         ax.yaxis.set_tick_params(which='major', left=True, bottom=True, top=False, right=False)
 
-        ax.xaxis.set_tick_params(which='minor', direction="in", left=False, bottom=False, top=False, right=False)
-        ax.yaxis.set_tick_params(which='minor', direction="in", left=False, bottom=False, top=False, right=False)
-
-        # xticks = list(np.arange(0, data.shape[0] + 1, data.shape[0] / num_x_ticks))
-        # yticks = list(np.arange(0, data.shape[1] + 1, data.shape[1] / num_y_ticks))
-        xticks = list(np.arange(0, len(data)    + 1, len(data)    / num_x_ticks))
+        xticks = list(np.arange(0, len(data) + 1, len(data) / num_x_ticks))
         yticks = list(np.arange(0, len(data[0]) + 1, len(data[0]) / num_y_ticks))
-
         ax.set_xticks(xticks)
         ax.set_yticks(yticks)
 
         delta_x = features_domain[0][1] - features_domain[0][0]
         delta_y = features_domain[1][1] - features_domain[1][0]
 
-        # ax.set_xticklabels([f'{round(float(x / float(data.shape[0]) * delta_x + features_domain[0][0]), 2):1.2f}' for x in xticks], fontsize=10)
-        # ax.set_yticklabels([f'{round(float(y / float(data.shape[1]) * delta_y + features_domain[1][0]), 2):1.2f}' for y in yticks], fontsize=10)
-        ax.set_xticklabels([f'{round(float(x / float(len(data))    * delta_x + features_domain[0][0]), 2):1.2f}' for x in xticks], fontsize=10)
-        ax.set_yticklabels([f'{round(float(y / float(len(data[0])) * delta_y + features_domain[1][0]), 2):1.2f}' for y in yticks], fontsize=10)
-
+        ax.set_xticklabels([f'{round(float(x / float(len(data)) * delta_x + features_domain[0][0]), 2):1.2f}' for x in xticks], fontsize=12)
+        ax.set_yticklabels([f'{round(float(y / float(len(data[0])) * delta_y + features_domain[1][0]), 2):1.2f}' for y in yticks], fontsize=12)
 
         if bins[1] == 1:
             yticks = []
@@ -276,21 +294,63 @@ class Heatmaps():
 
         ax.invert_yaxis()
 
+        ax.xaxis.set_tick_params(which='minor', direction="in", left=False, bottom=False, top=False, right=False)
+        ax.yaxis.set_tick_params(which='minor', direction="in", left=False, bottom=False, top=False, right=False)
+
         ax.autoscale_view()
 
         return cax
+
+    def collapse(self, data):
+
+        xy = []
+        for i in range(self.bins[1]):
+            xy.append([])
+            for j in range(self.bins[2]):
+                xy[-1].append(False)
+
+        for z in range(len(data)):
+            for y in range(len(data[0])):
+                for x in range(len(data[0][0])):
+                    if not math.isnan(data[z][y][x]):
+                        xy[y][x] = True
+
+        xz = []
+        for i in range(self.bins[0]):
+            xz.append([])
+            for j in range(self.bins[2]):
+                xz[-1].append(False)
+
+        for y in range(len(data[0])):
+            for z in range(len(data)):
+                for x in range(len(data[0][0])):
+                    if not math.isnan(data[z][y][x]):
+                        xz[z][x] = True
+
+        yz = []
+        for i in range(self.bins[1]):
+            yz.append([])
+            for j in range(self.bins[0]):
+                yz[-1].append(False)
+
+        for x in range(len(data[0][0])):
+            for y in range(len(data[0])):
+                for z in range(len(data)):
+                    if not math.isnan(data[z][y][x]):
+                        yz[y][z] = True
+
+        return [xy, xz, yz]
 
     def selTournament(self):
         return []
 
 if __name__ == "__main__":
 
-    # algorithms = ["gp", "mtc", "mti", "qd"]
     algorithms = ["qd"]
 
     heatmaps = Heatmaps()
 
     if not heatmaps.cancelled:
-        heatmaps.drawHeatmap(algorithms)
+        heatmaps.drawCollapsedDiagram(algorithms)
 
 

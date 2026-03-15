@@ -203,7 +203,7 @@ class Analysis():
                 for repertoire in repertoires:
                     if len(algorithms) > 1: label = self.algorithms.info[algorithm]["description"]
                     if len(experiments) > 1: label = experiment
-                    if len(repertoires) > 1: label = self.algorithms.getRepertoireName(repertoire)
+                    if len(repertoires) > 1: label = repertoire.upper()
                     if objective["name"] == "foraging" and repertoire == "baseline":
                         generations = self.getGeneration(generation, objective["name"], repertoire)
                         label += "\n("+str(generations)+" gen)\n"
@@ -349,6 +349,70 @@ class Analysis():
         print(filename)
         plt.show()
 
+    def drawOneGenerationCombo2(self, filename, query, objective, something_else, runs, generation = 0):
+
+        objective = self.objectives.info[self.objectives.index[objective]]
+        query = self.queries.info[query]
+
+        result = []
+        labels = []
+
+        for something in something_else:
+            algorithm = something["algorithm"]
+            experiment = something["experiment"]
+            repertoire = something["repertoire"]
+            labels.append(repertoire)
+
+            generations = self.getGeneration(generation, objective["name"], repertoire)
+            interval = generations
+            index = int(generations/interval)
+
+            description = self.utilities.getExperimentDescription(objective["index"], algorithm)
+            path = self.algorithms.info[algorithm]["path"]
+
+            features = 3 if "mt" in algorithm else 1
+            csv_index = self.utilities.getCsvIndex(objective, algorithm)
+
+            csv_filename = self.params.input_path+"/"+path+"/"+experiment+"/"+description+"/"
+            if objective["name"] == "foraging":
+                csv_filename += repertoire+"/"
+
+            data = self.getDataFromCSV(query, generations, generations, generations, objective, runs, csv_filename)
+            data = data[csv_index][index] if "mt" in algorithm and query["name"] != "coverage" else data[0][index]
+            result.append(data)
+
+        data = result
+
+        try:
+            print()
+            for i in range(len(data) - 1):
+                if len(data) == 2:
+                    ttest = self.checkHypothesis(data[i], data[i + 1])
+                    print()
+                if len(data) > 2:
+                    for j in range(i + 1, len(data)):
+                        self.checkHypothesis(data[i], data[j])
+                        ttest = ttest_ind(data[i], data[j])
+                    print()
+        except ValueError as e:
+            print("\nCheck hypothesis failed, not enough data (minimum 3 seeds)")
+            print("\n"+str(e)+"\n")
+            return
+
+        consistent = True
+        for d in data:
+            if len(d) != len(data[0]):
+                consistent = False
+
+        suptitle = objective["description"]+"\n"
+        if consistent: title = str(len(data[0]))+' runs at '+str(generation)+' generations\n'
+        else: title = query["ylabel"]+' at '+str(generation)+' generations over a mixed number of runs\n'
+        title = objective["description"]+"\n"
+
+        ylabel = query["ylabel"]
+
+        self.drawPlotsNoLabels(data, suptitle, title, labels, ylabel, filename)
+
     def drawSubPlot(self, data, index, title, labels, vertical_min, vertical_max):
 
         ax = plt.subplot(1, 3, index, frameon=False)
@@ -470,7 +534,7 @@ class Analysis():
             vals[2].append(max(d))
         return vals
 
-    def drawLineGraph(self, title, experiment, objective, algorithm, repertoire, query, generations, ylim):
+    def drawLineGraph(self, title, experiment, objective, algorithm, repertoire, query, generations, max_bins, ylim):
 
         query = self.queries.info[query]
         objective = self.objectives.info[objective]
@@ -508,6 +572,12 @@ class Analysis():
             print("\n"+str(e)+"\n")
             return
 
+        for i in range(len(csv_data)):
+            for j in range(len(csv_data[i])):
+                csv_data[i][j] = float(csv_data[i][j])
+                if query["name"] == "coverage":
+                    csv_data[i][j] *= max_bins
+
         xlabel = "Generations"
 
         data = self.rotateData2D(csv_data)
@@ -534,18 +604,22 @@ class Analysis():
 
         fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(9, 6.5))
 
-        plt.subplots_adjust(wspace=.3, hspace=1.4, bottom=0.12, top=0.85, left=0.12)
+        plt.subplots_adjust(wspace=.3, hspace=1.4, bottom=0.12, top=0.95, left=0.12)
 
         ax.plot(labels, vals[1], lw=2)
         ax.fill_between(labels, vals[0], vals[2], alpha=0.3)
 
-        ax.set_title(title,fontsize=13)
-        ax.set_ylabel(ylabel,color='#222222', fontsize=12)
-        ax.set_xlabel(xlabel,color='#222222', fontsize=11)
+        # ax.set_title(title,fontsize=13)
+        # ax.title.set_position([0.5,0.0])
 
-        ax.title.set_position([0.5,0.0])
+        ax.set_ylabel(ylabel,color='#222222', fontsize=16)
+        ax.set_xlabel(xlabel,color='#222222', fontsize=16)
+
         ax.yaxis.set_label_coords(-0.09,0.5)
         ax.xaxis.set_label_coords(0.5,-0.09)
+
+        ax.tick_params(axis='x', labelsize=14)
+        ax.tick_params(axis='y', labelsize=14)
 
         ax.set_ylim(ylim)
 

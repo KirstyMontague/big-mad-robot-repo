@@ -9,7 +9,7 @@ class eaParams():
 
         self.characteristics = 3
         self.start_point = "final"
-        self.max_items_per_bin = 3
+        self.max_items_per_bin = 1
         self.nb_bins = [8,8,8]
         self.fitness_domain = [(0., numpy.inf)]
         self.show_warnings = True
@@ -18,6 +18,7 @@ class eaParams():
 
         self.num_threads = 8
 
+        self.deapSeed = 0
         self.indexes = [0]
         self.populationSize = 25
 
@@ -43,7 +44,9 @@ class eaParams():
         self.experiments = []
         self.command_line_args = []
 
-        self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood-perceived-position", "foraging"]
+        self.sub_behaviours = ["density", "nest", "food", "idensity", "inest", "ifood-perceived-position"]
+        self.objectives = ["temp"]
+        self.max_objectives = len(self.objectives)
 
         self.description = ""
         for index in self.indexes:
@@ -76,6 +79,7 @@ class eaParams():
         self.printFitnessScores = False
         self.printBestIndividuals = False
         self.printAllIndividuals = False
+        self.printExtrema = False
 
         self.saveBestIndividuals = True
         self.saveAllIndividuals = True
@@ -89,12 +93,20 @@ class eaParams():
         self.sqrt_robots = 3
         self.iterations = 5
         self.comms_range = 100
+        self.velocity = 5.0
+        self.formation = "random"
         self.arena_layout = 1
+
+        self.trial_length = 20
+        if self.description == "foraging":
+            self.trial_length = 100
+        if self.experiment == "heterogeneous":
+            self.trial_length = 200
 
         # food and nest parameters
         self.nest_radius = 0.5
         self.food_radius = 0.5
-        self.arenaParams = [0.5, 0.7]
+        self.arenaParams = [0.7]
 
         # evaluation parameters for testing
         self.unseenIterations = 10
@@ -197,14 +209,14 @@ class eaParams():
         self.runtime()
 
     def runtime(self):
-        restricted = ["experiment", "indexes", "using_repertoire", "repertoire_type", "bins_per_axis",
-                      "tournamentSize", "populationSize", "arena_layout", "food_radius", "nest_radius", "offset", "comms_range",
-                      "csv_save_interval", "num_threads", "useArchive"]
+        permitted = ["generations", "genSleep", "evalSleep", "trialSleep",
+                     "printEliteScores", "printFitnessScores", "printBestIndividuals", "printExtrema",
+                     "output_to_file", "output_interval", "stop", "cancel"]
         with open(self.shared_path+"/runtime.txt", "r") as f:
             for line in f:
                 data = line.split()
                 if len(data) > 0:
-                    if data[0] not in restricted:
+                    if data[0] in permitted:
                         self.applyParameter(line)
                     else:
                         self.console(data[0] +" not supported at runtime")
@@ -245,18 +257,6 @@ class eaParams():
             self.features = len(self.indexes)
             self.repertoire_size = self.bins_per_axis ** self.characteristics
 
-            self.save_period = 1000
-            self.csv_save_period = 1000
-            if self.description == "foraging" and not self.using_repertoire:
-                self.save_period = 2200
-                self.csv_save_period = 2200
-
-            if self.description != "foraging":
-                self.using_repertoire = False
-                self.features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)]
-            else:
-                self.features_domain = [(-200.0, 200.0), (-200.0, 200.0), (0.0, 1.0)]
-
         if data[0] == "using_repertoire":
             if self.description == "foraging":
                 self.using_repertoire = False if data[1] == "False" else True
@@ -268,12 +268,27 @@ class eaParams():
             self.bins_per_axis = int(data[1])
             self.repertoire_size = self.bins_per_axis ** self.characteristics
 
+        if data[0] == "nb_bins" and len(data) > 1:
+            self.nb_bins = []
+            for bins in data[1:]:
+                self.nb_bins.append(int(bins))
+
+        if data[0] == "domain" and len(data) > 1:
+            self.features_domain = []
+            for i in range(1, len(data), 2):
+                self.features_domain.append((float(data[i]), float(data[i+1])))
+
+        if data[0] == "sqrt_robots": self.sqrt_robots = int(data[1])
+        if data[0] == "formation": self.formation = data[1]
         if data[0] == "arena_layout": self.arena_layout = int(data[1])
         if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
-        if data[0] == "populationSize": self.populationSize = int(data[1])
+        if data[0] == "population_size": self.populationSize = int(data[1])
         if data[0] == "food_radius": self.food_radius = float(data[1])
         if data[0] == "nest_radius": self.nest_radius = float(data[1])
         if data[0] == "comms_range": self.comms_range = float(data[1])
+        if data[0] == "velocity": self.velocity = float(data[1])
+        if data[0] == "iterations": self.iterations = int(data[1])
+        if data[0] == "trial_length": self.trial_length = int(data[1])
         if data[0] == "loadCheckpoint": self.loadCheckpoint = False if data[1] == "False" else True
         if data[0] == "runs": self.runs = int(data[1])
         if data[0] == "start_gen": self.start_gen = int(data[1])
@@ -284,6 +299,7 @@ class eaParams():
         if data[0] == "printEliteScores": self.printEliteScores = False if data[1] == "False" else True
         if data[0] == "printFitnessScores": self.printFitnessScores = False if data[1] == "False" else True
         if data[0] == "printBestIndividuals": self.printBestIndividuals = False if data[1] == "False" else True
+        if data[0] == "printExtrema": self.printExtrema = False if data[1] == "False" else True
         if data[0] == "useArchive": self.useArchive = True if data[1] == "True" else False
         if data[0] == "saveOutput": self.saveOutput = False if data[1] == "False" else True
         if data[0] == "saveCSV": self.saveCSV = False if data[1] == "False" else True
@@ -355,13 +371,28 @@ class eaParams():
         primitives = ["seqm", "selm", "probm"]
 
         if self.using_repertoire:
-            conditions = ["ifGotFood", "ifOnFood", "ifInNest"]
+            conditions = ["ifGotFood1", "ifOnFood1", "ifInNest"]
+
+        elif self.experiment == "heterogeneous":
+            conditions = ["ifInNest", "ifNestToLeft", "ifNestToRight", 
+                          "ifGotFood1", "ifOnFood1", "ifFoodToLeft1", "ifFoodToRight1",
+                          "ifGotFood2", "ifOnFood2", "ifFoodToLeft2", "ifFoodToRight2",
+                          "ifGotFood3", "ifOnFood3", "ifFoodToLeft3", "ifFoodToRight3",
+                          "ifRobotToLeft", "ifRobotToRight"]
+
+        elif self.description == "foraging":
+            conditions = ["ifInNest", "ifNestToLeft", "ifNestToRight",
+                          "ifGotFood1", "ifOnFood1", "ifFoodToLeft1", "ifFoodToRight1",
+                          "ifRobotToLeft", "ifRobotToRight"]
+
+        else:
+            conditions = ["ifInNest", "ifNestToLeft", "ifNestToRight",
+                          "ifOnFood1", "ifFoodToLeft1", "ifFoodToRight1",
+                          "ifRobotToLeft", "ifRobotToRight"]
+
+        if self.using_repertoire:
             actions = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
         else:
-            if self.description == "foraging":
-                conditions = ["ifGotFood", "ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
-            else:
-                conditions = ["ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
             actions = ["stop", "f", "fl", "fr", "r", "rl", "rr"]
 
         robot = robotObject()
@@ -411,8 +442,18 @@ class eaParams():
     def addUnpackedNodes(self, pset):
 
         primitives = ["seqm", "selm", "probm"]
-        conditions = ["ifGotFood", "ifOnFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
         actions = ["stop", "f", "fl", "fr", "r", "rl", "rr"]
+
+        if self.experiment == "heterogeneous":
+            conditions = ["ifInNest", "ifNestToLeft", "ifNestToRight",
+                          "ifGotFood1", "ifOnFood1", "ifFoodToLeft1", "ifFoodToRight1",
+                          "ifGotFood2", "ifOnFood2", "ifFoodToLeft2", "ifFoodToRight2",
+                          "ifGotFood3", "ifOnFood3", "ifFoodToLeft3", "ifFoodToRight3",
+                          "ifRobotToLeft", "ifRobotToRight"]
+        else:
+            conditions = ["ifInNest", "ifNestToLeft", "ifNestToRight",
+                          "ifGotFood1", "ifOnFood1", "ifFoodToLeft1", "ifFoodToRight1",
+                          "ifRobotToLeft", "ifRobotToRight"]
 
         robot = robotObject()
 

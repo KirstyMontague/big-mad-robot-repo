@@ -23,6 +23,8 @@ class Intersections():
         self.from_csv = False
         self.whole_repertoire = False
         self.count_duplicates = False
+        self.count_sources = False
+        self.count_behaviours = False
 
         self.params.algorithm = "gp"
         self.params.description = "foraging"
@@ -49,12 +51,12 @@ class Intersections():
             self.repertoires[experiment] = {}
 
         self.objectives = {
-                            "increaseDensity":  {"behaviours" : {}, "total_qty" : 0, "chromosomes_qty" : 0, "filename": "density"},
-                            "gotoNest":         {"behaviours" : {}, "total_qty" : 0, "chromosomes_qty" : 0, "filename": "nest"},
-                            "gotoFood":         {"behaviours" : {}, "total_qty" : 0, "chromosomes_qty" : 0, "filename": "food"},
-                            "reduceDensity":    {"behaviours" : {}, "total_qty" : 0, "chromosomes_qty" : 0, "filename": "idensity"},
-                            "goAwayFromNest":   {"behaviours" : {}, "total_qty" : 0, "chromosomes_qty" : 0, "filename": "inest"},
-                            "goAwayFromFood":   {"behaviours" : {}, "total_qty" : 0, "chromosomes_qty" : 0, "filename": "ifood-perceived-position"},
+                            "increaseDensity":  {"behaviours" : {}, "usage_qty" : 0, "total_qty" : 0, "chromosomes_qty" : 0, "filename": "density"},
+                            "gotoNest":         {"behaviours" : {}, "usage_qty" : 0, "total_qty" : 0, "chromosomes_qty" : 0, "filename": "nest"},
+                            "gotoFood":         {"behaviours" : {}, "usage_qty" : 0, "total_qty" : 0, "chromosomes_qty" : 0, "filename": "food"},
+                            "reduceDensity":    {"behaviours" : {}, "usage_qty" : 0, "total_qty" : 0, "chromosomes_qty" : 0, "filename": "idensity"},
+                            "goAwayFromNest":   {"behaviours" : {}, "usage_qty" : 0, "total_qty" : 0, "chromosomes_qty" : 0, "filename": "inest"},
+                            "goAwayFromFood":   {"behaviours" : {}, "usage_qty" : 0, "total_qty" : 0, "chromosomes_qty" : 0, "filename": "ifood-perceived-position"},
                           }
 
         self.chromosomes = [] # not trimmed
@@ -65,8 +67,8 @@ class Intersections():
 
     def configure(self):
         permitted = ["repertoire_type", "bins_per_axis", "experiment", "experiments", "generations",
-                     "from_csv", "whole_repertoire", "count_duplicates", "count_sources", "save", "legacy"]
-        with open(self.params.local_path+"/intersections.txt", 'r') as f:
+                     "from_csv", "whole_repertoire", "count_duplicates", "count_sources", "count_behaviours", "save", "legacy"]
+        with open(self.params.shared_path+"/intersections.txt", 'r') as f:
             for line in f:
                 data = line.split()
                 if len(data) > 0:
@@ -83,6 +85,7 @@ class Intersections():
             self.params.experiment = data[1]
 
         if data[0] == "experiments":
+            self.params.experiments = []
             for i in range(1, len(data)):
                 self.params.experiments.append(data[i])
 
@@ -107,6 +110,9 @@ class Intersections():
 
         if data[0] == "count_sources":
             self.count_sources = True if data[1] == "True" else False
+
+        if data[0] == "count_behaviours":
+            self.count_behaviours = True if data[1] == "True" else False
 
         if data[0] == "save":
             self.save = True if data[1] == "True" else False
@@ -244,6 +250,11 @@ class Intersections():
                 if objective in token:
                     data["behaviours"][token]["total_qty"] += 1
                     data["total_qty"] += 1
+
+        for objective, data in self.objectives.items():
+            for chromosome in self.chromosomes:
+                if objective in chromosome:
+                    data["usage_qty"] += 1
 
     def fromCSV(self):
 
@@ -476,6 +487,39 @@ class Intersections():
                         print(subbehaviour+" "+str(subbehaviour_data["arenas"]))
                 print()
 
+    def countCsvBehavioursTotalAndSeeds(self):
+
+        print("=================================================")
+        print(" how many chromosomes contain each objective and")
+        print(" how many times each objective appears in total")
+        print("=================================================")
+
+        csv = ""
+
+        # csv += "Experiment,type,size,density,nest,food,idensity,inest,ifood\n"
+
+        csv += self.params.experiment+","
+        csv += self.params.repertoire_type+","
+        csv += str(self.params.repertoire_size)+","
+
+        output = ""
+        for objective, objective_data in self.objectives.items():
+            if objective_data["total_qty"] > 0:
+                output += objective+":       \t"
+                output += "seeds with objective "+str(objective_data["usage_qty"])+"  \t"
+                output += "seeds with subbehaviour "+str(objective_data["chromosomes_qty"])+" \t"
+                output += "total occurences "+str(objective_data["total_qty"])
+                output += "\n"
+                csv += str(objective_data["usage_qty"])+","
+        csv += "\n"
+
+        print("\n"+output+"\n")
+
+        print("\n"+csv+"\n")
+
+        # filename = self.params.home_path+"/gp/intersections.csv"
+        # with open(filename, "a") as f:
+            # f.write(csv)
 
 if __name__ == "__main__":
 
@@ -494,5 +538,8 @@ if __name__ == "__main__":
 
         if intersections.count_sources:
             intersections.countCsvBehavioursTotalAndPerArena()
-            intersections.countCsvBehavioursTotalAndSeeds()
             intersections.countBehaviourSources()
+            intersections.countCsvBehavioursTotalAndSeeds()
+
+        if intersections.count_behaviours:
+            intersections.countCsvBehavioursTotalAndSeeds()

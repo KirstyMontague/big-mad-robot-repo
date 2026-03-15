@@ -46,7 +46,7 @@ class Archive():
         archive = self.getArchive()
         cumulative_archive = self.getCumulativeArchive()
 
-        directory_path = self.params.input_path
+        directory_path = self.params.shared_path
         if self.params.description == "foraging":
             results_directory = self.params.experiment+"/"+self.params.foraging_path
             if self.params.algorithm == "gp":
@@ -124,12 +124,20 @@ class Archive():
             "probm3" : "h",
             "probm4" : "i",
             "ifInNest" : "j",
-            "ifOnFood" : "k",
-            "ifGotFood" : "l",
+            "ifOnFood1" : "k1",
+            "ifOnFood2" : "k2",
+            "ifOnFood3" : "k3",
+            "ifGotFood1" : "l1",
+            "ifGotFood2" : "l2",
+            "ifGotFood3" : "l3",
             "ifNestToLeft" : "m",
             "ifNestToRight" : "n",
-            "ifFoodToLeft" : "o",
-            "ifFoodToRight" : "p",
+            "ifFoodToLeft1" : "o1",
+            "ifFoodToLeft2" : "o2",
+            "ifFoodToLeft3" : "o3",
+            "ifFoodToRight1" : "p1",
+            "ifFoodToRight2" : "p2",
+            "ifFoodToRight3" : "p3",
             "ifRobotToLeft" : "q",
             "ifRobotToRight" : "r",
             "stop" : "s",

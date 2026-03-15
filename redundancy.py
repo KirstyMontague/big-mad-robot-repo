@@ -30,13 +30,11 @@ class Redundancy():
     fallbackNodes = ["selm2", "selm3", "selm4"]
     probabilityNodes = ["probm2", "probm3", "probm4"]
     compositionNodes = sequenceNodes + fallbackNodes + probabilityNodes
-    conditionBaseNodes = ["ifOnFood", "ifGotFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
     successNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl"]
     actionNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl"]
-    nonEffectiveNodes = ["stop", "ifOnFood", "ifGotFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
     effectiveNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl"]
     subBehaviourBaseNodes = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
-    
+
     subBehaviourNodes = []
     conditionNodes = []
     
@@ -59,7 +57,31 @@ class Redundancy():
 
 
     def __init__(self, params):
+
         self.params = params
+
+        if self.params.experiment == "heterogeneous":
+            self.conditionBaseNodes = ["ifInNest", "ifNestToLeft", "ifNestToRight",
+                                  "ifOnFood1", "ifGotFood1", "ifFoodToLeft1", "ifFoodToRight1",
+                                  "ifOnFood2", "ifGotFood2", "ifFoodToLeft2", "ifFoodToRight2",
+                                  "ifOnFood3", "ifGotFood3", "ifFoodToLeft3", "ifFoodToRight3",
+                                  "ifRobotToLeft", "ifRobotToRight"]
+            self.nonEffectiveNodes = ["stop", "ifInNest", "ifNestToLeft", "ifNestToRight",
+                                 "ifOnFood1", "ifGotFood1", "ifFoodToLeft1", "ifFoodToRight1",
+                                 "ifOnFood2", "ifGotFood2", "ifFoodToLeft2", "ifFoodToRight2",
+                                 "ifOnFood3", "ifGotFood3", "ifFoodToLeft3", "ifFoodToRight3",
+                                 "ifRobotToLeft", "ifRobotToRight"]
+        elif self.params.experiment == "agnostic":
+            self.conditionBaseNodes = ["ifInNest", "ifNestToLeft", "ifNestToRight",
+                                  "ifOnFood1", "ifGotFood1", "ifFoodToLeft1", "ifFoodToRight1",
+                                  "ifRobotToLeft", "ifRobotToRight"]
+            self.nonEffectiveNodes = ["stop", "ifInNest", "ifNestToLeft", "ifNestToRight",
+                                 "ifOnFood1", "ifGotFood1", "ifFoodToLeft1", "ifFoodToRight1",
+                                 "ifRobotToLeft", "ifRobotToRight"]
+        else:
+            self.conditionBaseNodes = ["ifOnFood", "ifGotFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
+            self.nonEffectiveNodes = ["stop", "ifOnFood", "ifGotFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
+
         self.utilities = Utilities(self.params)
         self.toolbox = base.Toolbox()
         self.primitivetree = gp.PrimitiveTree([])

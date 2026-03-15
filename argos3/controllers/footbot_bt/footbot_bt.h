@@ -20,27 +20,39 @@ class CFootBotBT : public CCI_Controller {
 
 public:
 
+    struct Poi
+    {
+        double m_x;
+        double m_y;
+        double m_r;
+    };
+
     CFootBotBT();
     virtual ~CFootBotBT();
 
-    virtual void Init(TConfigurationNode& t_node);
-    virtual void ControlStep();
-    virtual void Reset() {}
-    virtual void Destroy() {}
+    void Init(TConfigurationNode& t_node) override;
+    void ControlStep() override;
+    void Reset() override {}
+    void Destroy() override {}
 
     void buildTree(std::vector<std::string> tokens);
-    void createBlackBoard(int numRobots);
-    void setParams(int arenaLayout, float nest, float food, float gap, int commsRange, int trialLength);
+    void setParams(int commsRange, float velocity, int trialLength, uint robotType);
+    void setArenaParams(int arenaLayout, float nest, float food, float gap);
+
+    void setArenaPOIs(std::vector<Poi> arena) {m_arena = arena;}
+
     void calculateDistances(double x, double y);
     void calculateDistancesExp1(double x, double y);
     void calculateDistancesExp2(double x, double y);
     void calculateDistancesExp3(double x, double y);
     void calculateDistancesExp4(double x, double y);
-    void setColour();
-    void setPlayback(bool playback);
-
+    void calculateDistancesExp5(double x, double y);
+    void calculateDistancesExp6(double x, double y);
+    void calculateDistancesExp7(double x, double y);
 
 private:
+
+    void setColour() const;
 
     void stop() {m_pcWheels->SetLinearVelocity(0.0f, 0.0f);}
     void forward() {m_pcWheels->SetLinearVelocity(m_lWheelVelocity, m_rWheelVelocity);}
@@ -50,9 +62,10 @@ private:
     void reverseLeft() {m_pcWheels->SetLinearVelocity(0.0f, -m_rWheelVelocity);}
     void reverseRight() {m_pcWheels->SetLinearVelocity(-m_lWheelVelocity, 0.0f);}
 
-    void sendInitialSignal();
+    void sendInitialSignal() const;
     void recordInitialPositions(bool tracking);
     void recordFinalPositions(bool tracking);
+    std::pair<Real, Real> getLocation(bool tracking);
 
     void sensing();
     void actuation();
@@ -61,36 +74,48 @@ private:
     void rangeAndBearing(bool tracking);
     void groundSensor(bool tracking);
 
+    void createAndSendPayload(const std::vector<uint64_t> distances) const;
+    void decomposePayload(uint64_t concatenated, std::vector<uint64_t>& food, uint64_t& nest) const;
+    void recordRangeAndBearingData(const Real distance, const CRadians bearing, float& shortestDistance, CRadians& shortestDirection) const;
+
+    float hypotenuseSquared(float x1, float y1, float x2, float y2) const;
+
+    bool inTrackingIDs() const;
+
+private:
+
     CNode* m_rootNode;
     CBlackBoard* m_blackBoard;
-    int m_arenaLayout;
-    float m_nestRadius;
-    float m_foodRadius;
+
+    std::vector<int> m_trackingIDs;
+    bool m_verbose;
+    int m_count;
+
+    std::string m_project;
+
     float m_gap;
     int m_commsRange;
     int m_trialLength;
-    float m_distFood;
+    uint m_robotType;
+
+    int m_arenaLayout;
+    std::vector<Poi> m_arena;
+    float m_nestRadius;
+    float m_foodRadius;
+    std::vector<float> m_distFood;
     float m_distNest;
-    int m_count;
-    int m_food;
-    int m_trackingID;
-    std::vector<int> m_trackingIDs;
-    bool m_verbose;
+
+    std::vector<std::vector<float>> m_scores;
 
     Real m_rWheelVelocity;
     Real m_lWheelVelocity;
-
-    bool inTrackingIDs();
-
-    bool m_playback = false;
-    std::vector<std::vector<float>> m_scores;
 
     // sensors / actuators
 
     CCI_DifferentialSteeringActuator* m_pcWheels;  /* Pointer to the differential steering actuator */
     CCI_FootBotProximitySensor* m_pcProximity;     /* Pointer to the foot-bot proximity sensor */
     CCI_PositioningSensor* m_pcPosition;           /* Pointer to the foot-bot position sensor */
-    CCI_RangeAndBearingActuator*  m_pcRABA;        /* Pointer to the range and bearing actuator */
+    CCI_RangeAndBearingActuator* m_pcRABA;         /* Pointer to the range and bearing actuator */
     CCI_RangeAndBearingSensor* m_pcRABS;           /* Pointer to the range and bearing sensor */
     CCI_LEDsActuator* m_pcLEDs;                    /* Pointer to the leds actuator */
     CCI_FootBotLightSensor* m_pcLight;             /* Pointer to the light sensor */

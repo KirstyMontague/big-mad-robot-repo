@@ -79,8 +79,16 @@ class SubBehaviours():
 
         if not self.cancelled:
             if self.save:
-                Path(self.output_path+"/").mkdir(parents=True, exist_ok=True)
-                print("Writing to "+self.output_filename+"\n")
+                if os.path.exists(self.output_filename):
+                    confirm = input("Output file already exists at "+self.output_filename+"\n\nContinue? (y/N)\n")
+                    if confirm == "y":
+                        print()
+                    else:
+                        self.save = False
+                        print("Switching to dry run\n")
+                else:
+                    Path(self.output_path+"/").mkdir(parents=True, exist_ok=True)
+                    print("Writing to "+self.output_filename+"\n")
             else:
                 print("Output filename: "+self.output_filename+"\n")
         else:
@@ -89,7 +97,7 @@ class SubBehaviours():
     def configure(self):
         permitted = ["experiment", "experiments", "input_type", "save", "legacy",
                      "runs", "generations", "repertoire_type", "bins_per_axis"]
-        with open(self.params.local_path+"/subbehaviours.txt", 'r') as f:
+        with open(self.params.shared_path+"/subbehaviours.txt", 'r') as f:
             for line in f:
                 data = line.split()
                 if len(data) > 0:

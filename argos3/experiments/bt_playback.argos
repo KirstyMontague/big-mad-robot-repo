@@ -21,7 +21,7 @@
         <footbot_light implementation="rot_z_only" show_rays="false" />
         <footbot_motor_ground implementation="rot_z_only" />
       </sensors>
-      <params trackingID="1" velocity="5" verbose="true"/>
+      <params trackingID="1" verbose="true"/>
     </footbot_bt_controller>
   </controllers>
   <loop_functions library="build/loop_functions/bt_loop_functions/libbt_loop_functions"
@@ -57,7 +57,13 @@
   </media>
 
   <visualization>
-    <qt-opengl />
+    <qt-opengl>
+      <camera>
+        <placements>
+          <placement index="0" position="-5,0,10" look_at="0,0,0" up="1,0,0" lens_focal_length="65" />
+        </placements>
+      </camera>
+    </qt-opengl>
   </visualization>
 
 </argos-configuration>

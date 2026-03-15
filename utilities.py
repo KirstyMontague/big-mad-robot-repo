@@ -106,7 +106,9 @@ class Utilities():
         features = []
         robots = {}
         seed = 0
-        
+
+        num_data = self.params.max_objectives
+
         for i in self.params.arenaParams:
             
             # get maximum food available with the current gap between the nest and food
@@ -131,15 +133,14 @@ class Utilities():
                         lines = line.split()
                         robotId = int(float(lines[1]))
                         robots[robotId] = []
-                        for j in range(7): # all objectives are saved to the result file
+                        for j in range(num_data):
                             for k in range(self.params.iterations):
                                 if j in self.params.indexes:
                                     index = (j * self.params.iterations) + k + 2
                                     robots[robotId].append(float(lines[index]))
                         for j in range(3):
                             for k in range(self.params.iterations):
-                                # hard coded 7 because foraging is included in footbot controller objectives
-                                index = (j * self.params.iterations) + (7 * self.params.iterations) + k + 2
+                                index = (j * self.params.iterations) + (num_data * self.params.iterations) + k + 2
                                 robots[robotId].append(float(lines[index]))
 
             # get scores for each robot and add to cumulative total
@@ -213,6 +214,15 @@ class Utilities():
 
         return usage
 
+    def deratingFactorHeterogeneous(self, individual):
+
+        length = float(len(individual))
+        usage = length - 100 if length > 100 else 0
+        usage = usage / 9900 if length <= 10000 else 1
+        usage = 1 - usage
+
+        return usage
+
     def deratingFactorForForaging(self, individual):
         
         length = float(self.behaviours.unpack(individual))
@@ -242,12 +252,14 @@ class Utilities():
         for idx, inds in container.solutions.items():
             if len(inds) == 0:
                 continue
+            output += str(idx)+"\n"
             for ind in inds:
                 for fitness in ind.fitness.values:
                     output += str("%.9f" % fitness) + "  \t"
                 for f in ind.features:
                     output += str("%.4f" % f) + " \t"
                 output += "\n"
+                output +=  str(ind)+"\n"
                 # print (self.printTree(ind))
             output += "---\n"
 
@@ -303,7 +315,7 @@ class Utilities():
                 best.append(ind)
             else:
                 # worst = 0.0
-                worst = 1.0
+                worst = 100.0
                 worstIndex = qty
                 for i in range(qty):
                     if best[i].fitness.values[0] < worst:
@@ -318,7 +330,10 @@ class Utilities():
             output += str("%.9f" % ind.fitness.values[0]) + "  \t"
             for f in ind.features:
                 output += str("%.4f" % f) + " \t"
-            output += "\n"+str(ind)+"\n"
+            if len(ind) > 50:
+                output += "\n"+str(ind)+"\n"
+            else:
+                output += "\n"+self.formatChromosome(ind)+"\n"
 
         self.params.console(output)
     
@@ -330,10 +345,10 @@ class Utilities():
                 best.append(ind)
             else:
                 # worst = 0.0
-                worst = 1.0
+                worst = 100.0
                 worstIndex = qty
                 for i in range(qty):
-                    if best[i].fitness.values[0] < worst:
+                    if best[i].fitness.values[0] <= worst:
                         worst = best[i].fitness.values[0]
                         worstIndex = i
                 
@@ -351,7 +366,9 @@ class Utilities():
             thisFitness = individual.fitness.getValues()[feature]
 
             if derate:
-                if self.params.description == "foraging":
+                if self.params.experiment == "heterogeneous":
+                    thisFitness *= self.deratingFactorHeterogeneous(individual)
+                elif self.params.description == "foraging":
                     thisFitness *= self.deratingFactorForForaging(individual)
                 else:
                     thisFitness *= self.deratingFactor(individual)
@@ -381,6 +398,75 @@ class Utilities():
             allBest.append(self.getBestHDRandom(population, feature, derate))
         return allBest
 
+    def getExtremis(self, population, objective):
+
+        val = 1.0 if objective < len(self.params.sub_behaviours) / 2 else -1.0
+
+        best = None
+
+        for ind in population:
+
+            i = objective % 3
+            if objective < len(self.params.sub_behaviours) / 2:
+                if ind.features[i] < val:
+                    val = ind.features[i]
+                    best = ind
+            if objective >= len(self.params.sub_behaviours) / 2:
+                if ind.features[i] > val:
+                    val = ind.features[i]
+                    best = ind
+
+        return best
+
+    def getExtrema(self, container, include_trees = False):
+
+        minVals = [1.0,1.0,1.0]
+        maxVals = [-1.0,-1.0,-1.0]
+        minIndividuals = [None, None, None]
+        maxIndividuals = [None, None, None]
+
+        for idx, inds in container.solutions.items():
+            if len(inds) == 0:
+                continue
+
+            for i in range(len(self.params.nb_bins)):
+                for ind in inds:
+                    if minVals[i] > ind.features[i]:
+                        minVals[i] = ind.features[i]
+                        minIndividuals[i] = ind
+                    if maxVals[i] < ind.features[i]:
+                        maxVals[i] = ind.features[i]
+                        maxIndividuals[i] = ind
+
+        output = "---------\n"
+        for m in minVals:
+            output += str(m)+" "
+        output += "\n"
+        for m in maxVals:
+            output += str(m)+" "
+        output += "\n---------\n"
+
+        if include_trees:
+            output += "\nmin trees\n"
+
+            for ind in minIndividuals:
+                output += "---------\n"
+                if len(ind) > 50:
+                    output += "\n"+str(ind)+"\n\n"
+                else:
+                    output += "\n"+self.formatChromosome(ind)+"\n"
+
+            output += "\n---------\n"
+
+            output += "\nmax trees\n"
+            for ind in maxIndividuals:
+                output += "---------\n"
+                if len(ind) > 50:
+                    output += "\n"+str(ind)+"\n\n"
+                else:
+                    output += "\n"+self.formatChromosome(ind)+"\n"
+
+        return "\n"+output+"\n"
 
     def removeDuplicates(self, offspring, container):
         for i in reversed(range(len(offspring))):
@@ -551,6 +637,16 @@ class Utilities():
         
         return tree
 
+    def getFilledBins(self, container):
+
+        filled_bins = 0.0
+        for i in range(len(container.nb_items_per_bin)):
+            for j in range(len(container.nb_items_per_bin[i])):
+                for k in range(len(container.nb_items_per_bin[i][j])):
+                    if container.nb_items_per_bin[i][j][k] > 0:
+                        filled_bins += 1
+        return filled_bins
+
     def getCoverage(self, container):
         
         """ get the ratio of filled vs empty bins, returns a value between 0 and 1"""
@@ -592,10 +688,7 @@ class Utilities():
 
     def saveConfigurationFile(self):
 
-        if self.params.description == "foraging":
-            experiment_length = 100 * self.params.iterations
-        else:
-            experiment_length = 20 * self.params.iterations
+        experiment_length = self.params.trial_length * self.params.iterations
 
         with open(self.params.local_path+'/configuration.txt', 'w') as f:
             f.write("sqrtRobots:"+str(self.params.sqrt_robots)+"\n")
@@ -605,6 +698,8 @@ class Utilities():
             f.write("nestRadius:"+str(self.params.nest_radius)+"\n")
             f.write("foodRadius:"+str(self.params.food_radius)+"\n")
             f.write("commsRange:"+str(self.params.comms_range)+"\n")
+            f.write("velocity:"+str(self.params.velocity)+"\n")
+            f.write("formation:"+self.params.formation+"\n")
             f.write("arenaLayout:"+str(self.params.arena_layout)+"\n")
 
     def saveParams(self):

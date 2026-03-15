@@ -47,7 +47,7 @@ class Aggregator():
     def configure(self):
         permitted = ["algorithm", "experiment", "runs", "generations", "save", "delete",
                      "indexes", "using_repertoire", "repertoire_type", "bins_per_axis"]
-        with open(self.local_path+"/aggregator.txt", 'r') as f:
+        with open(self.shared_path+"/aggregator.txt", 'r') as f:
             for line in f:
                 data = line.split()
                 if len(data) > 0:
@@ -259,32 +259,34 @@ class Aggregator():
 
     def removeOldFiles(self):
 
-        test = input("Delete input files from "+self.input_path+"? (y/N)\n")
-        if test != "y":
-            print("Skipped\n")
-            return
+        if self.delete:
 
-        print("\nDeleting from "+self.input_path+"\n")
+            test = input("Delete input files from "+self.input_path+"? (y/N)\n")
+            if test != "y":
+                print("Skipped\n")
+                return
 
-        for query in self.queries:
+            print("\nDeleting from "+self.input_path+"\n")
 
-            removed = 0
+            for query in self.queries:
 
-            for i in range(1, self.runs + 1):
+                removed = 0
 
-                filename = self.input_path+"/"+str(i)+"/"+query+str(self.generations)+"-"+str(i)+".csv"
+                for i in range(1, self.runs + 1):
 
-                if os.path.exists(filename):
-                    removed += 1
-                    if self.save and self.delete:
-                        os.remove(filename)
+                    filename = self.input_path+"/"+str(i)+"/"+query+str(self.generations)+"-"+str(i)+".csv"
 
-            if self.save and self.delete:
-                print("Removed "+str(removed)+" files for "+query)
-            else:
-                print(str(removed)+" files for "+query+" listed for removal")
+                    if os.path.exists(filename):
+                        removed += 1
+                        if self.save and self.delete:
+                            os.remove(filename)
 
-        print()
+                if self.save and self.delete:
+                    print("Removed "+str(removed)+" files for "+query)
+                else:
+                    print(str(removed)+" files for "+query+" listed for removal")
+
+            print()
 
 if __name__ == "__main__":
 

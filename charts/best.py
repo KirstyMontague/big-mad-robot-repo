@@ -8,14 +8,29 @@ runs = 30
 
 query = "best"
 
+algorithms = ["mtc", "mti", "qdpy"]
+experiments = ["arena-1", "arena-1-combo"]
+repertoires = ["baseline", "mtc64", "mti64", "qd64"]
+
 algorithms = ["gp"]
-experiments = ["arena-1"]
-repertoires = ["baseline"]
+# experiments = ["arena-4"]
+repertoires = ["qd1"]
 
-# algorithms = ["gp", "mtc", "mti", "qdpy"]
-# experiments = ["arena-1", "arena-2"]
-repertoires = ["baseline", "qd1", "qd8", "qd64"]
+rep = "qd"
+arena = "arena-1"
 
-filename = "./"+query+"/no-labels/foraging/arenas2/arena1.png"
+something_else = [
 
-analysis.drawOneGeneration(filename, query, objective, algorithms, experiments, repertoires, runs, generation)
+    {"algorithm" : "gp", "experiment" : arena, "repertoire" : "baseline"},
+    {"algorithm" : "gp", "experiment" : arena, "repertoire" : rep+"1"},
+    {"algorithm" : "gp", "experiment" : arena+"-combo", "repertoire" : rep+"1"},
+    {"algorithm" : "gp", "experiment" : arena, "repertoire" : rep+"8"},
+    {"algorithm" : "gp", "experiment" : arena+"-combo", "repertoire" : rep+"8"},
+    {"algorithm" : "gp", "experiment" : arena, "repertoire" : rep+"64"},
+    {"algorithm" : "gp", "experiment" : arena+"-combo", "repertoire" : rep+"64"},
+]
+
+filename = "./"+query+"/no-labels/foraging/temp.png"
+
+# analysis.drawOneGeneration(filename, query, objective, algorithms, experiments, repertoires, runs, generation)
+analysis.drawOneGenerationCombo2(filename, query, objective, something_else, runs, generation)

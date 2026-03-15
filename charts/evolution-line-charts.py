@@ -9,7 +9,7 @@ y = {
     "density" : {
         "best" : [0.5,0.61],
         "qd-score" : [0.0,0.35],
-        "coverage" : [0.0,0.65],
+        "coverage" : [0.0,350.0],
     },
     "nest" : {
         "best" : [0.6,0.9],
@@ -37,12 +37,12 @@ y = {
         "coverage" : [0.0,0.65],
     },
     "foraging" : {
-        "best" : [0.0,2.1],
+        "best" : [0.0,1.0],
     },
 }
 
 
-def drawLineGraph(experiment, objective, algorithm, repertoire, query, generations):
+def drawLineGraph(experiment, objective, algorithm, repertoire, query, generations, max_bins):
     title = analyse.objectives.info[objective]["description"]+" ("+algorithm.upper()+")"
     analyse.drawLineGraph(title,
                           experiment,
@@ -51,15 +51,17 @@ def drawLineGraph(experiment, objective, algorithm, repertoire, query, generatio
                           repertoire,
                           query,
                           generations,
+                          max_bins,
                           y[objective][query])
 
-experiment = "arena-1"
-algorithm = "gp"
-query = "best"
+experiment = "qd-tests-arena-1"
+algorithm = "qdpy"
+query = "coverage"
 
-objective = "foraging"
-repertoire = "mti1"
+objective = "density"
+repertoire = "mtc1"
 generations = 1000
+max_bins = 8000
 
 if algorithm in ["gp", "mtc", "mti", "qdpy"]:
-    drawLineGraph(experiment, objective, algorithm, repertoire, query, generations)
+    drawLineGraph(experiment, objective, algorithm, repertoire, query, generations, max_bins)

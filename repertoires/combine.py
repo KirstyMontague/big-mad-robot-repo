@@ -52,7 +52,7 @@ class Combine():
     def configure(self):
         permitted = ["algorithm", "output_type", "repertoire_type", "experiment", "experiments",
                      "arena", "objective", "runs", "generations", "save", "legacy"]
-        with open(self.params.local_path+"/combine.txt", 'r') as f:
+        with open(self.params.shared_path+"/combine.txt", 'r') as f:
             for line in f:
                 data = line.split()
                 if len(data) > 0:

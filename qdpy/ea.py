@@ -34,7 +34,12 @@ class EA():
         self.params.makePaths()
 
         self.utilities = Utilities(params)
-        self.utilities.setupToolbox(self.selTournament)
+        if self.params.experiment == "agnostic":
+            self.utilities.setupToolbox(self.agnosticTournament)
+        elif self.params.experiment == "heterogeneous":
+            self.utilities.setupToolbox(self.multiFoodTournament)
+        else:
+            self.utilities.setupToolbox(self.selTournament)
         self.utilities.saveConfigurationFile()
         self.toolbox = self.utilities.toolbox
 
@@ -157,10 +162,16 @@ class EA():
 
         self.printOutput(generation, invalid_new, invalid_orig, matched)
 
-        if (self.params.printContainer):
+        if (self.params.printContainer and generation == self.params.generations):
             self.utilities.printContainer(container)
 
-        if (self.params.printBestIndividuals):
+        if (self.params.printExtrema and (generation % 10 == 0 or generation == self.params.generations)):
+            self.params.console(self.utilities.getExtrema(container))
+            filename = self.params.path()+"/extrema.txt"
+            with open(filename, "w") as f:
+                f.write(self.utilities.getExtrema(container, True))
+
+        if (self.params.printBestIndividuals and generation == self.params.generations):
             self.utilities.printBestMax(container)
             qdscore = self.utilities.getQDScore(container)
             coverage = self.utilities.getCoverage(container)
@@ -172,6 +183,9 @@ class EA():
             self.logs.logFitness(generation, self.utilities.getBestMax(container))
             self.logs.logQdScore(generation, [self.utilities.getQDScore(container)])
             self.logs.logCoverage(generation, self.utilities.getCoverage(container))
+
+        if generation != 0 and generation % 100 == 0 and invalid_new == 0:
+            time.sleep(10.0)
 
     def printOutput(self, generation, invalid_new, invalid_orig, matched):
         
@@ -185,14 +199,23 @@ class EA():
         best = self.utilities.getBestHDRandom(self.container, 0)
         best_length = str(len(best))
         best_fitness = str("%.6f" % best.fitness.values[0])
-        derated = best.fitness.values[0] * self.utilities.deratingFactor(best)
+        if self.params.experiment == "heterogeneous":
+            derated = best.fitness.values[0] * self.utilities.deratingFactorHeterogeneous(best)
+        else:
+            derated = best.fitness.values[0] * self.utilities.deratingFactor(best)
         fitness = str("%.6f" % derated)+" ("+best_fitness+")"
         
-        output_string = "\t"+self.params.description+" - "+str(self.params.deapSeed)+" - "+str(generation)+"\t| "
-        output_string += avg_string+" | "+fitness+" - "+best_length
+        coverage = str("%.4f" % self.utilities.getCoverage(self.container))
+        filled = str(int(self.utilities.getFilledBins(self.container)))
+        total = str(self.params.nb_bins[0] * self.params.nb_bins[1] * self.params.nb_bins[2])
+
+        output_string = "\t"+self.params.description+" - "+str(self.params.deapSeed)+" - "+str(generation)+"\t | "
+        output_string += avg_string+" | "
+        output_string += fitness+" - "+best_length+" | "
+        output_string += filled+" / "+total+" ("+coverage+")"
         output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
         output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
-        
+
         write_out = False
         if generation % self.params.output_interval == 0 and invalid_new > 0: write_out = True
         if generation % 100 == 0 or generation == self.params.generations: write_out = True
@@ -207,13 +230,42 @@ class EA():
             ind.fitness.values = fit[0]
             ind.features = fit[1]
 
+    def agnosticTournament(self, individuals, k, tournsize, fit_attr="fitness"):
+
+        chosen = []
+        for i in range(k):
+            objectives = random.sample([0,1,2,3,4,5], 1)
+            aspirants = tools.selRandom(individuals, tournsize)
+            feature = objectives[0]
+            best = self.utilities.getExtremis(aspirants, feature)
+            chosen.append(best)
+        return chosen
+
+    def multiFoodMaxTournament(self, individuals, k, tournsize, fit_attr="fitness"):
+
+        chosen = []
+        for i in range(k):
+            aspirants = tools.selRandom(individuals, tournsize)
+            best = self.utilities.getBestHDRandom(aspirants, 0)
+            chosen.append(best)
+        return chosen
+
+    def multiFoodTournament(self, individuals, k, tournsize, fit_attr="fitness"):
+
+        chosen = []
+        for i in range(k):
+            objective = random.sample([3,4,5], 1)
+            aspirants = tools.selRandom(individuals, tournsize)
+            best = self.utilities.getExtremis(aspirants, objective[0])
+            chosen.append(best)
+        return chosen
+
     def selTournament(self, individuals, k, tournsize, fit_attr="fitness"):
 
         chosen = []
         for i in range(k):
             aspirants = tools.selRandom(individuals, tournsize)
-            feature = int(random.random() * self.params.features)
-            best = self.utilities.getBestHDRandom(aspirants, feature)
+            best = self.utilities.getBestHDRandom(aspirants, 0)
             chosen.append(best)
         return chosen
 
