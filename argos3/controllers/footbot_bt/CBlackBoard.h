@@ -8,7 +8,8 @@
 class CBlackBoard
 {
     public:
-        CBlackBoard() :
+        CBlackBoard(int robotId) :
+            m_robotId(-1),
             m_motors(0),
 
             // nest
@@ -78,20 +79,20 @@ class CBlackBoard
         void setCarryingFood(uint type, bool carryingFood) {m_carryingFood[type] = carryingFood;}
 
         bool getDetectedFood(uint type) {return m_detectedFood[type];}
-        void setDetectedFood(uint type, bool detected, int robotID = -1);
+        void setDetectedFood(uint type, bool detected, bool tracking = false);
 
-        void updateDistFoodVector(uint type, float distance, int robotID = -1);
+        void updateDistFoodVector(uint type, float distance, bool tracking = false);
         float getDistFood(uint type) {return m_distFood[type];}
-        void setDistFood(uint type, int robotID);
+        void setDistFood(uint type, bool tracking = false);
 
         float getInitialDistanceFromFood() {return m_initialDistanceFromFood[0];}
-        void setInitialDistanceFromFood(int robotID);
+        void setInitialDistanceFromFood(bool tracking = false);
 
         float getFinalDistanceFromFood() {return m_finalDistanceFromFood[0];}
-        void setFinalDistanceFromFood(int robotID);
+        void setFinalDistanceFromFood(bool tracking = false);
 
         float getDifferenceInDistanceFromFood();
-        float getDifferenceInDistanceFromFoodInverse(int robotID);
+        float getDifferenceInDistanceFromFoodInverse(bool tracking = false);
 
         bool getFoodToLeft(uint type) {return m_foodToLeft[type];}
         bool getFoodToRight(uint type) {return m_foodToRight[type];}
@@ -103,15 +104,15 @@ class CBlackBoard
         bool getInNest() {return m_inNest;}
         void setInNest(bool nest) {m_inNest = nest;}
 
-        void updateDistNestVector(float distance, int robotID);
+        void updateDistNestVector(float distance, bool tracking = false);
         float getDistNest() {return m_distNest;}
-        void setDistNest(int robotID);
+        void setDistNest(bool tracking = false);
 
         float getInitialDistanceFromNest() {return m_initialDistanceFromNest;}
-        void setInitialDistanceFromNest(int robotID);
+        void setInitialDistanceFromNest(bool tracking = false);
 
         float getFinalDistanceFromNest() {return m_finalDistanceFromNest;}
-        void setFinalDistanceFromNest(int robotID);
+        void setFinalDistanceFromNest(bool tracking = false);
 
         float getDifferenceInDistanceFromNest();
         float getDifferenceInDistanceFromNestInverse();
@@ -125,22 +126,22 @@ class CBlackBoard
 
         float getDensity() {return m_density;}
         float getAvgDensity(int count);
-        void updateDensityVector(float density, int robotID = -1);
-        void setDensity(int robotID);
+        void updateDensityVector(float density, bool tracking = false);
+        void setDensity(bool tracking = false);
 
-        void setInitialDensity(int robotID = -1);
+        void setInitialDensity(bool tracking = false);
         float getInitialDensity() {return m_initialDensity;}
-        void setFinalDensity(int robotID = -1);
+        void setFinalDensity(bool tracking = false);
         float getFinalDensity() {return m_finalDensity;}
-        float getDifferenceInDensity(int robotID = -1);
-        float getDifferenceInDensityInverse(int robotID = -1);
+        float getDifferenceInDensity(bool tracking = false);
+        float getDifferenceInDensityInverse(bool tracking = false);
 
         // neighbours
 
-        void setInitialNeighbourDistance(double distance, int robotID);
-        void accumulateNeighbourDistances(float distance, int robotID);
+        void setInitialNeighbourDistance(double distance, bool tracking = false);
+        void accumulateNeighbourDistances(float distance, bool tracking = false);
         float getNeighbourDistanceAvg() {return m_nearestNeighbourAverage;}
-        void setNeighbourDistanceAvg(int count, int robotID);
+        void setNeighbourDistanceAvg(int count, bool tracking = false);
 
         bool getNearestNeighbourToLeft() {return m_nearestNeighbourToLeft;}
         bool getNearestNeighbourToRight() {return m_nearestNeighbourToRight;}
@@ -188,32 +189,33 @@ class CBlackBoard
         void setFinalAbsolutePosition(float x, float y);
         float getAbsoluteDelta();
 
-        void setInitialAbsoluteDistanceFromFood(double distance, int robotID);
-        float getAbsoluteDifferenceInDistanceFromFood(int robotID);
-        float getAbsoluteDifferenceInDistanceFromFoodInverse(int robotID);
-        void setFinalAbsoluteDistanceFromFood(double distance, int robotID);
+        void setInitialAbsoluteDistanceFromFood(double distance, bool tracking = false);
+        float getAbsoluteDifferenceInDistanceFromFood(bool tracking = false);
+        float getAbsoluteDifferenceInDistanceFromFoodInverse(bool tracking = false);
+        void setFinalAbsoluteDistanceFromFood(double distance, bool tracking = false);
 
-        void accumulateAbsoluteDistanceToFood(float distance, int robotID);
+        void accumulateAbsoluteDistanceToFood(float distance, bool tracking = false);
         float getAbsoluteDistanceToFoodAvg() {return m_absoluteDistanceFromFoodAvg;}
-        void setAbsoluteDistanceToFoodAvg(int count, int robotID);
+        void setAbsoluteDistanceToFoodAvg(int count, bool tracking = false);
 
-        float getAbsoluteDifferenceInDistanceFromNest(int robotID);
-        float getAbsoluteDifferenceInDistanceFromNestInverse(int robotID);
-        void setInitialAbsoluteDistanceFromNest(double distance, int robotID);
-        void setFinalAbsoluteDistanceFromNest(double distance, int robotID);
+        float getAbsoluteDifferenceInDistanceFromNest(bool tracking = false);
+        float getAbsoluteDifferenceInDistanceFromNestInverse(bool tracking = false);
+        void setInitialAbsoluteDistanceFromNest(double distance, bool tracking = false);
+        void setFinalAbsoluteDistanceFromNest(double distance, bool tracking = false);
 
         void accumulateAbsoluteDistanceToNest(float distance);
         float getAbsoluteDistanceToNestAvg() {return m_absoluteDistanceFromNestAvg;}
-        void setAbsoluteDistanceToNestAvg(int count, int robotID);
+        void setAbsoluteDistanceToNestAvg(int count, bool tracking = false);
 
         // multi-food foraging
 
-        void incrementFood(uint type, int robotID);
+        void incrementFood(uint type, bool tracking = false);
         uint getFoodOfType(uint type);
         uint getTotalFood();
 
     private:
 
+        int m_robotId;
         int m_motors;
 
         // food

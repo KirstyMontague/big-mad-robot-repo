@@ -19,7 +19,7 @@ void CBlackBoard::reset()
 
 // =================================== NEST =================================== //
 
-void CBlackBoard::updateDistNestVector(float distance, int robotID)
+void CBlackBoard::updateDistNestVector(float distance, bool tracking)
 {
     distance = distance / 500;
     
@@ -31,7 +31,7 @@ void CBlackBoard::updateDistNestVector(float distance, int robotID)
     m_distNestVector.push_back(distance);
 }
 
-void CBlackBoard::setInitialDistanceFromNest(int robotID)
+void CBlackBoard::setInitialDistanceFromNest(bool tracking)
 {
     m_initialDistanceFromNest = 0.0;
     for (float d : m_distNestVector)
@@ -40,13 +40,13 @@ void CBlackBoard::setInitialDistanceFromNest(int robotID)
     }
     m_initialDistanceFromNest /= m_distNestVector.size();
 
-    //if (robotID != -1)
+    //if (tracking)
     //{
         //std::cout << "m_initialDistanceFromNest = " << m_initialDistanceFromNest << "\n";
     //}
 }
 
-void CBlackBoard::setDistNest(int robotID)
+void CBlackBoard::setDistNest(bool tracking)
 {
     float distance = 0.0;
     for (auto d : m_distNestVector)
@@ -77,7 +77,7 @@ float CBlackBoard::getDifferenceInDistanceFromNestInverse()
     return (difference + 1) / 2;
 }
 
-void CBlackBoard::setFinalDistanceFromNest(int robotID)
+void CBlackBoard::setFinalDistanceFromNest(bool tracking)
 {
     float distance = 0.0;
     for (auto d : m_distNestVector)
@@ -87,13 +87,13 @@ void CBlackBoard::setFinalDistanceFromNest(int robotID)
     distance /= m_distNestVector.size();
     m_finalDistanceFromNest = distance;
 
-    //if (robotID != -1) std::cout << "m_finalDistanceFromNest = " << distance << "\n";
+    //if (tracking) std::cout << "m_finalDistanceFromNest = " << distance << "\n";
 }
 
 
 // =================================== FOOD =================================== //
 
-void CBlackBoard::setDetectedFood(uint type, bool detected, int robotID)
+void CBlackBoard::setDetectedFood(uint type, bool detected, bool tracking)
 {
     if (!detected)
     {
@@ -106,7 +106,7 @@ void CBlackBoard::setDetectedFood(uint type, bool detected, int robotID)
     }
 }
 
-void CBlackBoard::updateDistFoodVector(uint type, float distance, int robotID)
+void CBlackBoard::updateDistFoodVector(uint type, float distance, bool tracking)
 {
     distance = distance / 500;
     
@@ -118,7 +118,7 @@ void CBlackBoard::updateDistFoodVector(uint type, float distance, int robotID)
     m_distFoodVectors[type].push_back(distance);
 }
 
-void CBlackBoard::setInitialDistanceFromFood(int robotID)
+void CBlackBoard::setInitialDistanceFromFood(bool tracking)
 {
     float initialDistanceFromFood = 0.0;
     for (float d : m_distFoodVectors[0])
@@ -130,13 +130,13 @@ void CBlackBoard::setInitialDistanceFromFood(int robotID)
 
     m_initialDistanceFromFood[0] = initialDistanceFromFood;
 
-    //if (robotID != -1)
+    //if (tracking)
     //{
         //std::cout << "m_initialDistanceFromFood = " << m_initialDistanceFromFood[0] << "\n";
     //}
 }
 
-void CBlackBoard::setDistFood(uint type, int robotID)
+void CBlackBoard::setDistFood(uint type, bool tracking)
 {
     float distance = 0.0;
     for (auto d : m_distFoodVectors[type])
@@ -161,17 +161,17 @@ float CBlackBoard::getDifferenceInDistanceFromFood()
     }
 }
 
-float CBlackBoard::getDifferenceInDistanceFromFoodInverse(int robotID)
+float CBlackBoard::getDifferenceInDistanceFromFoodInverse(bool tracking)
 {
-    //if (robotID != -1) std::cout << "\tperceived difference\t" << getFinalDistanceFromFood() << " - " << getInitialDistanceFromFood() << "\n";
+    //if (tracking) std::cout << "\tperceived difference\t" << getFinalDistanceFromFood() << " - " << getInitialDistanceFromFood() << "\n";
     float difference = getFinalDistanceFromFood() - getInitialDistanceFromFood();
     
     float result = (difference + 1) / 2;
-    //if (robotID != -1) std::cout << "\tresult\t" << result << "\n";
+    //if (tracking) std::cout << "\tresult\t" << result << "\n";
     return (difference + 1) / 2;
 }
 
-void CBlackBoard::setFinalDistanceFromFood(int robotID)
+void CBlackBoard::setFinalDistanceFromFood(bool tracking)
 {
     float distance = 0.0;
     for (auto d : m_distFoodVectors[0])
@@ -181,13 +181,13 @@ void CBlackBoard::setFinalDistanceFromFood(int robotID)
     distance /= m_distFoodVectors[0].size();
     m_finalDistanceFromFood[0] = distance;
 
-    //if (robotID != -1) std::cout << "m_finalDistanceFromFood = " << distance << "\n";
+    //if (tracking) std::cout << "m_finalDistanceFromFood = " << distance << "\n";
 }
 
 
 // =================================== DENSITY =================================== //
 
-void CBlackBoard::updateDensityVector(float density, int robotID)
+void CBlackBoard::updateDensityVector(float density, bool tracking)
 {
     // 1107 is the maximum density value that can be contributed by a single
     // robot and 6 is the number of robots that can fit around a single robot
@@ -212,7 +212,7 @@ float CBlackBoard::getAvgDensity(int count)
     return m_totalDensity / count;
 }
 
-void CBlackBoard::setInitialDensity(int robotID)
+void CBlackBoard::setInitialDensity(bool tracking)
 {
     float density = 0;
     for (auto d : m_densityVector)
@@ -220,11 +220,11 @@ void CBlackBoard::setInitialDensity(int robotID)
         density += d;
     }
     density /= m_densityVector.size();
-    //if (robotID != -1) std::cout << "m_initialDensity: " << density << std::endl;
+    //if (tracking) std::cout << "m_initialDensity: " << density << std::endl;
     m_initialDensity = density;
 }
 
-void CBlackBoard::setFinalDensity(int robotID)
+void CBlackBoard::setFinalDensity(bool tracking)
 {
     float density = 0;
     for (auto d : m_densityVector)
@@ -235,22 +235,22 @@ void CBlackBoard::setFinalDensity(int robotID)
     m_finalDensity = density;
     m_densityVector.clear();
 
-    //if (robotID != -1) std::cout << "m_finalDensity: " << density << std::endl;
+    //if (tracking) std::cout << "m_finalDensity: " << density << std::endl;
 }
 
-float CBlackBoard::getDifferenceInDensity(int robotID)
+float CBlackBoard::getDifferenceInDensity(bool tracking)
 {
     float difference = getFinalDensity() - getInitialDensity();
     return (difference + 1) / 2;
 }
 
-float CBlackBoard::getDifferenceInDensityInverse(int robotID)
+float CBlackBoard::getDifferenceInDensityInverse(bool tracking)
 {
     float difference = getInitialDensity() - getFinalDensity();
     return (difference + 1) / 2;
 }
 
-void CBlackBoard::setDensity(int robotID)
+void CBlackBoard::setDensity(bool tracking)
 {
     float density = 0;
     for (auto d : m_densityVector)
@@ -264,30 +264,30 @@ void CBlackBoard::setDensity(int robotID)
 
 // =================================== NEIGHBOURS =================================== //
 
-void CBlackBoard::setInitialNeighbourDistance(double distance, int robotID)
+void CBlackBoard::setInitialNeighbourDistance(double distance, bool tracking)
 {
     m_nearestNeighbourStart = distance;
     
-    //if (robotID != -1)
+    //if (tracking)
     //{
-        //std::cout << std::to_string(robotID);
+        //std::cout << m_robotId;
         //std::cout << " initial distance from robot = ";
         //std::cout << m_nearestNeighbourStart << "\n";
     //}
 }
 
-void CBlackBoard::accumulateNeighbourDistances(float distance, int robotID)
+void CBlackBoard::accumulateNeighbourDistances(float distance, bool tracking)
 {
-    //if (robotID != -1)
+    //if (tracking)
     //{
-        //std::cout << std::to_string(robotID);
+        //std::cout << m_robotId;
         //std::cout << " adding ";
         //std::cout << std::to_string(distance) << "\n";
     //}
     m_nearestNeighbourTotal += distance;
 }
 
-void CBlackBoard::setNeighbourDistanceAvg(int count, int robotID)
+void CBlackBoard::setNeighbourDistanceAvg(int count, bool tracking)
 {
     // returns values between -1.0 and 1.0
     
@@ -296,13 +296,13 @@ void CBlackBoard::setNeighbourDistanceAvg(int count, int robotID)
     float nearestNeighbourNormalised = nearestNeighbourDelta / 100;
     m_nearestNeighbourAverage = nearestNeighbourNormalised;
     
-    //if (robotID != -1)
+    //if (tracking)
     //{
         //std::cout << "nearestNeighbourAverage = " << std::to_string(m_nearestNeighbourTotal) << " / " << std::to_string(count) << "\n";
         //std::cout << "nearestNeighbourDelta = " << std::to_string(nearestNeighbourAverage) << " - " << std::to_string(m_nearestNeighbourStart) << "\n";
         //std::cout << "nearestNeighbourNormalised = " << std::to_string(nearestNeighbourDelta) << " / 100\n\n";
 
-        //std::cout << std::to_string(robotID);
+        //std::cout << m_robotId;
         //std::cout << " avg to robot ";
         //std::cout << std::to_string(m_nearestNeighbourAverage) << "\n\n";
     //}
@@ -376,33 +376,33 @@ float CBlackBoard::getAbsoluteDelta()
 
 // ======
 
-void CBlackBoard::setInitialAbsoluteDistanceFromNest(double distance, int robotID)
+void CBlackBoard::setInitialAbsoluteDistanceFromNest(double distance, bool tracking)
 {
     m_absoluteDistanceFromNestStart = distance;
 
-    //if (robotID != -1)
+    //if (tracking)
     //{
-        //std::cout << std::to_string(robotID);
+        //std::cout << m_robotId;
         //std::cout << " initial distance from nest = ";
         //std::cout << m_absoluteDistanceFromNestStart << "\n";
     //}
 }
 
-void CBlackBoard::setFinalAbsoluteDistanceFromNest(double distance, int robotID)
+void CBlackBoard::setFinalAbsoluteDistanceFromNest(double distance, bool tracking)
 {
     m_absoluteDistanceFromNestEnd = distance;
     //std::cout << "final distance from nest = ";
     //std::cout << m_absoluteDistanceFromNestEnd << "\n";
 }
 
-float CBlackBoard::getAbsoluteDifferenceInDistanceFromNest(int robotID)
+float CBlackBoard::getAbsoluteDifferenceInDistanceFromNest(bool tracking)
 {
     float distance = m_absoluteDistanceFromNestStart - m_absoluteDistanceFromNestEnd;
     //std::cout << "nest delta " << std::to_string(distance) << "\n";
     return distance;
 }
 
-float CBlackBoard::getAbsoluteDifferenceInDistanceFromNestInverse(int robotID)
+float CBlackBoard::getAbsoluteDifferenceInDistanceFromNestInverse(bool tracking)
 {
     return m_absoluteDistanceFromNestEnd - m_absoluteDistanceFromNestStart;
 }
@@ -412,20 +412,20 @@ void CBlackBoard::accumulateAbsoluteDistanceToNest(float distance)
     m_absoluteDistanceFromNestTotal += distance;
 }
 
-void CBlackBoard::setAbsoluteDistanceToNestAvg(int count, int robotID)
+void CBlackBoard::setAbsoluteDistanceToNestAvg(int count, bool tracking)
 {
     float distanceToNestAverage = m_absoluteDistanceFromNestTotal / count;
     float distanceToNestDelta = distanceToNestAverage - m_absoluteDistanceFromNestStart;
     float distanceToNestNormalised = distanceToNestDelta * 2;
     m_absoluteDistanceFromNestAvg = distanceToNestNormalised;
 
-    //if (robotID != -1)
+    //if (tracking)
     //{
         //std::cout << "distanceToNestAverage = " << std::to_string(m_absoluteDistanceFromNestTotal) << " / " << std::to_string(count) << "\n";
         //std::cout << "distanceToNestDelta = " << std::to_string(distanceToNestAverage) << " - " << std::to_string(m_absoluteDistanceFromNestStart) << "\n";
         //std::cout << "distanceToNestNormalised = " << std::to_string(distanceToNestDelta) << " * 2\n\n";
 
-        //std::cout << std::to_string(robotID);
+        //std::cout << m_robotId;
         //std::cout << " avg to nest ";
         //std::cout << std::to_string(m_absoluteDistanceFromNestAvg) << "\n";
     //}
@@ -433,14 +433,14 @@ void CBlackBoard::setAbsoluteDistanceToNestAvg(int count, int robotID)
 
 // ======
 
-float CBlackBoard::getAbsoluteDifferenceInDistanceFromFood(int robotID)
+float CBlackBoard::getAbsoluteDifferenceInDistanceFromFood(bool tracking)
 {
     float distance = m_absoluteDistanceFromFoodStart - m_absoluteDistanceFromFoodEnd;
     //std::cout << "food delta " << std::to_string(distance) << "\n";
     return distance;
 }
 
-float CBlackBoard::getAbsoluteDifferenceInDistanceFromFoodInverse(int robotID)
+float CBlackBoard::getAbsoluteDifferenceInDistanceFromFoodInverse(bool tracking)
 {
     float difference = m_absoluteDistanceFromFoodEnd - m_absoluteDistanceFromFoodStart;
 
@@ -452,41 +452,41 @@ float CBlackBoard::getAbsoluteDifferenceInDistanceFromFoodInverse(int robotID)
     // distance a robot can travel in one 20s trial is 1m
     difference = (difference + 1) / 2;
 
-    //if (robotID != -1) std::cout << "\tabsolute difference\t" << difference << "\n";
+    //if (tracking) std::cout << "\tabsolute difference\t" << difference << "\n";
 
     return difference;
 }
 
-void CBlackBoard::setInitialAbsoluteDistanceFromFood(double distance, int robotID)
+void CBlackBoard::setInitialAbsoluteDistanceFromFood(double distance, bool tracking)
 {
     m_absoluteDistanceFromFoodStart = distance;
 
-    //if (robotID != -1)
+    //if (tracking)
     //{
-        //std::cout << std::to_string(robotID);
+        //std::cout << m_robotId;
         //std::cout << " initial distance from food = ";
         //std::cout << m_absoluteDistanceFromFoodStart << "\n";
     //}
 }
 
-void CBlackBoard::setFinalAbsoluteDistanceFromFood(double distance, int robotID)
+void CBlackBoard::setFinalAbsoluteDistanceFromFood(double distance, bool tracking)
 {
     m_absoluteDistanceFromFoodEnd = distance;
 
-    //if (robotID != -1)
+    //if (tracking)
     //{
         //std::cout << "final distance from food = ";
-        //std::cout << m_finalAbsoluteDistanceFromFood << "\n";
+        //std::cout << m_absoluteDistanceFromFoodEnd << "\n";
     //}
 }
 
-void CBlackBoard::accumulateAbsoluteDistanceToFood(float distance, int robotID)
+void CBlackBoard::accumulateAbsoluteDistanceToFood(float distance, bool tracking)
 {
     m_absoluteDistanceFromFoodTotal += distance;
 
-    //if (robotID != -1)
+    //if (tracking)
     //{
-        //std::cout << std::to_string(robotID);
+        //std::cout << m_robotId;
         //std::cout << " adding ";
         //std::cout << std::to_string(distance);
         //std::cout << " for ";
@@ -494,20 +494,20 @@ void CBlackBoard::accumulateAbsoluteDistanceToFood(float distance, int robotID)
     //}
 }
 
-void CBlackBoard::setAbsoluteDistanceToFoodAvg(int count, int robotID)
+void CBlackBoard::setAbsoluteDistanceToFoodAvg(int count, bool tracking)
 {
     float distanceToFoodAverage = m_absoluteDistanceFromFoodTotal / count;
     float distanceToFoodDelta = distanceToFoodAverage - m_absoluteDistanceFromFoodStart;
     float distanceToFoodNormalised = distanceToFoodDelta * 2;
     m_absoluteDistanceFromFoodAvg = distanceToFoodNormalised;
 
-    //if (robotID != -1)
+    //if (tracking)
     //{
         //std::cout << "distanceToFoodAverage = " << std::to_string(m_absoluteDistanceFromFoodTotal) << " / " << std::to_string(count) << "\n";
         //std::cout << "distanceToFoodDelta = " << std::to_string(distanceToFoodAverage) << " - " << std::to_string(m_absoluteDistanceFromFoodStart) << "\n";
         //std::cout << "distanceToFoodNormalised = " << std::to_string(distanceToFoodDelta) << " * 2\n";
 
-        //std::cout << std::to_string(robotID);
+        //std::cout << m_robotId;
         //std::cout << " avg to food ";
         //std::cout << std::to_string(m_absoluteDistanceFromFoodAvg) << "\n\n";
     //}
@@ -516,9 +516,9 @@ void CBlackBoard::setAbsoluteDistanceToFoodAvg(int count, int robotID)
 
 // =================================== multi-food foraging =================================== //
 
-void CBlackBoard::incrementFood(uint type, int robotID)
+void CBlackBoard::incrementFood(uint type, bool tracking)
 {
-    //if (robotID != -1) std::cout << "incrementing food " << std::to_string(type) << "\n";
+    //if (tracking) std::cout << "incrementing food " << std::to_string(type) << "\n";
     m_food[type] += 1;
 }
 

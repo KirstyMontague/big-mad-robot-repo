@@ -85,7 +85,7 @@ void CFootBotBT::Init(TConfigurationNode& t_node)
         m_distFood.push_back(0.0);
     }
 
-    m_blackBoard = new CBlackBoard();
+    m_blackBoard = new CBlackBoard(std::stoi(GetId()));
 
     m_project = "straight to foraging";
 }
@@ -370,8 +370,8 @@ void CFootBotBT::recordInitialPositions(bool tracking)
     std::pair<Real, Real> location = getLocation(tracking);
 
     m_blackBoard->setInitialAbsolutePosition(location.first, location.second);
-    m_blackBoard->setInitialAbsoluteDistanceFromFood(m_distFood[0], tracking ? std::stoi(GetId()) : -1);
-    m_blackBoard->setInitialAbsoluteDistanceFromNest(m_distNest, tracking ? std::stoi(GetId()) : -1);
+    m_blackBoard->setInitialAbsoluteDistanceFromFood(m_distFood[0], tracking);
+    m_blackBoard->setInitialAbsoluteDistanceFromNest(m_distNest, tracking);
 }
 
 void CFootBotBT::recordFinalPositions(bool tracking) 
@@ -380,12 +380,12 @@ void CFootBotBT::recordFinalPositions(bool tracking)
 
     m_blackBoard->setFinalAbsolutePosition(location.first, location.second);
 
-    m_blackBoard->setFinalAbsoluteDistanceFromFood(m_distFood[0], tracking ? std::stoi(GetId()) : -1);
-    m_blackBoard->setFinalAbsoluteDistanceFromNest(m_distNest, tracking ? std::stoi(GetId()) : -1);
+    m_blackBoard->setFinalAbsoluteDistanceFromFood(m_distFood[0], tracking);
+    m_blackBoard->setFinalAbsoluteDistanceFromNest(m_distNest, tracking);
 
-    m_blackBoard->setAbsoluteDistanceToNestAvg(m_trialLength, tracking ? std::stoi(GetId()) : -1);
-    m_blackBoard->setAbsoluteDistanceToFoodAvg(m_trialLength, tracking ? std::stoi(GetId()) : -1);
-    m_blackBoard->setNeighbourDistanceAvg(m_trialLength, tracking ? std::stoi(GetId()) : -1);
+    m_blackBoard->setAbsoluteDistanceToNestAvg(m_trialLength, tracking);
+    m_blackBoard->setAbsoluteDistanceToFoodAvg(m_trialLength, tracking);
+    m_blackBoard->setNeighbourDistanceAvg(m_trialLength, tracking);
 }
 
 void CFootBotBT::proximity(bool tracking) 
@@ -447,7 +447,6 @@ std::pair<Real, Real> CFootBotBT::getLocation(bool tracking)
 
 void CFootBotBT::position(bool tracking)
 {
-    int robotID = (tracking ? std::stoi(GetId()) : -1);
     uint foodRegions = (m_arenaLayout == 6) ? 3 : 1;
 
     // position data
@@ -457,7 +456,7 @@ void CFootBotBT::position(bool tracking)
     // update the blackboard to reflect whether the robot is in the food region
     for (uint i = 0; i < foodRegions; i++)
     {
-        m_blackBoard->setDetectedFood(i, m_distFood[i] <= 0.0, (tracking ? std::stoi(GetId()) : -1));
+        m_blackBoard->setDetectedFood(i, m_distFood[i] <= 0.0, tracking);
         m_blackBoard->setCarryingFood(i, m_blackBoard->getCarryingFood(i) || m_blackBoard->getDetectedFood(i));
     }
 
@@ -469,7 +468,7 @@ void CFootBotBT::position(bool tracking)
     {
         if (m_blackBoard->getInNest() && m_blackBoard->getCarryingFood(i))
         {
-            m_blackBoard->incrementFood(i, robotID);
+            m_blackBoard->incrementFood(i, tracking);
             m_blackBoard->setCarryingFood(i, false);
         }
     }
@@ -552,10 +551,10 @@ void CFootBotBT::rangeAndBearing(bool tracking)
     {
         density += it->second;
     }
-    m_blackBoard->updateDensityVector(density, (tracking ? std::stoi(GetId()) : -1));
+    m_blackBoard->updateDensityVector(density, tracking);
     if (m_count % m_trialLength == 2 || m_count % 4 == 0)
     {
-        m_blackBoard->setDensity(tracking ? std::stoi(GetId()) : -1);
+        m_blackBoard->setDensity(tracking);
     }
 
     // neighbours
@@ -577,20 +576,20 @@ void CFootBotBT::rangeAndBearing(bool tracking)
     }
     m_blackBoard->setNearestNeighbourToLeft(closestNeighbourToLeft);
     m_blackBoard->setNearestNeighbourToRight(closestNeighbourToRight);
-    m_blackBoard->accumulateNeighbourDistances(closestNeighbourDistance, tracking ? std::stoi(GetId()) : -1);
+    m_blackBoard->accumulateNeighbourDistances(closestNeighbourDistance, tracking);
     
     if ((m_count % m_trialLength) == 2)
     {
-        m_blackBoard->setInitialNeighbourDistance(closestNeighbourDistance, tracking ? std::stoi(GetId()) : -1);
+        m_blackBoard->setInitialNeighbourDistance(closestNeighbourDistance, tracking);
     }
 
     // nest
 
-    m_blackBoard->updateDistNestVector(distanceToNest, tracking ? std::stoi(GetId()) : -1);
+    m_blackBoard->updateDistNestVector(distanceToNest, tracking);
     m_blackBoard->accumulateAbsoluteDistanceToNest(m_distNest);
     if (m_count % m_trialLength == 2 || m_count % 4 == 0)
     {
-        m_blackBoard->setDistNest(tracking ? std::stoi(GetId()) : -1);
+        m_blackBoard->setDistNest(tracking);
     }
 
     Real nestDirectionDegrees = closestNestDirection.GetValue() * CRadians::RADIANS_TO_DEGREES;
@@ -599,13 +598,13 @@ void CFootBotBT::rangeAndBearing(bool tracking)
 
     // food
 
-    m_blackBoard->accumulateAbsoluteDistanceToFood(m_distFood[0], (tracking ? std::stoi(GetId()) : -1));
+    m_blackBoard->accumulateAbsoluteDistanceToFood(m_distFood[0], tracking);
     for (uint i = 0; i < foodRegions; ++i)
     {
-        m_blackBoard->updateDistFoodVector(i, distanceToFood[i], (tracking ? std::stoi(GetId()) : -1));
+        m_blackBoard->updateDistFoodVector(i, distanceToFood[i], tracking);
         if (m_count % m_trialLength == 2 || m_count % 4 == 0)
         {
-            m_blackBoard->setDistFood(i, tracking ? std::stoi(GetId()) : -1);
+            m_blackBoard->setDistFood(i, tracking);
         }
 
         Real foodDirectionDegrees = closestFoodDirection[i].GetValue() * CRadians::RADIANS_TO_DEGREES;
@@ -701,18 +700,18 @@ void CFootBotBT::ControlStep()
     
     if (m_count % m_trialLength == 16)
     {
-        m_blackBoard->setInitialDensity(tracking ? std::stoi(GetId()) : -1);
-        m_blackBoard->setInitialDistanceFromNest(tracking ? std::stoi(GetId()) : -1);
-        m_blackBoard->setInitialDistanceFromFood(tracking ? std::stoi(GetId()) : -1);
+        m_blackBoard->setInitialDensity(tracking);
+        m_blackBoard->setInitialDistanceFromNest(tracking);
+        m_blackBoard->setInitialDistanceFromFood(tracking);
     }
 
     if (m_count % m_trialLength == 0)
     {
         recordFinalPositions(tracking);
 
-        m_blackBoard->setFinalDensity(tracking ? std::stoi(GetId()) : -1);
-        m_blackBoard->setFinalDistanceFromNest(tracking ? std::stoi(GetId()) : -1);
-        m_blackBoard->setFinalDistanceFromFood(tracking ? std::stoi(GetId()) : -1);
+        m_blackBoard->setFinalDensity(tracking);
+        m_blackBoard->setFinalDistanceFromNest(tracking);
+        m_blackBoard->setFinalDistanceFromFood(tracking);
     }
 
     if (m_count % m_trialLength == 0 && m_project == "objectives in fitness function")
@@ -722,8 +721,8 @@ void CFootBotBT::ControlStep()
         m_scores[2].push_back(m_blackBoard->getDifferenceInDistanceFromFood());
         m_scores[3].push_back(m_blackBoard->getDifferenceInDensityInverse());
         m_scores[4].push_back(m_blackBoard->getDifferenceInDistanceFromNestInverse());
-        m_scores[5].push_back(m_blackBoard->getDifferenceInDistanceFromFoodInverse(tracking ? std::stoi(GetId()) : -1));
-        //m_scores[5].push_back(m_blackBoard->getAbsoluteDifferenceInDistanceFromFoodInverse(tracking ? std::stoi(GetId()) : -1));
+        m_scores[5].push_back(m_blackBoard->getDifferenceInDistanceFromFoodInverse(tracking));
+        //m_scores[5].push_back(m_blackBoard->getAbsoluteDifferenceInDistanceFromFoodInverse(tracking));
 
         m_scores[6].push_back(static_cast<float>(m_blackBoard->getFoodOfType(0)));
 
