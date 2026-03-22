@@ -1,3 +1,4 @@
+import argparse
 import math
 import pprint
 import random
@@ -6,9 +7,17 @@ class Arena:
 
     def __init__(self):
 
-        filename = "argos3/arena.txt"
+        self.arena = 6
+        self.num_points = 4
+
+        self.parseArguments()
+
+        filename = "argos3/arena"+str(self.arena)+".txt"
+
         with open(filename, "w") as f:
-            f.write("")
+            f.write("\n")
+            f.write("layout "+str(self.arena)+" with "+str(self.num_points)+" points\n")
+            f.write("\n")
 
         for i in range(10):
 
@@ -24,6 +33,19 @@ class Arena:
                 for point in self.points:
                     f.write(str(point["x"])+" "+str(point["y"])+" "+str(point["r"])+"\n")
 
+    def parseArguments(self):
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument('--arena', type=int, default=None, help="Arena layout")
+        parser.add_argument('--qty', type=int, default=None, help="How many POIs")
+        args = parser.parse_args()
+
+        if args.arena != None:
+            self.arena = args.arena
+
+        if args.qty != None:
+            self.num_points = args.qty
+
     def getPoints(self, i):
 
         random.seed(i)
@@ -31,12 +53,14 @@ class Arena:
         limit = 20;
         valid = False
 
-        for j in range(4):
+        for j in range(self.num_points):
 
-            # print("\n"+str(j)+"\n")
-
-            x = (random.random() * 3.0) - 1.5
-            y = (random.random() * 3.0) - 1.5
+            if self.arena == 6:
+                x = (random.random() * 3.0) - 1.5
+                y = (random.random() * 3.0) - 1.5
+            else:
+                x = (random.random() * 2.0) - 1.0
+                y = (random.random() * 2.0) - 1.0
             
             counter = 0;
             valid = False
@@ -49,10 +73,6 @@ class Arena:
                     hpt = self.hptSq(x, y, self.points[k]["x"], self.points[k]["y"])
                     if hpt < 1.5:
                         valid = False
-                    # print("--")
-                    # print(str(j)+","+str(k)+" "+str(x)+" "+str(y))
-                    # print(str(self.points[k]["x"])+" "+str(self.points[k]["y"]))
-                    # print(math.sqrt(hpt))
 
                 if not valid:
                     x = (random.random() * 3.0) - 1.5
@@ -70,7 +90,6 @@ class Arena:
             for j in range(len(self.points)):
                 if i != j:
                     hpt = math.sqrt(self.hptSq(self.points[i]["x"], self.points[i]["y"], self.points[j]["x"], self.points[j]["y"]))
-                    # print(str(i)+" "+str(j)+" "+str(hpt))
                     if (hpt / 2) + 0.2 < radius:
                         radius = hpt / 2
                 self.points[i]["r"] = radius

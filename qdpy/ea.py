@@ -15,6 +15,7 @@ from deap import tools
 
 from params import eaParams
 from archive import Archive
+from behaviours import Behaviours
 from checkpoint import Checkpoint
 from logs import Logs
 from redundancy import Redundancy
@@ -29,17 +30,25 @@ class EA():
 
         self.params = params
         self.params.is_qdpy = True
-        random.seed(self.params.deapSeed)
-
         self.params.makePaths()
 
-        self.utilities = Utilities(params)
-        if self.params.experiment == "agnostic":
+        random.seed(self.params.deapSeed)
+
+        self.behaviours = Behaviours(params)
+
+        self.utilities = Utilities(params, self.behaviours)
+
+        if self.params.tournament == "agnosticTournament":
             self.utilities.setupToolbox(self.agnosticTournament)
-        elif self.params.experiment == "heterogeneous":
+        elif self.params.tournament == "multiFoodTournament":
             self.utilities.setupToolbox(self.multiFoodTournament)
+        elif self.params.tournament == "multiFoodMaxTournament":
+            self.utilities.setupToolbox(self.multiFoodMaxTournament)
+        elif self.params.tournament == "multiFoodFloorTournament":
+            self.utilities.setupToolbox(self.multiFoodFloorTournament)
         else:
             self.utilities.setupToolbox(self.selTournament)
+
         self.utilities.saveConfigurationFile()
         self.toolbox = self.utilities.toolbox
 
@@ -100,8 +109,6 @@ class EA():
         while (generation < max_gen):
 
             generation += 1
-
-            time.sleep(self.params.genSleep)
 
             batch = self.toolbox.select(container, self.params.populationSize)
             offspring = self.varAnd(batch, self.toolbox)
@@ -187,6 +194,9 @@ class EA():
         if generation != 0 and generation % 100 == 0 and invalid_new == 0:
             time.sleep(10.0)
 
+        if invalid_new > 0:
+            time.sleep(self.params.genSleep)
+
     def printOutput(self, generation, invalid_new, invalid_orig, matched):
         
         avg = 0
@@ -197,10 +207,17 @@ class EA():
         
         # no repro after this change (29/7/25) because no longer using RNG
         best = self.utilities.getBestHDRandom(self.container, 0)
-        best_length = str(len(best))
         best_fitness = str("%.6f" % best.fitness.values[0])
-        if self.params.experiment == "heterogeneous":
+
+        if self.params.using_repertoire:
+            best_length = str(len(best))+" ("+str(self.behaviours.unpack(best))+")"
+        else:
+            best_length = str(len(best))+" "
+
+        if self.params.project in ["straight_to_foraging", "multi_food_foraging_with_subbehaviours"]:
             derated = best.fitness.values[0] * self.utilities.deratingFactorHeterogeneous(best)
+        elif self.params.description == "foraging":
+            derated = best.fitness.values[0] * self.utilities.deratingFactorForForaging(best)
         else:
             derated = best.fitness.values[0] * self.utilities.deratingFactor(best)
         fitness = str("%.6f" % derated)+" ("+best_fitness+")"
@@ -209,10 +226,18 @@ class EA():
         filled = str(int(self.utilities.getFilledBins(self.container)))
         total = str(self.params.nb_bins[0] * self.params.nb_bins[1] * self.params.nb_bins[2])
 
-        output_string = "\t"+self.params.description+" - "+str(self.params.deapSeed)+" - "+str(generation)+"\t | "
+        qd_score = str("%.6f" % self.utilities.getQDScore(self.container))
+
+        if self.params.description == "foraging" and self.params.using_repertoire:
+            description = self.params.repertoire_type+str(self.params.repertoire_size)+""
+        else:
+            description = self.params.description
+
+        output_string = "\t"+description+" - "+str(self.params.deapSeed)+" - "+str(generation)+"\t | "
         output_string += avg_string+" | "
         output_string += fitness+" - "+best_length+" | "
-        output_string += filled+" / "+total+" ("+coverage+")"
+        output_string += filled+" / "+total+" | "
+        output_string += qd_score
         output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
         output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
 
@@ -260,6 +285,15 @@ class EA():
             chosen.append(best)
         return chosen
 
+    def multiFoodFloorTournament(self, individuals, k, tournsize, fit_attr="fitness"):
+
+        chosen = []
+        for i in range(k):
+            aspirants = tools.selRandom(individuals, tournsize)
+            best = self.utilities.getBestGeneralist(aspirants)
+            chosen.append(best)
+        return chosen
+
     def selTournament(self, individuals, k, tournsize, fit_attr="fitness"):
 
         chosen = []
@@ -279,7 +313,7 @@ class EA():
         for i in range(1, len(offspring), 2):
             if random.random() < self.params.crossoverProbability:
                 offspring[i - 1], offspring[i] = toolbox.mate(offspring[i - 1],
-                                                                             offspring[i])
+                                                              offspring[i])
                 del offspring[i - 1].fitness.values, offspring[i].fitness.values
 
         # mutation - subtree replacement

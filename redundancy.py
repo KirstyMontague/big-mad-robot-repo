@@ -26,20 +26,8 @@ import local
 
 class Redundancy():
 
-    sequenceNodes = ["seqm2", "seqm3", "seqm4"]
-    fallbackNodes = ["selm2", "selm3", "selm4"]
-    probabilityNodes = ["probm2", "probm3", "probm4"]
-    compositionNodes = sequenceNodes + fallbackNodes + probabilityNodes
-    successNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl"]
-    actionNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl"]
-    effectiveNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl"]
-    subBehaviourBaseNodes = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
-
-    subBehaviourNodes = []
-    conditionNodes = []
-    
     def addSubBehaviours(self):
-        for i in range(64):
+        for i in range(self.params.repertoire_size):
             for node in self.subBehaviourBaseNodes:
                 self.subBehaviourNodes.append(node+str(i+1))
                 self.effectiveNodes.append(node+str(i+1))
@@ -49,8 +37,6 @@ class Redundancy():
     def addExtraConditions(self):
         for node in self.conditionBaseNodes:
             self.conditionNodes.append(node)
-            for i in range(64):
-                self.nonEffectiveNodes.append(node+str(i+1))
 
     active = [True]
     trailingList = [] # booleans to mark whether the node at the same index is redundant
@@ -60,27 +46,24 @@ class Redundancy():
 
         self.params = params
 
-        if self.params.experiment == "heterogeneous":
-            self.conditionBaseNodes = ["ifInNest", "ifNestToLeft", "ifNestToRight",
-                                  "ifOnFood1", "ifGotFood1", "ifFoodToLeft1", "ifFoodToRight1",
-                                  "ifOnFood2", "ifGotFood2", "ifFoodToLeft2", "ifFoodToRight2",
-                                  "ifOnFood3", "ifGotFood3", "ifFoodToLeft3", "ifFoodToRight3",
-                                  "ifRobotToLeft", "ifRobotToRight"]
-            self.nonEffectiveNodes = ["stop", "ifInNest", "ifNestToLeft", "ifNestToRight",
-                                 "ifOnFood1", "ifGotFood1", "ifFoodToLeft1", "ifFoodToRight1",
-                                 "ifOnFood2", "ifGotFood2", "ifFoodToLeft2", "ifFoodToRight2",
-                                 "ifOnFood3", "ifGotFood3", "ifFoodToLeft3", "ifFoodToRight3",
-                                 "ifRobotToLeft", "ifRobotToRight"]
-        elif self.params.experiment == "agnostic":
-            self.conditionBaseNodes = ["ifInNest", "ifNestToLeft", "ifNestToRight",
-                                  "ifOnFood1", "ifGotFood1", "ifFoodToLeft1", "ifFoodToRight1",
-                                  "ifRobotToLeft", "ifRobotToRight"]
-            self.nonEffectiveNodes = ["stop", "ifInNest", "ifNestToLeft", "ifNestToRight",
-                                 "ifOnFood1", "ifGotFood1", "ifFoodToLeft1", "ifFoodToRight1",
-                                 "ifRobotToLeft", "ifRobotToRight"]
-        else:
-            self.conditionBaseNodes = ["ifOnFood", "ifGotFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
-            self.nonEffectiveNodes = ["stop", "ifOnFood", "ifGotFood", "ifInNest", "ifNestToLeft", "ifNestToRight", "ifFoodToLeft", "ifFoodToRight", "ifRobotToLeft", "ifRobotToRight"]
+        self.sequenceNodes = ["seqm2", "seqm3", "seqm4"]
+        self.fallbackNodes = ["selm2", "selm3", "selm4"]
+        self.probabilityNodes = ["probm2", "probm3", "probm4"]
+        self.compositionNodes = self.sequenceNodes + self.fallbackNodes + self.probabilityNodes
+        self.successNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl"]
+        self.actionNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl"]
+        self.effectiveNodes = ["stop", "f", "fr", "fl", "r", "rr", "rl"]
+
+        self.conditionBaseNodes    = ["ifInNest", "ifNestToLeft", "ifNestToRight",
+                                      "ifOnFood1", "ifGotFood1", "ifFoodToLeft1", "ifFoodToRight1",
+                                      "ifOnFood2", "ifGotFood2", "ifFoodToLeft2", "ifFoodToRight2",
+                                      "ifOnFood3", "ifGotFood3", "ifFoodToLeft3", "ifFoodToRight3",
+                                      "ifRobotToLeft", "ifRobotToRight"]
+        self.subBehaviourBaseNodes = ["increaseDensity", "reduceDensity", "gotoNest", "gotoFood1",
+                                      "gotoFood2", "gotoFood3", "goAwayFromNest", "goAwayFromFood"]
+
+        self.subBehaviourNodes = []
+        self.conditionNodes = []
 
         self.utilities = Utilities(self.params)
         self.toolbox = base.Toolbox()
@@ -1352,41 +1335,6 @@ class Redundancy():
         
         return tree
 
-    def rebuildChromosome2(self, tree):
-        
-        childrenRemaining = []
-        chromosome = ""
-        
-        for i in range(len(tree)):
-            
-            node = tree[i]
-            
-            if node.lower() in self.sequenceNodes + self.fallbackNodes + self.probabilityNodes:
-                if len(childrenRemaining) > 0: childrenRemaining[-1] -= 1
-                children = int(node[-1])
-                childrenRemaining.append(children)
-                chromosome += node +"("
-            
-            else:
-                if len(childrenRemaining) > 0 and childrenRemaining[-1] > 1: chromosome += node + ", "
-                else: chromosome += node
-                if len(childrenRemaining) > 0: childrenRemaining[-1] -= 1
-                
-            if len(childrenRemaining) == 0 or childrenRemaining[-1] == 0:
-                for childQty in reversed(childrenRemaining):
-                    if childQty == 0: 
-                        childrenRemaining.pop()
-                        chromosome += ")"
-                    else: break
-                if len(childrenRemaining) > 0 and childrenRemaining[-1] > 0 and i < len(output) - 1:
-                    chromosome += ", "
-            
-        for node in childrenRemaining:
-            chromosome += ")"
-        
-        # print chromosome
-        return chromosome
-
     def rebuildChromosome(self, output):
         
         childrenRemaining = []
@@ -1520,133 +1468,6 @@ class Redundancy():
         
         return tree
 
-    def evaluateRobot(self, individual, thread_index=1):
-        
-        # print ("")
-        # print ("evaluate")
-        # print (individual)
-        
-        # save number of robots and chromosome to file
-        with open('../txt/chromosome'+str(thread_index)+'.txt', 'w') as f:
-            f.write(str(self.params.sqrtRobots))
-            f.write("\n")
-            f.write(str(individual))
-        
-        totals = []
-        # qdpy optimisation
-        # for i in range(self.params.features):
-        for i in range(self.params.features + 3):
-            # end qdpy
-            totals.append(0.0)
-        
-        robots = {}
-        seed = 0
-        
-        for i in self.params.arenaParams:
-            
-            # get maximum food available with the current gap between the nest and food
-            # maxFood = self.calculateMaxFood(i)
-            
-            # for j in range(self.params.iterations):
-            
-            # write seed to file
-            seed += 1
-            with open('../txt/seed'+str(thread_index)+'.txt', 'w') as f:
-                f.write(str(seed))
-                f.write("\n")
-                f.write(str(i))
-
-            # run argos
-            subprocess.call(["/bin/bash", "../evaluate"+str(thread_index), "", "./"])
-            
-            # result from file
-            with open("../txt/result"+str(thread_index)+".txt", "r") as f:
-                
-                # print ("")
-                for line in f:
-                    first = line[0:line.find(" ")]
-                    if (first == "result"):
-                        # print (line[0:-1])
-                        lines = line.split()
-                        robotId = int(float(lines[1]))
-                        robots[robotId] = []
-                        for j in range(self.params.features):
-                            for k in range(self.params.iterations):
-                                index = (j * self.params.iterations) + k + 2
-                                robots[robotId].append(float(lines[index]))
-                        # qdpy optimisation
-                        for j in range(3):
-                            for k in range(self.params.iterations):
-                                index = (j * self.params.iterations) + (self.params.features * self.params.iterations) + k + 2
-                                robots[robotId].append(float(lines[index]))
-                        # end qdpy
-                        # string = str(robotId)+" "
-                        # for s in robots[robotId][15:20]:
-                            # string += str(s)+" "
-                        # print (string)
-            
-            # get scores for each robot and add to cumulative total
-            # qdpy optimisation
-            # for k in range(self.params.features):
-            for k in range(self.params.features + 3):
-                # end qdpy
-                totals[k] += self.collectFitnessScore(robots, k)
-                # print (totals[k])
-            
-            # increment counter and pause to free up CPU
-            time.sleep(self.params.trialSleep)
-        
-        # divide to get average per seed and arena configuration then apply derating factor
-        # deratingFactor = self.deratingFactor(individual)
-        deratingFactor = 1.0
-        features = []
-        # qdpy optimisation
-        # for i in range(self.params.features):
-        for i in range(self.params.features + 3):
-            # end qdpy
-            features.append(self.getAvgAndDerate(totals[i], individual, deratingFactor))
-        
-        # pause to free up CPU
-        time.sleep(self.params.evalSleep)
-        
-        # output = ""
-        # for f in features:
-            # output += str("%.9f" % f) + " \t"
-        # print (output)
-        
-        return (features)
-
-    def collectFitnessScore(self, robots, feature, maxScore = 1.0):
-
-        thisFitness = 0.0
-        fitnessString = ""
-        
-        # get food collected by each robot and add to cumulative total
-        for r in (range(len(robots))):
-            # print (robots[r])
-            for i in range(self.params.iterations):
-                index = (feature * self.params.iterations) + i
-                thisFitness += float(robots[r][index])
-                fitnessString += "," + str(robots[r][index])
-        # print (fitnessString)
-        # print (thisFitness)
-        
-        # divide to get average for this iteration, normalise and add to running total
-        thisFitness /= self.params.sqrtRobots * self.params.sqrtRobots
-        thisFitness /= maxScore
-        # print (thisFitness)
-        # print ("----")
-        return thisFitness
-    
-    def getAvgAndDerate(self, score, individual, deratingFactor):
-        # print (score)
-        fitness = score / self.params.iterations
-        fitness = fitness / len(self.params.arenaParams)
-        # print (fitness)
-        fitness /= deratingFactor
-        return fitness
-
-        
     def is_number(self, s):
         try:
             float(s)

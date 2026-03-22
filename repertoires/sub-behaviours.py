@@ -22,6 +22,7 @@ class SubBehaviours():
         self.legacy = False
         self.runs = 0
         self.generation = 0
+        self.domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)]
         self.repertoire_type = "qd"
         self.repertoire_size = 1
         self.input_type = "separate"
@@ -96,7 +97,7 @@ class SubBehaviours():
 
     def configure(self):
         permitted = ["experiment", "experiments", "input_type", "save", "legacy",
-                     "runs", "generations", "repertoire_type", "bins_per_axis"]
+                     "runs", "generations", "domain", "repertoire_type", "bins_per_axis"]
         with open(self.params.shared_path+"/subbehaviours.txt", 'r') as f:
             for line in f:
                 data = line.split()
@@ -131,6 +132,11 @@ class SubBehaviours():
         if data[0] == "generations":
                 self.generation = int(data[1])
 
+        if data[0] == "domain" and len(data) > 1:
+            self.domain = []
+            for i in range(1, len(data), 2):
+                self.domain.append((float(data[i]), float(data[i+1])))
+
         if data[0] == "repertoire_type":
             algorithms = ["mtc", "mti", "qd"]
             if data[1] in algorithms:
@@ -163,7 +169,7 @@ class SubBehaviours():
             container = (Grid(shape = [8,8,8],
                               max_items_per_bin = 3,
                               fitness_domain = [(0.,1.0),],
-                              features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)],
+                              features_domain = self.domain,
                               storage_type=list))
 
             try:

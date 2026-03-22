@@ -21,6 +21,7 @@ class eaParams():
         self.deapSeed = 0
         self.indexes = [0]
         self.populationSize = 25
+        self.tournament = "selTournament"
 
         self.start_gen   = 0
         self.generations = 0
@@ -40,12 +41,22 @@ class eaParams():
 
         self.stop = False
 
+        self.projects = ["objectives_in_fitness_function",
+                         "objectives_cast_to_grid",
+                         "generic_subbehaviours_in_fitness_function",
+                         "generic_objectives_cast_to_grid_perceived",
+                         "generic_objectives_cast_to_grid_absolute",
+                         "straight_to_foraging",
+                         "multi_food_foraging_with_subbehaviours"]
+
+        self.project = "objectives_in_fitness_function"
+
         self.experiment = "vanilla"
         self.experiments = []
         self.command_line_args = []
 
-        self.sub_behaviours = ["density", "nest", "food", "idensity", "inest", "ifood-perceived-position"]
-        self.objectives = ["temp"]
+        self.sub_behaviours = ["density", "nest", "food", "idensity", "inest", "ifood-perceived-position", "foraging"]
+        self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood-perceived-position", "foraging"]
         self.max_objectives = len(self.objectives)
 
         self.description = ""
@@ -100,13 +111,13 @@ class eaParams():
         self.trial_length = 20
         if self.description == "foraging":
             self.trial_length = 100
-        if self.experiment == "heterogeneous":
+        if self.project in ["multi_food_foraging_with_subbehaviours", "straight_to_foraging"]:
             self.trial_length = 200
 
         # food and nest parameters
         self.nest_radius = 0.5
         self.food_radius = 0.5
-        self.arenaParams = [0.7]
+        self.arena_params = [0.5, 0.7]
 
         # evaluation parameters for testing
         self.unseenIterations = 10
@@ -151,7 +162,7 @@ class eaParams():
 
     def basePath(self):
         path = self.shared_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description
-        if self.description == "foraging" and self.algorithm == "gp":
+        if self.description == "foraging":
             if self.using_repertoire:
                 path += "/"+self.repertoire_type+str(self.repertoire_size)
             else:
@@ -235,12 +246,21 @@ class eaParams():
 
     def update(self, data):
 
+        if data[0] == "project" and len(data) > 1:
+            self.project = data[1]
+
         if data[0] == "experiment" and len(data) > 1:
             self.experiment = data[1]
 
         if data[0] == "experiments":
             for i in range(1, len(data)):
                 self.experiments.append(data[i])
+
+        if data[0] == "objectives" and len(data) > 1:
+            self.objectives = []
+            for objective in data[1:]:
+                self.objectives.append(objective)
+            self.max_objectives = len(self.objectives)
 
         if data[0] == "indexes" and len(data) > 1:
             self.indexes = []
@@ -277,6 +297,22 @@ class eaParams():
             self.features_domain = []
             for i in range(1, len(data), 2):
                 self.features_domain.append((float(data[i]), float(data[i+1])))
+
+        if data[0] == "tournament":
+            permitted = ["agnosticTournament", "multiFoodMaxTournament", "multiFoodTournament", "multiFoodFloorTournament", "selTournament"]
+            if data[1] in permitted:
+                self.tournament = data[1]
+            else:
+                print(data[1]+" tournament not supported")
+                self.stop = True
+                self.saveOutput = False
+                self.saveCSV = False
+                self.generations = 0
+
+        if data[0] == "arena_params" and len(data) > 1:
+            self.arena_params = []
+            for param in data[1:]:
+                self.arena_params.append(float(param))
 
         if data[0] == "sqrt_robots": self.sqrt_robots = int(data[1])
         if data[0] == "formation": self.formation = data[1]
@@ -363,6 +399,10 @@ class eaParams():
             for line in f:
                 first = line[0:line.find(" ")]
                 names.append(first)
+                if self.project == "multi_food_foraging_with_subbehaviours" and "gotoNest" in first:
+                    names.append(first.replace("Nest", "Food1"))
+                    names.append(first.replace("Nest", "Food2"))
+                    names.append(first.replace("Nest", "Food3"))
 
         return names
 
@@ -371,9 +411,14 @@ class eaParams():
         primitives = ["seqm", "selm", "probm"]
 
         if self.using_repertoire:
-            conditions = ["ifGotFood1", "ifOnFood1", "ifInNest"]
+            if self.project == "multi_food_foraging_with_subbehaviours":
+                conditions = ["ifInNest",
+                              "ifOnFood1", "ifOnFood2", "ifOnFood3",
+                              "ifGotFood1", "ifGotFood2", "ifGotFood3"]
+            else:
+                conditions = ["ifGotFood1", "ifOnFood1", "ifInNest"]
 
-        elif self.experiment == "heterogeneous":
+        elif self.project == "straight_to_foraging":
             conditions = ["ifInNest", "ifNestToLeft", "ifNestToRight", 
                           "ifGotFood1", "ifOnFood1", "ifFoodToLeft1", "ifFoodToRight1",
                           "ifGotFood2", "ifOnFood2", "ifFoodToLeft2", "ifFoodToRight2",
@@ -391,7 +436,10 @@ class eaParams():
                           "ifRobotToLeft", "ifRobotToRight"]
 
         if self.using_repertoire:
-            actions = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
+            if self.project == "multi_food_foraging_with_subbehaviours":
+                actions = ["increaseDensity", "reduceDensity", "gotoNest", "gotoFood1", "gotoFood2", "gotoFood3"]
+            else:
+                actions = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
         else:
             actions = ["stop", "f", "fl", "fr", "r", "rl", "rr"]
 
@@ -400,7 +448,7 @@ class eaParams():
         robot.makeTerminalNodes("conditions", conditions)
 
         if self.using_repertoire:
-            robot.makeRepertoireNodes(actions)
+            robot.makeRepertoireNodes(actions, self.repertoire_size)
         else:
             robot.makeTerminalNodes("actions", actions)
 
@@ -434,6 +482,15 @@ class eaParams():
                 if 'goAwayFromFood'+index in names:
                     self.nodes['goAwayFromFood'+index] = True
                     pset.addAction(robot.goAwayFromFood[i])
+                if 'gotoFood1'+index in names:
+                    self.nodes['gotoFood1'+index] = True
+                    pset.addAction(robot.gotoFood1[i])
+                if 'gotoFood2'+index in names:
+                    self.nodes['gotoFood2'+index] = True
+                    pset.addAction(robot.gotoFood2[i])
+                if 'gotoFood3'+index in names:
+                    self.nodes['gotoFood3'+index] = True
+                    pset.addAction(robot.gotoFood3[i])
 
         else:
             for node in actions:
@@ -443,17 +500,11 @@ class eaParams():
 
         primitives = ["seqm", "selm", "probm"]
         actions = ["stop", "f", "fl", "fr", "r", "rl", "rr"]
-
-        if self.experiment == "heterogeneous":
-            conditions = ["ifInNest", "ifNestToLeft", "ifNestToRight",
-                          "ifGotFood1", "ifOnFood1", "ifFoodToLeft1", "ifFoodToRight1",
-                          "ifGotFood2", "ifOnFood2", "ifFoodToLeft2", "ifFoodToRight2",
-                          "ifGotFood3", "ifOnFood3", "ifFoodToLeft3", "ifFoodToRight3",
-                          "ifRobotToLeft", "ifRobotToRight"]
-        else:
-            conditions = ["ifInNest", "ifNestToLeft", "ifNestToRight",
-                          "ifGotFood1", "ifOnFood1", "ifFoodToLeft1", "ifFoodToRight1",
-                          "ifRobotToLeft", "ifRobotToRight"]
+        conditions = ["ifInNest", "ifNestToLeft", "ifNestToRight",
+                      "ifGotFood1", "ifOnFood1", "ifFoodToLeft1", "ifFoodToRight1",
+                      "ifGotFood2", "ifOnFood2", "ifFoodToLeft2", "ifFoodToRight2",
+                      "ifGotFood3", "ifOnFood3", "ifFoodToLeft3", "ifFoodToRight3",
+                      "ifRobotToLeft", "ifRobotToRight"]
 
         robot = robotObject()
 
@@ -501,12 +552,12 @@ class robotObject(object):
 
         setattr(robotObject, role, _dict)
 
-    def makeRepertoireNodes(self, nodes):
+    def makeRepertoireNodes(self, nodes, repertoire_size):
 
         for name in (nodes):
             _list = []
             setattr(robotObject, name, _list)
-            for i in range(64):
+            for i in range(repertoire_size):
                 n = name+str(i+1)
                 _method = self.make_method(n)
                 setattr(robotObject, n, _method)

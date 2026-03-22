@@ -59,31 +59,48 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
         GetNodeAttribute(tDistr, "path", path);
     }
 
-    generateArenas();
-
     std::string repertoireFilename = "";
+    std::string project = "";
     float velocity = 0.0;
-    readConfigFile(path, repertoireFilename, velocity);
+    readConfigFile(path, project, repertoireFilename, velocity);
+
+    std::string arenasFilename = "./arena"+std::to_string(m_arenaLayout)+".txt";
+    generateArenas(arenasFilename);
 
     readSeedAndGap(path+"/seed"+std::to_string(index)+".txt");
 
     std::string chromosome = "";
     readChromosome(path+"/"+filename, chromosome);
 
-    std::vector<std::string> tokens;
-    tokeniseSubbehaviors(repertoireFilename, chromosome, tokens);
+    std::map<std::string, std::vector<std::string>> subBehaviours;
+    tokeniseSubbehaviors(repertoireFilename, subBehaviours);
 
-    addRobots(tokens, velocity, filename == "best.txt");
+    std::vector<std::string> tokens;
+
+    if (project == "multi_food_foraging_with_subbehaviours")
+    {
+        tokeniseAgnosticChromosome(subBehaviours, chromosome, tokens);
+    }
+    else
+    {
+        tokeniseChromosome(subBehaviours, chromosome, tokens);
+    }
+
+    addRobots(tokens, project, velocity, (filename == "best.txt"));
 }
 
-void CBTLoopFunctions::generateArenas()
+void CBTLoopFunctions::generateArenas(const std::string& filename)
 {
-    std::string arenasFilename = "./arena.txt";
-    std::ifstream arenasFile(arenasFilename);
+    std::ifstream arenasFile(filename);
     std::string line = "";
 
     while( getline(arenasFile, line) )
     {
+        if (line == "" || line.substr(0, 6) == "layout")
+        {
+            continue;
+        }
+
         if (line.substr(0, 5) == "arena")
         {
             std::vector<CFootBotBT::Poi> arena;
@@ -106,7 +123,7 @@ void CBTLoopFunctions::generateArenas()
     }
 }
 
-bool CBTLoopFunctions::readConfigFile(const std::string path, std::string& repertoireFilename, float& velocity)
+bool CBTLoopFunctions::readConfigFile(const std::string& path, std::string& project, std::string& repertoireFilename, float& velocity)
 {
     std::string configFilename = path+"/configuration.txt";
     std::ifstream configFile(configFilename);
@@ -117,6 +134,10 @@ bool CBTLoopFunctions::readConfigFile(const std::string path, std::string& reper
         std::string key = line.substr(0, delimiter);
         std::string value = line.substr(delimiter + 1);
 
+        if (key == "project")
+        {
+            project = value;
+        }
         if (key == "sqrtRobots")
         {
             m_sqrtRobots = std::stoi(value);
@@ -160,11 +181,12 @@ bool CBTLoopFunctions::readConfigFile(const std::string path, std::string& reper
         }
     }
 
-    if (m_sqrtRobots == 0 || m_numIterations == 0 || m_experimentLength == 0 || repertoireFilename == "" ||
+    if (project == "" || m_sqrtRobots == 0 || m_numIterations == 0 || m_experimentLength == 0 || repertoireFilename == "" ||
         m_arenaLayout == 0 || m_nest == 0.0 || m_food == 0.0 || m_commsRange == 0 || velocity == 0.0 ||
-        (m_formation != "random" && m_formation != "lattice" && m_formation != "two_robots"))
+        (m_formation != "random" && m_formation != "lattice" && m_formation != "localised" && m_formation != "two_robots"))
     {
         std::cout << "cancelled\n";
+        std::cout << "project: " << project << "\n";
         std::cout << "m_sqrtRobots: " << std::to_string(m_sqrtRobots) << "\n";
         std::cout << "iterations: " << std::to_string(m_numIterations) << "\n";
         std::cout << "experimentLength: " << std::to_string(m_experimentLength) << "\n";
@@ -182,7 +204,7 @@ bool CBTLoopFunctions::readConfigFile(const std::string path, std::string& reper
     return true;
 }
 
-bool CBTLoopFunctions::readSeedAndGap(const std::string filename)
+bool CBTLoopFunctions::readSeedAndGap(const std::string& filename)
 {
     // get random seed and environmental parameters from file
     std::ifstream seedFile(filename);
@@ -209,7 +231,7 @@ bool CBTLoopFunctions::readSeedAndGap(const std::string filename)
     return true;
 }
 
-bool CBTLoopFunctions::readChromosome(const std::string filename, std::string& chromosome)
+bool CBTLoopFunctions::readChromosome(const std::string& filename, std::string& chromosome)
 {
     // read chromosome from file
     std::ifstream chromosomeFile(filename);
@@ -237,7 +259,7 @@ bool CBTLoopFunctions::readChromosome(const std::string filename, std::string& c
     return true;
 }
 
-void CBTLoopFunctions::tokeniseSubbehaviors(const std::string filename, const std::string chromosome, std::vector<std::string>& tokens)
+void CBTLoopFunctions::tokeniseSubbehaviors(const std::string& filename, std::map<std::string, std::vector<std::string>>& subBehaviours)
 {
     // unpack sub-behaviours
 
@@ -257,7 +279,6 @@ void CBTLoopFunctions::tokeniseSubbehaviors(const std::string filename, const st
 
     // tokenize subbehaviours
 
-    std::vector<std::pair<std::string, std::vector<std::string>>> subBehaviours;
     for (std::string subbehaviour : subBehaviourTrees)
     {
         std::string name;
@@ -282,10 +303,12 @@ void CBTLoopFunctions::tokeniseSubbehaviors(const std::string filename, const st
             }
         }
         std::pair<std::string, std::vector<std::string>> subBehaviour(name, tokens);
-        subBehaviours.push_back(subBehaviour);
+        subBehaviours.insert(subBehaviour);
     }
+}
 
-    // tokenize chromosome
+void CBTLoopFunctions::tokeniseChromosome(const std::map<std::string, std::vector<std::string>>& subBehaviours, const std::string& chromosome, std::vector<std::string>& tokens)
+{
     std::stringstream ss(chromosome); 
     std::string token;
     while (std::getline(ss, token, ' ')) 
@@ -315,7 +338,55 @@ void CBTLoopFunctions::tokeniseSubbehaviors(const std::string filename, const st
     }
 }
 
-void CBTLoopFunctions::addRobots(const std::vector<std::string> tokens, const uint velocity, bool playback)
+void CBTLoopFunctions::tokeniseAgnosticChromosome(std::map<std::string, std::vector<std::string>>& subBehaviours, const std::string& chromosome, std::vector<std::string>& tokens)
+{
+    std::stringstream ss(chromosome);
+    std::string token;
+    while (std::getline(ss, token, ' '))
+    {
+        if (token.length() > 0)
+        {
+            bool subBehaviour = false;
+
+            for (auto node : subBehaviours)
+            {
+                if (token == node.first)
+                {
+                    subBehaviour = true;
+                    tokens.push_back("successd");
+                    for (std::string subToken : node.second)
+                    {
+                        tokens.push_back(subToken);
+                    }
+                }
+            }
+
+            if (token.substr(0, 8) == "gotoFood")
+            {
+                std::string foodIndex = token.substr(8, 1);
+                std::string version = token.substr(9);
+
+                subBehaviour = true;
+                tokens.push_back("successd");
+
+                for (std::string subToken : subBehaviours["gotoNest" + version])
+                {
+                    subToken = (subToken == "ifInNest") ? "ifGotFood"+foodIndex : subToken;
+                    subToken = (subToken == "ifNestToLeft") ? "ifFoodToLeft"+foodIndex : subToken;
+                    subToken = (subToken == "ifNestToRight") ? "ifFoodToRight"+foodIndex : subToken;
+                    tokens.push_back(subToken);
+                }
+            }
+
+            if (!subBehaviour)
+            {
+                tokens.push_back(token);
+            }
+        }
+    }
+}
+
+void CBTLoopFunctions::addRobots(const std::vector<std::string> tokens, const std::string& project, const uint velocity, bool playback)
 {
     for (int i = 0; i < m_sqrtRobots; ++i)
     {
@@ -328,6 +399,10 @@ void CBTLoopFunctions::addRobots(const std::vector<std::string> tokens, const ui
             if (m_formation == "lattice")
             {
                 latticeFormation(pcFB, i, j);
+            }
+            else if (m_formation == "localised")
+            {
+                localisedFormation(pcFB, i * m_sqrtRobots + j);
             }
             else if (m_formation == "two_robots")
             {
@@ -342,10 +417,11 @@ void CBTLoopFunctions::addRobots(const std::vector<std::string> tokens, const ui
             CFootBotBT& controller = dynamic_cast<CFootBotBT&>(pcFB->GetControllableEntity().GetController());
             controller.buildTree(tokens);
             controller.setArenaParams(m_arenaLayout, m_nest, m_food, m_gap);
-            controller.setArenaPOIs(m_arenas[m_currentIteration]);
+            setArenaPOIs(controller);
 
-            uint robotType = playback ? 0 : (i * m_sqrtRobots + j) % 2;
-            controller.setParams(m_commsRange, velocity, m_experimentLength / m_numIterations, robotType);
+            uint robotType = (i * m_sqrtRobots + j) % 2;
+            robotType = playback ? 0 : robotType;
+            controller.setParams(project, m_commsRange, velocity, m_experimentLength / m_numIterations, robotType);
 
             if (m_formation == "two_robots" && j == 1)
             {
@@ -609,6 +685,11 @@ CColor CBTLoopFunctions::getFloorColorExp7(const CVector2& c_position_on_plane)
         return CColor::GRAY80; // tile edges
     }
 
+    else if (x > 2.3 || x < -2.3 || y > 2.3 || y < -2.3)
+    {
+        return CColor::GRAY70; // out of spawn range
+    }
+
     else if (distNest < m_arenas[m_currentIteration][0].m_r)
     {
         return CColor::RED; // nest
@@ -632,6 +713,7 @@ float CBTLoopFunctions::hypotenuseSquared(const float x1, const float y1, const 
 void CBTLoopFunctions::PostStep()
 {
     m_count++;
+
     if (m_count % (m_experimentLength / m_numIterations) == 0 && m_count < m_experimentLength)
     {
         m_currentIteration = floor(m_count / (m_experimentLength / m_numIterations));
@@ -640,6 +722,10 @@ void CBTLoopFunctions::PostStep()
         if (m_formation == "lattice")
         {
             postStepLattice();
+        }
+        else if (m_formation == "localised")
+        {
+            postStepLocalised();
         }
         else if (m_formation == "two_robots")
         {
@@ -658,7 +744,7 @@ void CBTLoopFunctions::postStepRandom()
     {
         randomFormation(footbot);
         CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
-        controller.setArenaPOIs(m_arenas[m_currentIteration]);
+        setArenaPOIs(controller);
     }
 }
 
@@ -671,7 +757,21 @@ void CBTLoopFunctions::postStepLattice()
             CFootBotEntity* footbot = m_footbots[i * m_sqrtRobots + j];
             latticeFormation(footbot, i, j);
             CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
-            controller.setArenaPOIs(m_arenas[m_currentIteration]);
+            setArenaPOIs(controller);
+        }
+    }
+}
+
+void CBTLoopFunctions::postStepLocalised()
+{
+    for (int i = 0; i < m_sqrtRobots; ++i)
+    {
+        for (int j = 0; j < m_sqrtRobots; ++j)
+        {
+            CFootBotEntity* footbot = m_footbots[i * m_sqrtRobots + j];
+            localisedFormation(footbot, i * m_sqrtRobots + j);
+            CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
+            setArenaPOIs(controller);
         }
     }
 }
@@ -684,7 +784,7 @@ void CBTLoopFunctions::postStepTwoRobots()
         twoRobotFormation(footbot, i);
 
         CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
-        controller.setArenaPOIs(m_arenas[m_currentIteration]);
+        setArenaPOIs(controller);
     }
 }
 
@@ -738,6 +838,44 @@ void CBTLoopFunctions::latticeFormation(CFootBotEntity* footbot, int i, int j)
     MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot);
 }
 
+void CBTLoopFunctions::localisedFormation(CFootBotEntity* footbot, int index)
+{
+    uint robotType = (index % 2 == 0) ? 0 : 1;
+
+    CFootBotBT::Poi target = (robotType == 0)
+        ? m_arenas[m_currentIteration][1]
+        : m_arenas[m_currentIteration][0];
+
+    double radius = sqrt((target.m_r * target.m_r) / 2);
+
+    CVector3 cFBPos;
+    CQuaternion cFBRot;
+
+    auto rotation = m_pcRNG->Uniform(CRadians::UNSIGNED_RANGE);
+    cFBRot.FromAngleAxis(rotation, CVector3::Z);
+
+    double xMax = std::min(target.m_x + radius, 2.3);
+    double xMin = std::max(target.m_x - radius, -2.3);
+    double yMax = std::min(target.m_y + radius, 2.3);
+    double yMin = std::max(target.m_y - radius, -2.3);
+
+    CRange<Real> areaRangeX(xMin, xMax);
+    CRange<Real> areaRangeY(yMin, yMax);
+
+    for (int i = 0; i < 10; ++i)
+    {
+        double x = m_pcRNG->Uniform(areaRangeX);
+        double y = m_pcRNG->Uniform(areaRangeY);
+
+        cFBPos.Set(x, y, 0.0f);
+
+        if (MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot))
+        {
+            break;
+        }
+    }
+}
+
 void CBTLoopFunctions::twoRobotFormation(CFootBotEntity* footbot, int index)
 {
     CVector3 cFBPos;
@@ -758,6 +896,14 @@ void CBTLoopFunctions::twoRobotFormation(CFootBotEntity* footbot, int index)
     cFBPos.Set(x, y, 0.0f);
 
     MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot);
+}
+
+void CBTLoopFunctions::setArenaPOIs(CFootBotBT& controller)
+{
+    if (m_arenaLayout == 6 || m_arenaLayout == 7)
+    {
+        controller.setArenaPOIs(m_arenas[m_currentIteration]);
+    }
 }
 
 bool CBTLoopFunctions::IsExperimentFinished()

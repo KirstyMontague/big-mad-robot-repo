@@ -36,7 +36,7 @@ public:
     void Destroy() override {}
 
     void buildTree(std::vector<std::string> tokens);
-    void setParams(int commsRange, float velocity, int trialLength, uint robotType);
+    void setParams(const std::string project, int commsRange, float velocity, int trialLength, uint robotType);
     void setArenaParams(int arenaLayout, float nest, float food, float gap);
 
     void setArenaPOIs(std::vector<Poi> arena) {m_arena = arena;}

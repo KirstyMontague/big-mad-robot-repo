@@ -43,9 +43,11 @@ CFootBotBT::~CFootBotBT()
     //8 rotation
     //9 conditionality
     
-    //std::vector<int> x{0,1,2,3,4,5,6,7,8,9};
-    std::vector<int> x{0,1,2,3};
-    for (int i : x)
+    bool usingAllObjectives = (m_project == "objectives_in_fitness_function" ||
+                               m_project == "generic_subbehaviours_in_fitness_function");
+    uint numScores = (usingAllObjectives) ? 10 : 4;
+
+    for (uint i = 0; i < numScores; ++i)
     {
         for (float s : m_scores[i])
         {
@@ -87,7 +89,7 @@ void CFootBotBT::Init(TConfigurationNode& t_node)
 
     m_blackBoard = new CBlackBoard(std::stoi(GetId()));
 
-    m_project = "straight to foraging";
+    m_project = "objectives_in_fitness_function";
 }
 
 void CFootBotBT::buildTree(std::vector<std::string> tokens)
@@ -236,7 +238,8 @@ float CFootBotBT::hypotenuseSquared(float x1, float y1, float x2, float y2) cons
 
 void CFootBotBT::setColour() const
 {
-    if (m_project == "straight to foraging")
+    if (m_project == "straight_to_foraging" ||
+        m_project == "multi_food_foraging_with_subbehaviours")
     {
         if (m_blackBoard->getCarryingFood(0))
         {
@@ -256,7 +259,7 @@ void CFootBotBT::setColour() const
         }
     }
 
-    else if (m_project == "generic objectives cast to grid")
+    else if (m_project == "generic_objectives_cast_to_grid")
     {
         if (m_blackBoard->getCarryingFood(0))
         {
@@ -266,6 +269,11 @@ void CFootBotBT::setColour() const
         {
             m_pcLEDs->SetAllColors(m_robotType == 0 ? CColor::BLUE : CColor::RED);
         }
+    }
+
+    else if (m_project == "generic_subbehaviours_in_fitness_function")
+    {
+        m_pcLEDs->SetAllColors(m_robotType == 0 ? CColor::RED : CColor::YELLOW);
     }
 
     else
@@ -281,8 +289,9 @@ void CFootBotBT::setColour() const
     }
 }
 
-void CFootBotBT::setParams(int commsRange, float velocity, int trialLength, uint robotType)
+void CFootBotBT::setParams(const std::string project, int commsRange, float velocity, int trialLength, uint robotType)
 {
+    m_project = project;
     m_commsRange = commsRange;
     m_trialLength = trialLength;
     m_robotType = robotType;
@@ -309,7 +318,14 @@ void CFootBotBT::createAndSendPayload(std::vector<uint64_t> distances) const
 {
     short int id = std::stoi(GetId());
 
-    uint64_t distNest  = (distances[0] == 0) ? 0 : distances[0]  * 1000000000;
+    if (id % 2 == 1 && m_project == "generic_subbehaviours_in_fitness_function")
+    {
+        uint64_t distTemp = distances[0];
+        distances[0] = distances[1];
+        distances[1] = distTemp;
+    }
+
+    uint64_t distNest  = (distances[0] == 0) ? 0 : distances[0] * 1000000000;
     uint64_t distFood1 = (distances[1] == 0) ? 0 : distances[1] * 1000000;
     uint64_t distFood2 = (distances[2] == 0) ? 0 : distances[2] * 1000;
     uint64_t distFood3 = (distances[3] == 0) ? 0 : distances[3] * 1;
@@ -338,13 +354,20 @@ void CFootBotBT::decomposePayload(uint64_t concatenated, std::vector<uint64_t>& 
     nest = std::floor(concatenated / 1000000000);
     concatenated = concatenated - (nest*1000000000);
 
-    uint food1 = std::floor(concatenated / 1000000);
+    uint64_t food1 = std::floor(concatenated / 1000000);
     concatenated = concatenated - (food1*1000000);
 
-    uint food2 = std::floor(concatenated / 1000);
+    uint64_t food2 = std::floor(concatenated / 1000);
     concatenated = concatenated - (food2*1000);
 
-    uint food3 = concatenated;
+    uint64_t food3 = concatenated;
+
+    if (std::stoi(GetId()) % 2 == 1 && m_project == "generic_subbehaviours_in_fitness_function")
+    {
+        uint64_t temp = nest;
+        nest = food1;
+        food1 = temp;
+    }
 
     food.push_back(food1);
     food.push_back(food2);
@@ -684,7 +707,7 @@ void CFootBotBT::ControlStep()
         std::string result = m_rootNode->evaluate(m_blackBoard, output);
 
         // print all nodes traversed on each tick
-        // if (m_verbose && inTrackingIDs()) std::cout << output << std::endl;
+        // if (tracking) std::cout << output << std::endl;
     }
 
     if (m_count % m_trialLength != 1)
@@ -714,7 +737,7 @@ void CFootBotBT::ControlStep()
         m_blackBoard->setFinalDistanceFromFood(tracking);
     }
 
-    if (m_count % m_trialLength == 0 && m_project == "objectives in fitness function")
+    if (m_count % m_trialLength == 0 && m_project == "objectives_in_fitness_function")
     {
         m_scores[0].push_back(m_blackBoard->getDifferenceInDensity());
         m_scores[1].push_back(m_blackBoard->getDifferenceInDistanceFromNest());
@@ -736,7 +759,7 @@ void CFootBotBT::ControlStep()
         m_blackBoard->setActions(0);
     }
 
-    if (m_count % m_trialLength == 0 && m_project == "objectives cast to grid")
+    if (m_count % m_trialLength == 0 && m_project == "objectives_cast_to_grid")
     {
         int foundFood = m_blackBoard->getCarryingFood(0) ? 1 : 0;
         m_scores[0].push_back(m_blackBoard->getAbsoluteDelta());
@@ -746,7 +769,27 @@ void CFootBotBT::ControlStep()
         m_scores[3].push_back(m_blackBoard->getAbsoluteDistanceToFoodAvg());
     }
 
-    if (m_count % m_trialLength == 0 && m_project == "generic objectives cast to grid - perceived")
+    if (m_count % m_trialLength == 0 && m_project == "generic_subbehaviours_in_fitness_function")
+    {
+        m_scores[0].push_back(m_blackBoard->getDifferenceInDensity());
+        m_scores[1].push_back(m_blackBoard->getDifferenceInDistanceFromNest()); // target
+        m_scores[2].push_back(m_blackBoard->getDifferenceInDistanceFromFood()); // other
+        m_scores[3].push_back(m_blackBoard->getDifferenceInDensityInverse());
+        m_scores[4].push_back(m_blackBoard->getDifferenceInDistanceFromNestInverse()); // target
+        m_scores[5].push_back(m_blackBoard->getDifferenceInDistanceFromFoodInverse(tracking)); // other
+        m_scores[6].push_back(static_cast<float>(m_blackBoard->getFoodOfType(0))); // arbitrary
+
+        m_scores[7].push_back(static_cast<float>(m_blackBoard->getMovement()));
+        m_scores[8].push_back(static_cast<float>(m_blackBoard->getRotations()));
+        m_scores[9].push_back(static_cast<float>(m_blackBoard->getConditionality()));
+
+        m_blackBoard->setMovement(0);
+        m_blackBoard->setRotations(0);
+        m_blackBoard->setConditions(0);
+        m_blackBoard->setActions(0);
+    }
+
+    if (m_count % m_trialLength == 0 && m_project == "generic_objectives_cast_to_grid_perceived")
     {
         m_scores[0].push_back(m_blackBoard->getAbsoluteDelta());
 
@@ -756,7 +799,7 @@ void CFootBotBT::ControlStep()
         m_scores[3].push_back(m_blackBoard->getDifferenceInDistanceFromFood());
     }
 
-    if (m_count % m_trialLength == 0 && m_project == "generic objectives cast to grid - absolute")
+    if (m_count % m_trialLength == 0 && m_project == "generic_objectives_cast_to_grid_absolute")
     {
         m_scores[0].push_back(m_blackBoard->getAbsoluteDelta());
 
@@ -766,7 +809,8 @@ void CFootBotBT::ControlStep()
         m_scores[3].push_back(m_blackBoard->getAbsoluteDistanceToFoodAvg()); // other
     }
 
-    if (m_count % m_trialLength == 0 && m_project == "straight to foraging")
+    if (m_count % m_trialLength == 0 && (m_project == "straight_to_foraging" ||
+                                         m_project == "multi_food_foraging_with_subbehaviours"))
     {
         m_scores[0].push_back(m_blackBoard->getTotalFood());
 

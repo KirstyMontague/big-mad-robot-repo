@@ -109,7 +109,7 @@ class Utilities():
 
         num_data = self.params.max_objectives
 
-        for i in self.params.arenaParams:
+        for i in self.params.arena_params:
             
             # get maximum food available with the current gap between the nest and food
             # maxFood = self.calculateMaxFood(i)
@@ -198,7 +198,7 @@ class Utilities():
     
     def getAvgAndDerate(self, score, individual, deratingFactor):
         fitness = score / self.params.iterations
-        fitness = fitness / len(self.params.arenaParams)
+        fitness = fitness / len(self.params.arena_params)
         fitness /= deratingFactor
         return fitness
 
@@ -366,7 +366,7 @@ class Utilities():
             thisFitness = individual.fitness.getValues()[feature]
 
             if derate:
-                if self.params.experiment == "heterogeneous":
+                if self.params.project in ["straight_to_foraging", "multi_food_foraging_with_subbehaviours"]:
                     thisFitness *= self.deratingFactorHeterogeneous(individual)
                 elif self.params.description == "foraging":
                     thisFitness *= self.deratingFactorForForaging(individual)
@@ -467,6 +467,19 @@ class Utilities():
                     output += "\n"+self.formatChromosome(ind)+"\n"
 
         return "\n"+output+"\n"
+
+    def getBestGeneralist(self, population):
+
+        val = 0.0
+        best = None
+
+        for ind in population:
+            score = np.min(ind.features)
+            if best == None or score > val:
+                best = ind
+                val = score
+
+        return best
 
     def removeDuplicates(self, offspring, container):
         for i in reversed(range(len(offspring))):
@@ -691,6 +704,7 @@ class Utilities():
         experiment_length = self.params.trial_length * self.params.iterations
 
         with open(self.params.local_path+'/configuration.txt', 'w') as f:
+            f.write("project:"+str(self.params.project)+"\n")
             f.write("sqrtRobots:"+str(self.params.sqrt_robots)+"\n")
             f.write("iterations:"+str(self.params.iterations)+"\n")
             f.write("experimentLength:"+str(experiment_length)+"\n")
