@@ -156,6 +156,9 @@ class Archive():
             mapping["goAwayFromNest"+str(i)] = "3"+leading_zero+str(i)
             mapping["gotoFood"+str(i)] = "4"+leading_zero+str(i)
             mapping["goAwayFromFood"+str(i)] = "5"+leading_zero+str(i)
+            mapping["gotoFood1"+str(i)] = "6"+leading_zero+str(i)
+            mapping["gotoFood2"+str(i)] = "7"+leading_zero+str(i)
+            mapping["gotoFood3"+str(i)] = "8"+leading_zero+str(i)
 
         chromosome = chromosome.replace(" ", "")
         tokens = re.split("[ (),]", chromosome)

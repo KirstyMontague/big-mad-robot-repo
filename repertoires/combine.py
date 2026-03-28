@@ -23,11 +23,6 @@ class Combine():
 
     def __init__(self):
 
-        self.save = False
-        self.legacy = False
-        self.output_type = "final"
-        self.experiments = []
-
         self.params = eaParams()
         self.params.is_qdpy = True
         self.params.using_repertoire = False
@@ -35,6 +30,13 @@ class Combine():
         self.utilities = Utilities(self.params)
         self.utilities.setupToolbox(self.selTournament)
         self.redundancy = Redundancy(self.params)
+
+        self.save = False
+        self.legacy = False
+        self.output_type = "final"
+        self.experiments = self.params.experiments
+        self.domain = self.params.features_domain
+        self.objectives = self.params.objectives
 
         self.cancelled = False
         self.configure()
@@ -51,7 +53,7 @@ class Combine():
 
     def configure(self):
         permitted = ["algorithm", "output_type", "repertoire_type", "experiment", "experiments",
-                     "arena", "objective", "runs", "generations", "save", "legacy"]
+                     "arena", "objectives", "objective", "domain", "runs", "generations", "save", "legacy"]
         with open(self.params.shared_path+"/combine.txt", 'r') as f:
             for line in f:
                 data = line.split()
@@ -90,6 +92,11 @@ class Combine():
                 print("\nRepertoire type not recognised: "+data[1]+"\n")
                 self.cancelled = True
 
+        if data[0] == "objectives" and len(data) > 1:
+            self.params.objectives = []
+            for objective in data[1:]:
+                self.params.objectives.append(objective)
+
         if data[0] == "objective":
             self.params.indexes = [int(data[1])]
             self.params.description = self.params.objectives[int(data[1])]
@@ -97,6 +104,11 @@ class Combine():
         if data[0] == "experiments" and len(data) > 1:
             for i in range(1, len(data)):
                 self.experiments.append(data[i])
+
+        if data[0] == "domain" and len(data) > 1:
+            self.domain = []
+            for i in range(1, len(data), 2):
+                self.domain.append((float(data[i]), float(data[i+1])))
 
         if data[0] == "experiment" and len(data) > 1: self.experiment = data[1]
         if data[0] == "arena" and len(data) > 1: self.params.arena_layout = int(data[1])
@@ -125,7 +137,7 @@ class Combine():
 
             missing = 0
 
-            input_path = self.params.shared_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.description
+            input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.description
 
             for seed in range(1, self.params.runs + 1):
 
@@ -185,12 +197,12 @@ class Combine():
 
         for experiment in experiments:
 
-            input_path = self.params.shared_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.description
+            input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.description
 
             container = (Grid(shape = [8,8,8],
                               max_items_per_bin = 1,
                               fitness_domain = [(0.,1.0),],
-                              features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)],
+                              features_domain = self.domain,
                               storage_type=list))
 
             for seed in range(1, self.params.runs + 1):

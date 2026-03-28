@@ -16,17 +16,12 @@ CNode::CNode(std::vector<std::string>& chromosome, int id) : m_ptr(0), m_type(no
     if (chromosome.size() > 0)
     {
         std::string word = chromosome.at(0);
-        //std::cout << word << std::endl;
-        //std::cout << word << " - ";
-        
+
         m_type = getNodeFromText(word);
         nodetypes type = getNodeType(m_type);
         
-        //std::cout << getNodeText(m_type) << std::endl;
-        
-        
         chromosome.erase(chromosome.begin());
-            
+
         switch (type)
         {
             case nodetypes::composition:
@@ -50,7 +45,7 @@ CNode::CNode(std::vector<std::string>& chromosome, int id) : m_ptr(0), m_type(no
                 break;
             }
             default: {
-                std::cout << "node error (constructor)" << std::endl;
+                std::cout << "node error (constructor): " <<  word << " not found\n";
             }
         }
     }
@@ -123,12 +118,16 @@ void CNode::conditionNode(std::vector<std::string>& chromosome)
         case nodetype::ifRobotAhead:
         case nodetype::ifRobotToLeft:
         case nodetype::ifRobotToRight:
+        case nodetype::ifOnFood:
+        case nodetype::ifGotFood:
         case nodetype::ifOnFood1:
         case nodetype::ifGotFood1:
         case nodetype::ifOnFood2:
         case nodetype::ifGotFood2:
         case nodetype::ifOnFood3:
         case nodetype::ifGotFood3:
+        case nodetype::ifFoodToLeft:
+        case nodetype::ifFoodToRight:
         case nodetype::ifFoodToLeft1:
         case nodetype::ifFoodToRight1:
         case nodetype::ifFoodToLeft2:
@@ -203,12 +202,16 @@ std::string CNode::evaluate(CBlackBoard* blackBoard, std::string& output)
         case CNode::nodetype::ifRobotAhead:
         case CNode::nodetype::ifRobotToLeft:
         case CNode::nodetype::ifRobotToRight:
+        case CNode::nodetype::ifOnFood:
+        case CNode::nodetype::ifGotFood:
         case CNode::nodetype::ifOnFood1:
         case CNode::nodetype::ifGotFood1:
         case CNode::nodetype::ifOnFood2:
         case CNode::nodetype::ifGotFood2:
         case CNode::nodetype::ifOnFood3:
         case CNode::nodetype::ifGotFood3:
+        case CNode::nodetype::ifFoodToLeft:
+        case CNode::nodetype::ifFoodToRight:
         case CNode::nodetype::ifFoodToLeft1:
         case CNode::nodetype::ifFoodToRight1:
         case CNode::nodetype::ifFoodToLeft2:
@@ -374,6 +377,20 @@ std::string CNode::evaluateConditionNode(CBlackBoard* blackBoard, std::string& o
             return result;
         }
 
+        case CNode::nodetype::ifOnFood:
+        {
+            std::string result = (blackBoard->getDetectedFood(0)) ? "success" : "failure";
+            output += "ifOnFood(" + result + ") ";
+            return result;
+        }
+
+        case CNode::nodetype::ifGotFood:
+        {
+            std::string result = (blackBoard->getCarryingFood(0)) ? "success" : "failure";
+            output += "ifGotFood(" + result + ") ";
+            return result;
+        }
+
         case CNode::nodetype::ifOnFood1:
         {
             std::string result = (blackBoard->getDetectedFood(0)) ? "success" : "failure";
@@ -413,6 +430,20 @@ std::string CNode::evaluateConditionNode(CBlackBoard* blackBoard, std::string& o
         {
             std::string result = (blackBoard->getCarryingFood(2)) ? "success" : "failure";
             output += "ifGotFood3(" + result + ") ";
+            return result;
+        }
+
+        case CNode::nodetype::ifFoodToLeft:
+        {
+            std::string result = (blackBoard->getFoodToLeft(0)) ? "success" : "failure";
+            output += "ifFoodToLeft(" + result + ") ";
+            return result;
+        }
+
+        case CNode::nodetype::ifFoodToRight:
+        {
+            std::string result = (blackBoard->getFoodToRight(0)) ? "success" : "failure";
+            output += "ifFoodToRight(" + result + ") ";
             return result;
         }
 
@@ -548,6 +579,7 @@ std::string CNode::getNodeText(nodetype node)
             return it->first;
         }
     }
+    return "not found";
 }
 
 CNode::nodetype CNode::getNodeFromText(std::string text)
@@ -586,12 +618,16 @@ CNode::nodetypes CNode::getNodeType(nodetype node)
          node == nodetype::ifRobotAhead ||
          node == nodetype::ifRobotToLeft ||
          node == nodetype::ifRobotToRight ||
+         node == nodetype::ifOnFood ||
+         node == nodetype::ifGotFood ||
          node == nodetype::ifOnFood1 ||
          node == nodetype::ifGotFood1 ||
          node == nodetype::ifOnFood2 ||
          node == nodetype::ifGotFood2 ||
          node == nodetype::ifOnFood3 ||
          node == nodetype::ifGotFood3 ||
+         node == nodetype::ifFoodToLeft ||
+         node == nodetype::ifFoodToRight ||
          node == nodetype::ifFoodToLeft1 ||
          node == nodetype::ifFoodToRight1 ||
          node == nodetype::ifFoodToLeft2 ||
@@ -611,7 +647,11 @@ CNode::nodetypes CNode::getNodeType(nodetype node)
          node == nodetype::rr)
     {
         return nodetypes::action;
-    }    
+    }
+    else
+    {
+        return nodetypes::unknown;
+    }
 }
 
 std::map<std::string, CNode::nodetype> CNode::getNodeSet()
@@ -635,12 +675,16 @@ std::map<std::string, CNode::nodetype> CNode::getNodeSet()
     nodes.insert({"ifRobotAhead", CNode::nodetype::ifRobotAhead});
     nodes.insert({"ifRobotToLeft", CNode::nodetype::ifRobotToLeft});
     nodes.insert({"ifRobotToRight", CNode::nodetype::ifRobotToRight});
+    nodes.insert({"ifOnFood", CNode::nodetype::ifOnFood});
+    nodes.insert({"ifGotFood", CNode::nodetype::ifGotFood});
     nodes.insert({"ifOnFood1", CNode::nodetype::ifOnFood1});
     nodes.insert({"ifGotFood1", CNode::nodetype::ifGotFood1});
     nodes.insert({"ifOnFood2", CNode::nodetype::ifOnFood2});
     nodes.insert({"ifGotFood2", CNode::nodetype::ifGotFood2});
     nodes.insert({"ifOnFood3", CNode::nodetype::ifOnFood3});
     nodes.insert({"ifGotFood3", CNode::nodetype::ifGotFood3});
+    nodes.insert({"ifFoodToLeft", CNode::nodetype::ifFoodToLeft});
+    nodes.insert({"ifFoodToRight", CNode::nodetype::ifFoodToRight});
     nodes.insert({"ifFoodToLeft1", CNode::nodetype::ifFoodToLeft1});
     nodes.insert({"ifFoodToRight1", CNode::nodetype::ifFoodToRight1});
     nodes.insert({"ifFoodToLeft2", CNode::nodetype::ifFoodToLeft2});

@@ -33,7 +33,7 @@ private:
     float hypotenuseSquared(const float x1, const float y1, const float x2, const float y2) const;
 
     bool readConfigFile(const std::string& path, std::string& project, std::string& repertoireFilename, float& velocity);
-    void generateArenas(const std::string& filename);
+    bool generateArenas();
     bool readSeedAndGap(const std::string& filename);
     bool readChromosome(const std::string& filename, std::string& chromosome);
 
@@ -79,5 +79,7 @@ private:
     float m_food;
     float m_offset;
     float m_gap;
+
+    bool m_error;
 };
 

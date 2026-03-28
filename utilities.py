@@ -216,7 +216,13 @@ class Utilities():
 
     def deratingFactorHeterogeneous(self, individual):
 
-        length = float(len(individual))
+        if self.params.project == "straight_to_foraging":
+            length = float(len(individual))
+        elif self.params.project == "multi_food_foraging_with_subbehaviours":
+            length = float(self.behaviours.unpack(individual))
+        else:
+            length = float(len(individual))
+
         usage = length - 100 if length > 100 else 0
         usage = usage / 9900 if length <= 10000 else 1
         usage = 1 - usage
@@ -334,6 +340,7 @@ class Utilities():
                 output += "\n"+str(ind)+"\n"
             else:
                 output += "\n"+self.formatChromosome(ind)+"\n"
+                output += "\n"+str(ind)+"\n"
 
         self.params.console(output)
     
@@ -697,6 +704,34 @@ class Utilities():
                 total_fitness += ind.fitness.values[0]
         total_fitness /= shape[0]*shape[1]*shape[2]
         
+        return total_fitness
+
+    def getAdjustedQDScore(self, container):
+
+        shape = self.params.nb_bins
+
+        grid = self.convertToNewGrid(container,
+                                     self.params.description,
+                                     self.params.indexes[0],
+                                     self.params.features,
+                                     shape,
+                                     self.params.fitness_domain,
+                                     self.params.features_domain)
+
+        total_fitness = 0.0
+        for idx, inds in grid.solutions.items():
+            if len(inds) == 0:
+                continue
+            for ind in inds:
+                if self.params.description == "foraging":
+                    total_fitness += ind.fitness.values[0]
+                else:
+                    total_fitness += ind.fitness.values[0] - 0.5
+        total_fitness /= shape[0]*shape[1]*shape[2]
+
+        if self.params.description != "foraging":
+            total_fitness += 0.5
+
         return total_fitness
 
     def saveConfigurationFile(self):

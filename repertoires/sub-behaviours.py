@@ -18,19 +18,24 @@ class SubBehaviours():
 
     def __init__(self):
 
-        self.save = False
-        self.legacy = False
-        self.runs = 0
-        self.generation = 0
-        self.domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)]
-        self.repertoire_type = "qd"
-        self.repertoire_size = 1
-        self.input_type = "separate"
-
         self.pset = local.PrimitiveSetExtended("MAIN", 0)
         self.params = eaParams()
         self.params.addUnpackedNodes(self.pset)
         self.params.is_qdpy = True
+
+        self.experiment = self.params.experiment
+        self.experiments = self.params.experiments
+        self.objectives = self.params.objectives
+        self.domain = self.params.features_domain
+        self.repertoire_type = self.params.repertoire_type
+        self.repertoire_size = self.params.bins_per_axis
+
+        self.save = False
+        self.legacy = False
+        self.destination = "gp"
+        self.runs = 0
+        self.generation = 0
+        self.input_type = "separate"
 
         self.cancelled = False
         self.configure()
@@ -50,13 +55,6 @@ class SubBehaviours():
 
         self.bins = self.bins_per_axis
 
-        self.sub_behaviours = {"density" : "increaseDensity",
-                               "nest" : "gotoNest",
-                               "food" : "gotoFood",
-                               "idensity" : "reduceDensity",
-                               "inest" : "goAwayFromNest",
-                               "ifood-perceived-position" : "goAwayFromFood"}
-
         if self.repertoire_type == "mtc":
             self.sublists = [["density", "nest", "ifood-perceived-position"],
                              ["food", "idensity", "inest"]]
@@ -70,11 +68,11 @@ class SubBehaviours():
                             self.utilities.getExperimentDescription(3, "mti")]
 
         self.input_path = self.params.input_path
-        self.input_dir = self.params.experiment
+        self.input_dir = self.experiment
         if len(self.params.subbehaviours_path) > 0:
             self.input_dir += "/"+self.params.subbehaviours_path
 
-        self.output_path = self.params.shared_path+"/gp/"+self.params.experiment+"/foraging/"
+        self.output_path = self.params.shared_path+"/"+self.destination+"/"+self.experiment+"/foraging/"
         self.output_path += self.repertoire_type+str(self.repertoire_size)
         self.output_filename = self.output_path+"/sub-behaviours.txt"
 
@@ -96,8 +94,8 @@ class SubBehaviours():
             print("Cancelled\n")
 
     def configure(self):
-        permitted = ["experiment", "experiments", "input_type", "save", "legacy",
-                     "runs", "generations", "domain", "repertoire_type", "bins_per_axis"]
+        permitted = ["experiment", "experiments", "input_type", "destination", "save", "legacy",
+                     "objectives", "runs", "generations", "domain", "repertoire_type", "bins_per_axis"]
         with open(self.params.shared_path+"/subbehaviours.txt", 'r') as f:
             for line in f:
                 data = line.split()
@@ -112,11 +110,11 @@ class SubBehaviours():
     def update(self, data):
 
         if data[0] == "experiment" and len(data) > 1:
-            self.params.experiment = data[1]
+            self.experiment = data[1]
 
         if data[0] == "experiments" and len(data) > 1:
             for i in range(1, len(data)):
-                self.params.experiments.append(data[i])
+                self.experiments.append(data[i])
 
         if data[0] == "input_type":
             types = ["separate", "combined", "external"]
@@ -125,6 +123,15 @@ class SubBehaviours():
             else:
                 print("\nInput type not recognised: "+data[1]+"\n")
                 self.cancelled = True
+
+        if data[0] == "destination":
+                self.destination = data[1]
+
+        if data[0] == "objectives" and len(data) > 1:
+            self.objectives = []
+            for objective in data[1:]:
+                self.objectives.append(objective)
+            self.max_objectives = len(self.objectives)
 
         if data[0] == "runs":
                 self.runs = int(data[1])
@@ -161,10 +168,13 @@ class SubBehaviours():
 
         algorithm = "gp" if "mt" in self.repertoire_type or self.input_type == "external" else "qdpy"
 
-        for i in range(len(self.sub_behaviours.items())):
+        for i in range(len(self.objectives)):
 
-            objective = self.params.objectives[i]
-            description = self.utilities.getExperimentDescription(i, self.repertoire_type)
+            objective = self.objectives[i]
+            if "mt" in self.repertoire_type:
+                description = self.utilities.getExperimentDescription(i, self.repertoire_type)
+            else:
+                description = self.objectives[i]
 
             container = (Grid(shape = [8,8,8],
                               max_items_per_bin = 3,
@@ -181,7 +191,7 @@ class SubBehaviours():
                     self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
 
                 elif self.input_type == "external":
-                    for experiment in self.params.experiments:
+                    for experiment in self.experiments:
                         input_filename = self.input_path+"/"+algorithm+"/"+self.input_dir+"/repertoires"
                         if not self.legacy:
                             input_filename += "/"+self.repertoire_type
@@ -213,9 +223,9 @@ class SubBehaviours():
             with open(self.output_filename, 'w') as f:
                 f.write("")
 
-        for i in range(len(self.sub_behaviours.items())):
+        for i in range(len(self.objectives)):
 
-            objective = self.params.objectives[i]
+            objective = self.objectives[i]
 
             for a in range(self.bins):
                 for b in range(self.bins):
@@ -234,16 +244,16 @@ class SubBehaviours():
                             trimmed = self.redundancy.removeRedundancy(str(ind))
                             trimmed = [creator.Individual.from_string(trimmed, self.pset)][0]
 
-                            output += self.sub_behaviours[objective]+str(index)
+                            output += objective+str(index)
                             output += " "+str(trimmed)
 
                             if self.save:
                                 with open(self.output_filename, 'a') as f:
-                                    f.write(self.sub_behaviours[objective]+str(index)+" "+str(trimmed))
+                                    f.write(objective+str(index)+" "+str(trimmed))
                                     f.write("\n")
 
                         else:
-                            output += self.sub_behaviours[objective]+str(index)
+                            output += objective+str(index)
                             output += " ("+str(a)+", "+str(b)+", "+str(c)+")"
                             output += " not found"
 

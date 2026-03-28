@@ -16,7 +16,8 @@ class CNode
             composition = 0,
             decorator = 1,
             condition = 2,
-            action = 3
+            action = 3,
+            unknown = 4
         };
     
         enum nodetype : int
@@ -47,12 +48,16 @@ class CNode
             ifRobotAhead,
             ifRobotToLeft,
             ifRobotToRight,
+            ifOnFood,
+            ifGotFood,
             ifOnFood1,
             ifGotFood1,
             ifOnFood2,
             ifGotFood2,
             ifOnFood3,
             ifGotFood3,
+            ifFoodToLeft,
+            ifFoodToRight,
             ifFoodToLeft1,
             ifFoodToRight1,
             ifFoodToLeft2,

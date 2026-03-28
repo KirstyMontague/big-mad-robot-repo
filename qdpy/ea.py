@@ -180,9 +180,10 @@ class EA():
 
         if (self.params.printBestIndividuals and generation == self.params.generations):
             self.utilities.printBestMax(container)
+            adjustedqdscore = self.utilities.getAdjustedQDScore(container)
             qdscore = self.utilities.getQDScore(container)
             coverage = self.utilities.getCoverage(container)
-            qd_score_and_coverage = "QD Score: "+str("%.9f" % qdscore)+"\n"
+            qd_score_and_coverage = "QD Score: "+str("%.9f" % adjustedqdscore)+" (was "+str("%.9f" % qdscore)+")\n"
             qd_score_and_coverage += "Coverage: "+str("%.9f" % coverage)+"\n"
             self.params.console(qd_score_and_coverage)
 
@@ -226,7 +227,7 @@ class EA():
         filled = str(int(self.utilities.getFilledBins(self.container)))
         total = str(self.params.nb_bins[0] * self.params.nb_bins[1] * self.params.nb_bins[2])
 
-        qd_score = str("%.6f" % self.utilities.getQDScore(self.container))
+        qd_score = str("%.6f" % self.utilities.getAdjustedQDScore(self.container))
 
         if self.params.description == "foraging" and self.params.using_repertoire:
             description = self.params.repertoire_type+str(self.params.repertoire_size)+""

@@ -26,7 +26,8 @@ CBTLoopFunctions::CBTLoopFunctions() :
     m_nest(0.0),
     m_food(0.0),
     m_offset(0.0),
-    m_gap(0.0)
+    m_gap(0.0),
+    m_error(false)
 {
     m_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
     //std::cout << "start " << m_ms.count() << std::endl;
@@ -61,43 +62,53 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 
     std::string repertoireFilename = "";
     std::string project = "";
-    float velocity = 0.0;
-    readConfigFile(path, project, repertoireFilename, velocity);
-
-    std::string arenasFilename = "./arena"+std::to_string(m_arenaLayout)+".txt";
-    generateArenas(arenasFilename);
-
-    readSeedAndGap(path+"/seed"+std::to_string(index)+".txt");
-
     std::string chromosome = "";
-    readChromosome(path+"/"+filename, chromosome);
+    float velocity = 0.0;
 
-    std::map<std::string, std::vector<std::string>> subBehaviours;
-    tokeniseSubbehaviors(repertoireFilename, subBehaviours);
-
-    std::vector<std::string> tokens;
-
-    if (project == "multi_food_foraging_with_subbehaviours")
+    if (readConfigFile(path, project, repertoireFilename, velocity) &&
+        generateArenas() &&
+        readSeedAndGap(path+"/seed"+std::to_string(index)+".txt") &&
+        readChromosome(path+"/"+filename, chromosome))
     {
-        tokeniseAgnosticChromosome(subBehaviours, chromosome, tokens);
+        std::map<std::string, std::vector<std::string>> subBehaviours;
+        tokeniseSubbehaviors(repertoireFilename, subBehaviours);
+
+        std::vector<std::string> tokens;
+
+        if (project == "multi_food_foraging_with_subbehaviours")
+        {
+            tokeniseAgnosticChromosome(subBehaviours, chromosome, tokens);
+        }
+        else
+        {
+            tokeniseChromosome(subBehaviours, chromosome, tokens);
+        }
+
+        addRobots(tokens, project, velocity, (filename == "best.txt"));
     }
     else
     {
-        tokeniseChromosome(subBehaviours, chromosome, tokens);
+        m_error = true;
     }
-
-    addRobots(tokens, project, velocity, (filename == "best.txt"));
 }
 
-void CBTLoopFunctions::generateArenas(const std::string& filename)
+bool CBTLoopFunctions::generateArenas()
 {
+    if (!(m_arenaLayout == 6 || m_arenaLayout == 7))
+    {
+        return true;
+    }
+
+    std::string filename = "./arena"+std::to_string(m_arenaLayout)+".txt";
     std::ifstream arenasFile(filename);
     std::string line = "";
+    bool found = false;
 
     while( getline(arenasFile, line) )
     {
         if (line == "" || line.substr(0, 6) == "layout")
         {
+            found = true;
             continue;
         }
 
@@ -121,6 +132,7 @@ void CBTLoopFunctions::generateArenas(const std::string& filename)
         pf.m_r = std::stod(r);
         m_arenas.back().push_back(pf);
     }
+    return found;
 }
 
 bool CBTLoopFunctions::readConfigFile(const std::string& path, std::string& project, std::string& repertoireFilename, float& velocity)
@@ -420,7 +432,7 @@ void CBTLoopFunctions::addRobots(const std::vector<std::string> tokens, const st
             setArenaPOIs(controller);
 
             uint robotType = (i * m_sqrtRobots + j) % 2;
-            robotType = playback ? 0 : robotType;
+            //robotType = playback ? 0 : robotType;
             controller.setParams(project, m_commsRange, velocity, m_experimentLength / m_numIterations, robotType);
 
             if (m_formation == "two_robots" && j == 1)
@@ -624,6 +636,11 @@ CColor CBTLoopFunctions::getFloorColorExp5(const CVector2& c_position_on_plane)
 
 CColor CBTLoopFunctions::getFloorColorExp6(const CVector2& c_position_on_plane)
 {
+    if (m_error)
+    {
+        return CColor::GRAY90;
+    }
+
     double x = c_position_on_plane.GetX();
     double y = c_position_on_plane.GetY();
 
@@ -669,6 +686,11 @@ CColor CBTLoopFunctions::getFloorColorExp6(const CVector2& c_position_on_plane)
 
 CColor CBTLoopFunctions::getFloorColorExp7(const CVector2& c_position_on_plane)
 {
+    if (m_error)
+    {
+        return CColor::GRAY90;
+    }
+
     double x = c_position_on_plane.GetX();
     double y = c_position_on_plane.GetY();
 
@@ -908,7 +930,7 @@ void CBTLoopFunctions::setArenaPOIs(CFootBotBT& controller)
 
 bool CBTLoopFunctions::IsExperimentFinished()
 {
-    return (m_count >= m_experimentLength);
+    return (m_error || m_count >= m_experimentLength);
 }
 
 REGISTER_LOOP_FUNCTIONS(CBTLoopFunctions, "bt_loop_functions");

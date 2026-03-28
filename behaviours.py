@@ -23,6 +23,9 @@ class Behaviours():
             self.subBehaviourNodes.append("increaseDensity"+str(i+1))
             self.subBehaviourNodes.append("gotoNest"+str(i+1))
             self.subBehaviourNodes.append("gotoFood"+str(i+1))
+            self.subBehaviourNodes.append("gotoFood1"+str(i+1))
+            self.subBehaviourNodes.append("gotoFood2"+str(i+1))
+            self.subBehaviourNodes.append("gotoFood3"+str(i+1))
             self.subBehaviourNodes.append("reduceDensity"+str(i+1))
             self.subBehaviourNodes.append("goAwayFromNest"+str(i+1))
             self.subBehaviourNodes.append("goAwayFromFood"+str(i+1))
@@ -40,6 +43,13 @@ class Behaviours():
                 size = len(chromosome.split())
 
                 self.subBehaviourSizes[name] = size
+
+                if self.params.project == "multi_food_foraging_with_subbehaviours":
+                    if "gotoNest" in name:
+                        index = name.replace("gotoNest", "")
+                        self.subBehaviourSizes["gotoFood1"+index] = size
+                        self.subBehaviourSizes["gotoFood2"+index] = size
+                        self.subBehaviourSizes["gotoFood3"+index] = size
 
     def unpack(self, individual):
         

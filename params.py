@@ -221,6 +221,7 @@ class eaParams():
 
     def runtime(self):
         permitted = ["generations", "genSleep", "evalSleep", "trialSleep",
+                     "saveContainer", "saveCheckpoint",
                      "printEliteScores", "printFitnessScores", "printBestIndividuals", "printExtrema",
                      "output_to_file", "output_interval", "stop", "cancel"]
         with open(self.shared_path+"/runtime.txt", "r") as f:
@@ -476,21 +477,27 @@ class eaParams():
                 if 'goAwayFromNest'+index in names:
                     self.nodes['goAwayFromNest'+index] = True
                     pset.addAction(robot.goAwayFromNest[i])
-                if 'gotoFood'+index in names:
-                    self.nodes['gotoFood'+index] = True
-                    pset.addAction(robot.gotoFood[i])
                 if 'goAwayFromFood'+index in names:
                     self.nodes['goAwayFromFood'+index] = True
                     pset.addAction(robot.goAwayFromFood[i])
-                if 'gotoFood1'+index in names:
-                    self.nodes['gotoFood1'+index] = True
-                    pset.addAction(robot.gotoFood1[i])
-                if 'gotoFood2'+index in names:
-                    self.nodes['gotoFood2'+index] = True
-                    pset.addAction(robot.gotoFood2[i])
-                if 'gotoFood3'+index in names:
-                    self.nodes['gotoFood3'+index] = True
-                    pset.addAction(robot.gotoFood3[i])
+                if self.project == "objectives_in_fitness_function":
+                    if 'gotoFood'+index in names:
+                        self.nodes['gotoFood'+index] = True
+                        pset.addAction(robot.gotoFood[i])
+                elif self.project == "multi_food_foraging_with_subbehaviours":
+                    if 'gotoFood1'+index in names:
+                        self.nodes['gotoFood1'+index] = True
+                        pset.addAction(robot.gotoFood1[i])
+                    if 'gotoFood2'+index in names:
+                        self.nodes['gotoFood2'+index] = True
+                        pset.addAction(robot.gotoFood2[i])
+                    if 'gotoFood3'+index in names:
+                        self.nodes['gotoFood3'+index] = True
+                        pset.addAction(robot.gotoFood3[i])
+                else:
+                    if 'gotoFood'+index in names:
+                        self.nodes['gotoFood'+index] = True
+                        pset.addAction(robot.gotoFood[i])
 
         else:
             for node in actions:
