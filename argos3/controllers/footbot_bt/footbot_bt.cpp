@@ -44,7 +44,9 @@ CFootBotBT::~CFootBotBT()
     //9 conditionality
     
     bool usingAllObjectives = (m_project == "objectives_in_fitness_function" ||
-                               m_project == "generic_subbehaviours_in_fitness_function");
+                               m_project == "generic_subbehaviours_in_fitness_function" ||
+                               m_project == "multi_nest_and_food" ||
+                               m_project == "generic_multi_nest_and_food");
     uint numScores = (usingAllObjectives) ? 10 : 4;
 
     for (uint i = 0; i < numScores; ++i)
@@ -122,6 +124,10 @@ void CFootBotBT::calculateDistances(double x, double y)
     else if (m_arenaLayout == 7)
     {
         calculateDistancesExp7(x, y);
+    }
+    else if (m_arenaLayout == 8)
+    {
+        calculateDistancesExp8(x, y);
     }
     else
     {
@@ -229,6 +235,48 @@ void CFootBotBT::calculateDistancesExp7(double x, double y)
     m_distFood[0] = distOther < 0.0 ? 0.0 : distOther;
 }
 
+void CFootBotBT::calculateDistancesExp8(double x, double y)
+{
+    std::vector<Poi> nest;
+    std::vector<Poi> food;
+    for (uint i = 0; i < m_arena.size(); ++i)
+    {
+        uint typeIdentifier = (m_project == "generic_multi_nest_and_food") ? m_robotType : 0;
+
+        if (i % 2 == typeIdentifier)
+        {
+            nest.push_back(m_arena[i]);
+        }
+        else
+        {
+            food.push_back(m_arena[i]);
+        }
+    }
+
+    double distNest = 5.0;
+    for (const auto& point : nest)
+    {
+        double distanceFromThisNest = sqrt(hypotenuseSquared(x, y, point.m_x, point.m_y)) - point.m_r;
+        if (distanceFromThisNest < distNest)
+        {
+            distNest = distanceFromThisNest;
+        }
+    }
+
+    double distFood = 5.0;
+    for (const auto& point : food)
+    {
+        double distanceFromThisFood = sqrt(hypotenuseSquared(x, y, point.m_x, point.m_y)) - point.m_r;
+        if (distanceFromThisFood < distFood)
+        {
+            distFood = distanceFromThisFood;
+        }
+    }
+
+    m_distNest = distNest < 0.0 ? 0.0 : distNest;
+    m_distFood[0] = distFood < 0.0 ? 0.0 : distFood;
+}
+
 float CFootBotBT::hypotenuseSquared(float x1, float y1, float x2, float y2) const
 {
     float horizontal = x2 - x1;
@@ -271,9 +319,19 @@ void CFootBotBT::setColour() const
         }
     }
 
-    else if (m_project == "generic_subbehaviours_in_fitness_function")
+    else if (m_project == "generic_subbehaviours_in_fitness_function" ||
+             m_project == "generic_multi_nest_and_food")
     {
         m_pcLEDs->SetAllColors(m_robotType == 0 ? CColor::RED : CColor::YELLOW);
+    }
+
+    else if (m_project == "multi_nest_and_food")
+    {
+        m_pcLEDs->SetAllColors(m_blackBoard->getCarryingFood(0) ? CColor::YELLOW : CColor::RED);
+        if (m_blackBoard->getInNest())
+        {
+            m_pcLEDs->SetAllColors(CColor::GREEN);
+        }
     }
 
     else
@@ -318,7 +376,8 @@ void CFootBotBT::createAndSendPayload(std::vector<uint64_t> distances) const
 {
     short int id = std::stoi(GetId());
 
-    if (id % 2 == 1 && m_project == "generic_subbehaviours_in_fitness_function")
+    if (id % 2 == 1 && (m_project == "generic_subbehaviours_in_fitness_function" ||
+                        m_project == "generic_multi_nest_and_food"))
     {
         uint64_t distTemp = distances[0];
         distances[0] = distances[1];
@@ -362,7 +421,8 @@ void CFootBotBT::decomposePayload(uint64_t concatenated, std::vector<uint64_t>& 
 
     uint64_t food3 = concatenated;
 
-    if (std::stoi(GetId()) % 2 == 1 && m_project == "generic_subbehaviours_in_fitness_function")
+    if (std::stoi(GetId()) % 2 == 1 && (m_project == "generic_subbehaviours_in_fitness_function" ||
+                                        m_project == "generic_multi_nest_and_food"))
     {
         uint64_t temp = nest;
         nest = food1;
@@ -737,7 +797,8 @@ void CFootBotBT::ControlStep()
         m_blackBoard->setFinalDistanceFromFood(tracking);
     }
 
-    if (m_count % m_trialLength == 0 && m_project == "objectives_in_fitness_function")
+    if (m_count % m_trialLength == 0 && (m_project == "objectives_in_fitness_function" ||
+                                         m_project == "multi_nest_and_food"))
     {
         m_scores[0].push_back(m_blackBoard->getDifferenceInDensity());
         m_scores[1].push_back(m_blackBoard->getDifferenceInDistanceFromNest());
@@ -769,7 +830,8 @@ void CFootBotBT::ControlStep()
         m_scores[3].push_back(m_blackBoard->getAbsoluteDistanceToFoodAvg());
     }
 
-    if (m_count % m_trialLength == 0 && m_project == "generic_subbehaviours_in_fitness_function")
+    if (m_count % m_trialLength == 0 && (m_project == "generic_subbehaviours_in_fitness_function" ||
+                                         m_project == "generic_multi_nest_and_food"))
     {
         m_scores[0].push_back(m_blackBoard->getDifferenceInDensity());
         m_scores[1].push_back(m_blackBoard->getDifferenceInDistanceFromNest()); // target

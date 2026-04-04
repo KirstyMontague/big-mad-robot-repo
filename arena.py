@@ -12,6 +12,19 @@ class Arena:
 
         self.parseArguments()
 
+        if self.num_points < 4:
+            self.spawn_range = 2.5
+            self.min_radius_sq = 1.5
+            self.minimum_gap = 0.2
+        elif self.num_points < 6:
+            self.spawn_range = 3.0
+            self.min_radius_sq = 1.5
+            self.minimum_gap = 0.15
+        else:
+            self.spawn_range = 4.0
+            self.min_radius_sq = 0.5
+            self.minimum_gap = 0.1
+
         filename = "argos3/arena"+str(self.arena)+".txt"
 
         with open(filename, "w") as f:
@@ -27,6 +40,11 @@ class Arena:
             self.getRadii()
 
             pprint.pprint(self.points)
+            print()
+
+            if len(self.points) < self.num_points:
+                print("\nMissing points\n\n")
+                break
 
             with open(filename, "a") as f:
                 f.write("arena "+str(i)+"\n")
@@ -55,13 +73,9 @@ class Arena:
 
         for j in range(self.num_points):
 
-            if self.arena == 6:
-                x = (random.random() * 3.0) - 1.5
-                y = (random.random() * 3.0) - 1.5
-            else:
-                x = (random.random() * 2.0) - 1.0
-                y = (random.random() * 2.0) - 1.0
-            
+            x = (random.random() * self.spawn_range) - (self.spawn_range / 2)
+            y = (random.random() * self.spawn_range) - (self.spawn_range / 2)
+
             counter = 0;
             valid = False
             while (not valid and counter < limit):
@@ -71,12 +85,12 @@ class Arena:
 
                 for k in range(len(self.points)):
                     hpt = self.hptSq(x, y, self.points[k]["x"], self.points[k]["y"])
-                    if hpt < 1.5:
+                    if hpt < self.min_radius_sq:
                         valid = False
 
                 if not valid:
-                    x = (random.random() * 3.0) - 1.5
-                    y = (random.random() * 3.0) - 1.5
+                    x = (random.random() * self.spawn_range) - (self.spawn_range / 2)
+                    y = (random.random() * self.spawn_range) - (self.spawn_range / 2)
 
             if valid:
                 self.points.append({"x":x, "y":y})
@@ -90,7 +104,7 @@ class Arena:
             for j in range(len(self.points)):
                 if i != j:
                     hpt = math.sqrt(self.hptSq(self.points[i]["x"], self.points[i]["y"], self.points[j]["x"], self.points[j]["y"]))
-                    if (hpt / 2) + 0.2 < radius:
+                    if (hpt / 2) + self.minimum_gap < radius:
                         radius = hpt / 2
                 self.points[i]["r"] = radius
 
@@ -101,7 +115,7 @@ class Arena:
             for j in range(len(self.points)):
                 if i != j:
                     hpt = math.sqrt(self.hptSq(self.points[i]["x"], self.points[i]["y"], self.points[j]["x"], self.points[j]["y"]))
-                    remainder = (hpt - self.points[j]["r"]) - 0.2
+                    remainder = (hpt - self.points[j]["r"]) - self.minimum_gap
                     if remainder < radius:
                         radius = remainder
             self.points[i]["r"] = radius

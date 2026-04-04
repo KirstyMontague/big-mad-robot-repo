@@ -49,6 +49,7 @@ public:
     void calculateDistancesExp5(double x, double y);
     void calculateDistancesExp6(double x, double y);
     void calculateDistancesExp7(double x, double y);
+    void calculateDistancesExp8(double x, double y);
 
 private:
 

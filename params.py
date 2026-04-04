@@ -47,7 +47,9 @@ class eaParams():
                          "generic_objectives_cast_to_grid_perceived",
                          "generic_objectives_cast_to_grid_absolute",
                          "straight_to_foraging",
-                         "multi_food_foraging_with_subbehaviours"]
+                         "multi_food_foraging_with_subbehaviours",
+                         "multi_nest_and_food",
+                         "generic_multi_nest_and_food"]
 
         self.project = "objectives_in_fitness_function"
 

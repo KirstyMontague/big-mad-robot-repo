@@ -94,7 +94,7 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 
 bool CBTLoopFunctions::generateArenas()
 {
-    if (!(m_arenaLayout == 6 || m_arenaLayout == 7))
+    if (!(m_arenaLayout == 6 || m_arenaLayout == 7 || m_arenaLayout == 8))
     {
         return true;
     }
@@ -473,6 +473,10 @@ CColor CBTLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane)
     {
         return getFloorColorExp7(c_position_on_plane);
     }
+    else if (m_arenaLayout == 8)
+    {
+        return getFloorColorExp8(c_position_on_plane);
+    }
     else
     {
         return getFloorColorExp1(c_position_on_plane);
@@ -725,6 +729,64 @@ CColor CBTLoopFunctions::getFloorColorExp7(const CVector2& c_position_on_plane)
     return CColor::GRAY90; // remaining space
 }
 
+CColor CBTLoopFunctions::getFloorColorExp8(const CVector2& c_position_on_plane)
+{
+    if (m_error)
+    {
+        return CColor::GRAY90;
+    }
+
+    double x = c_position_on_plane.GetX();
+    double y = c_position_on_plane.GetY();
+
+    const auto& points = m_arenas[m_currentIteration];
+
+    std::vector<CFootBotBT::Poi> nest;
+    std::vector<CFootBotBT::Poi> food;
+    for (uint i = 0; i < points.size(); ++i)
+    {
+        if (i % 2 == 0)
+        {
+            nest.push_back(points[i]);
+        }
+        else
+        {
+            food.push_back(points[i]);
+        }
+    }
+
+    if (fmod(x*4, 1) == 0 || fmod(y*8, 1) == 0)
+    {
+        return CColor::GRAY80; // tile edges
+    }
+
+    else if (x > 2.3 || x < -2.3 || y > 2.3 || y < -2.3)
+    {
+        return CColor::GRAY70; // out of spawn range
+    }
+
+    else
+    {
+        for (const auto& point : nest)
+        {
+            if (hypotenuseSquared(x, y, point.m_x, point.m_y) < point.m_r * point.m_r)
+            {
+                return CColor::RED;
+            }
+        }
+
+        for (const auto& point : food)
+        {
+            if (hypotenuseSquared(x, y, point.m_x, point.m_y) < point.m_r * point.m_r)
+            {
+                return CColor::GREEN;
+            }
+        }
+    }
+
+    return CColor::GRAY90; // remaining space
+}
+
 float CBTLoopFunctions::hypotenuseSquared(const float x1, const float y1, const float x2, const float y2) const
 {
     float horizontal = x2 - x1;
@@ -922,7 +984,7 @@ void CBTLoopFunctions::twoRobotFormation(CFootBotEntity* footbot, int index)
 
 void CBTLoopFunctions::setArenaPOIs(CFootBotBT& controller)
 {
-    if (m_arenaLayout == 6 || m_arenaLayout == 7)
+    if (m_arenaLayout == 6 || m_arenaLayout == 7 || m_arenaLayout == 8)
     {
         controller.setArenaPOIs(m_arenas[m_currentIteration]);
     }
