@@ -25,6 +25,7 @@ class SubBehaviours():
 
         self.experiment = self.params.experiment
         self.experiments = self.params.experiments
+        self.subbehaviours = self.params.sub_behaviours
         self.objectives = self.params.objectives
         self.domain = self.params.features_domain
         self.repertoire_type = self.params.repertoire_type
@@ -95,7 +96,7 @@ class SubBehaviours():
 
     def configure(self):
         permitted = ["experiment", "experiments", "input_type", "destination", "save", "legacy",
-                     "objectives", "runs", "generations", "domain", "repertoire_type", "bins_per_axis"]
+                     "subbehaviours", "objectives", "runs", "generations", "domain", "repertoire_type", "bins_per_axis"]
         with open(self.params.shared_path+"/subbehaviours.txt", 'r') as f:
             for line in f:
                 data = line.split()
@@ -113,6 +114,7 @@ class SubBehaviours():
             self.experiment = data[1]
 
         if data[0] == "experiments" and len(data) > 1:
+            self.experiments = []
             for i in range(1, len(data)):
                 self.experiments.append(data[i])
 
@@ -126,6 +128,11 @@ class SubBehaviours():
 
         if data[0] == "destination":
                 self.destination = data[1]
+
+        if data[0] == "subbehaviours" and len(data) > 1:
+            self.subbehaviours = []
+            for i in range(1, len(data)):
+                self.subbehaviours.append(data[i])
 
         if data[0] == "objectives" and len(data) > 1:
             self.objectives = []
@@ -226,6 +233,7 @@ class SubBehaviours():
         for i in range(len(self.objectives)):
 
             objective = self.objectives[i]
+            subbehaviour = self.subbehaviours[i]
 
             for a in range(self.bins):
                 for b in range(self.bins):
@@ -244,16 +252,16 @@ class SubBehaviours():
                             trimmed = self.redundancy.removeRedundancy(str(ind))
                             trimmed = [creator.Individual.from_string(trimmed, self.pset)][0]
 
-                            output += objective+str(index)
+                            output += subbehaviour+str(index)
                             output += " "+str(trimmed)
 
                             if self.save:
                                 with open(self.output_filename, 'a') as f:
-                                    f.write(objective+str(index)+" "+str(trimmed))
+                                    f.write(subbehaviour+str(index)+" "+str(trimmed))
                                     f.write("\n")
 
                         else:
-                            output += objective+str(index)
+                            output += subbehaviour+str(index)
                             output += " ("+str(a)+", "+str(b)+", "+str(c)+")"
                             output += " not found"
 

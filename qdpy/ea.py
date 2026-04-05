@@ -172,7 +172,7 @@ class EA():
         if (self.params.printContainer and generation == self.params.generations):
             self.utilities.printContainer(container)
 
-        if (self.params.printExtrema and (generation % 10 == 0 or generation == self.params.generations)):
+        if (self.params.printExtrema and (generation % self.params.verbose_interval == 0 or generation == self.params.generations)):
             self.params.console(self.utilities.getExtrema(container))
             filename = self.params.path()+"/extrema.txt"
             with open(filename, "w") as f:
@@ -186,6 +186,7 @@ class EA():
             qd_score_and_coverage = "QD Score: "+str("%.9f" % adjustedqdscore)+" (was "+str("%.9f" % qdscore)+")\n"
             qd_score_and_coverage += "Coverage: "+str("%.9f" % coverage)+"\n"
             self.params.console(qd_score_and_coverage)
+            self.params.console(self.utilities.printRepertoireQdScores(container))
 
         if self.params.saveCSV or self.params.saveCheckpoint:
             self.logs.logFitness(generation, self.utilities.getBestMax(container))

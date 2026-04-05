@@ -44,8 +44,8 @@ class eaParams():
         self.projects = ["objectives_in_fitness_function",
                          "objectives_cast_to_grid",
                          "generic_subbehaviours_in_fitness_function",
-                         "generic_objectives_cast_to_grid_perceived",
-                         "generic_objectives_cast_to_grid_absolute",
+                         "subbehaviours_cast_to_grid_perceived",
+                         "subbehaviours_cast_to_grid_absolute",
                          "straight_to_foraging",
                          "multi_food_foraging_with_subbehaviours",
                          "multi_nest_and_food",
@@ -57,7 +57,7 @@ class eaParams():
         self.experiments = []
         self.command_line_args = []
 
-        self.sub_behaviours = ["density", "nest", "food", "idensity", "inest", "ifood-perceived-position", "foraging"]
+        self.sub_behaviours = ["increaseDensity", "gotoNest", "gotoFood", "reduceDensity", "goAwayFromNest", "goAwayFromFood"]
         self.objectives = ["density", "nest", "food", "idensity", "inest", "ifood-perceived-position", "foraging"]
         self.max_objectives = len(self.objectives)
 
@@ -80,6 +80,7 @@ class eaParams():
             self.csv_save_period = 2200
 
         self.output_interval = 10
+        self.verbose_interval = 10
         self.output_to_file = True
 
         if self.description != "foraging":
@@ -225,7 +226,7 @@ class eaParams():
         permitted = ["generations", "genSleep", "evalSleep", "trialSleep",
                      "saveContainer", "saveCheckpoint",
                      "printEliteScores", "printFitnessScores", "printBestIndividuals", "printExtrema",
-                     "output_to_file", "output_interval", "stop", "cancel"]
+                     "output_to_file", "output_interval", "verbose_interval", "stop", "cancel"]
         with open(self.shared_path+"/runtime.txt", "r") as f:
             for line in f:
                 data = line.split()
@@ -238,7 +239,7 @@ class eaParams():
             with open(self.local_path+"/runtime.txt", 'r') as f:
                 for line in f:
                     data = line.split()
-                    if len(data) > 0 and data[0] not in restricted:
+                    if len(data) > 0 and data[0] in permitted:
                         self.applyParameter(line)
 
     def applyParameter(self, line):
@@ -352,6 +353,7 @@ class eaParams():
         if data[0] == "best_save_period": self.best_save_period = int(data[1])
         if data[0] == "output_to_file": self.output_to_file = False if data[1] == "False" else True
         if data[0] == "output_interval": self.output_interval = int(data[1])
+        if data[0] == "verbose_interval": self.verbose_interval = int(data[1])
         if data[0] == "num_threads": self.num_threads = int(data[1])
 
         if data[0] == "stop":

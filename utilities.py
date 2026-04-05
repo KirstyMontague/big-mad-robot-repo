@@ -106,6 +106,7 @@ class Utilities():
         features = []
         robots = {}
         seed = 0
+        error = False
 
         num_data = self.params.max_objectives
 
@@ -129,7 +130,13 @@ class Utilities():
 
                 for line in f:
                     first = line[0:line.find(" ")]
-                    if (first == "result"):
+                    if first == "error":
+                        error = True
+                        self.raiseError("ARGoS "+line.strip('\t\n\r'))
+                        break
+                    if error:
+                        continue
+                    if first == "result":
                         lines = line.split()
                         robotId = int(float(lines[1]))
                         robots[robotId] = []
@@ -164,14 +171,7 @@ class Utilities():
             os.remove(self.params.local_path+"/chromosome"+str(thread_index)+".txt")
             os.remove(self.params.local_path+"/result"+str(thread_index)+".txt")
         except Exception as e:
-            now = datetime.now()
-            self.params.console(str(e))
-            with open(self.params.shared_path+"/"+self.params.algorithm+"/errors"+str(self.params.deapSeed)+".txt", "a") as f:
-                f.write(now.strftime("%H:%M %d/%m/%Y")+" ")
-                f.write(str(e))
-                f.write("\n")
-            with open(self.params.local_path+"/runtime.txt", "w") as f:
-                f.write("stop\n")
+            self.raiseError(str(e))
 
         # pause to free up CPU
         time.sleep(self.params.evalSleep)
@@ -706,9 +706,10 @@ class Utilities():
         
         return total_fitness
 
-    def getAdjustedQDScore(self, container):
+    def getAdjustedQDScore(self, container, shape = None):
 
-        shape = self.params.nb_bins
+        if shape == None:
+            shape = self.params.nb_bins
 
         grid = self.convertToNewGrid(container,
                                      self.params.description,
@@ -733,6 +734,15 @@ class Utilities():
             total_fitness += 0.5
 
         return total_fitness
+
+    def printRepertoireQdScores(self, container):
+
+        output = ""
+        output += "bins 1: score "+str("%.6f" % self.getAdjustedQDScore(container, [1,1,1]))+"\n"
+        output += "bins 2: score "+str("%.6f" % self.getAdjustedQDScore(container, [2,2,2]))+"\n"
+        output += "bins 4: score "+str("%.6f" % self.getAdjustedQDScore(container, [4,4,4]))+"\n"
+        output += "bins 8: score "+str("%.6f" % self.getAdjustedQDScore(container, [8,8,8]))
+        return output
 
     def saveConfigurationFile(self):
 
@@ -865,3 +875,13 @@ class Utilities():
             assign_fitness(population[0], fitnesses)
 
         return _method
+
+    def raiseError(self, message):
+        now = datetime.now()
+        self.params.console(message)
+        with open(self.params.shared_path+"/"+self.params.algorithm+"/errors"+str(self.params.deapSeed)+".txt", "a") as f:
+            f.write(now.strftime("%H:%M %d/%m/%Y")+" ")
+            f.write(message)
+            f.write("\n")
+        with open(self.params.local_path+"/runtime.txt", "w") as f:
+            f.write("cancel\n")

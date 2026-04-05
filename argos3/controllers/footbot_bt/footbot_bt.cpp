@@ -25,11 +25,19 @@ CFootBotBT::CFootBotBT() :
     m_trialLength(0),
     m_robotType(0),
     m_count(0),
+    m_error(false),
+    m_message(""),
     m_project("")
 {}
 
 CFootBotBT::~CFootBotBT()
 {
+    if (m_error)
+    {
+        std::cout << "error " << m_message << "\n";
+        return;
+    }
+
     std::cout << "result " << GetId();
 
     //0 density
@@ -157,11 +165,23 @@ void CFootBotBT::calculateDistancesExp2(double x, double y)
 
 void CFootBotBT::calculateDistancesExp3(double x, double y)
 {
-    double foodX = x > 0.0 ? m_gap : m_gap * -1;
-    double foodY = y > 0.0 ? m_gap : m_gap * -1;
-    double distFood = sqrt(((x - foodX) * (x - foodX)) + ((y - foodY) * (y - foodY))) - m_foodRadius;
+    double x_plus_gap_sq = (x + m_gap + m_foodRadius + m_nestRadius) * (x + m_gap + m_foodRadius + m_nestRadius);
+    double y_plus_gap_sq = (y + m_gap + m_foodRadius + m_nestRadius) * (y + m_gap + m_foodRadius + m_nestRadius);
+    double x_minus_gap_sq = (x - (m_gap + m_foodRadius + m_nestRadius)) * (x - (m_gap + m_foodRadius + m_nestRadius));
+    double y_minus_gap_sq = (y - (m_gap + m_foodRadius + m_nestRadius)) * (y - (m_gap + m_foodRadius + m_nestRadius));
 
-    double distNest = sqrt((x * x) + (y * y)) - m_nestRadius;
+    double distNest  = sqrt((x * x) + (y * y));
+    double distFood1 = sqrt((x * x) + y_minus_gap_sq);
+    double distFood2 = sqrt((x * x) + y_plus_gap_sq);
+    double distFood3 = sqrt(x_plus_gap_sq + (y * y));
+    double distFood4 = sqrt(x_minus_gap_sq + (y * y));
+
+    double distFood = std::min(distFood1, distFood2);
+    distFood = std::min(distFood, distFood3);
+    distFood = std::min(distFood, distFood4);
+
+    distNest -= m_nestRadius;
+    distFood -= m_foodRadius;
 
     m_distNest = distNest < 0.0 ? 0.0 : distNest;
     m_distFood[0] = distFood < 0.0 ? 0.0 : distFood;
@@ -178,17 +198,19 @@ void CFootBotBT::calculateDistancesExp4(double x, double y)
 
 void CFootBotBT::calculateDistancesExp5(double x, double y)
 {
-    double x_plus_gap_sq = (x + m_gap + 0.05) * (x + m_gap + 0.05);
-    double y_plus_gap_sq = (y + m_gap + 0.05) * (y + m_gap + 0.05);
-    double x_minus_gap_sq = (x - (m_gap + 0.05)) * (x - (m_gap + 0.05));
-    double y_minus_gap_sq = (y - (m_gap + 0.05)) * (y - (m_gap + 0.05));
+    float gap = m_gap / 2;
 
-    double distNest = sqrt((x * x) + y_minus_gap_sq) - m_nestRadius;  // red
-    double distFood1 = sqrt((x * x) + y_plus_gap_sq) - m_foodRadius;  // green
-    double distFood2 = sqrt(x_plus_gap_sq + (y * y)) - m_foodRadius;  // blue
-    double distFood3 = sqrt(x_minus_gap_sq + (y * y)) - m_foodRadius; // purple
+    double x_plus_gap_sq = (x + gap + m_foodRadius) * (x + gap + m_foodRadius);
+    double y_plus_gap_sq = (y + gap + m_foodRadius) * (y + gap + m_foodRadius);
+    double x_minus_gap_sq = (x - (gap + m_foodRadius)) * (x - (gap + m_foodRadius));
+    double y_minus_gap_sq = (y - (gap + m_foodRadius)) * (y - (gap + m_foodRadius));
 
-    m_distNest = distNest < 0.0 ? 0.0 : distNest;
+    double distNest  = sqrt(x_plus_gap_sq + y_minus_gap_sq) - m_nestRadius;
+    double distFood1 = sqrt(x_minus_gap_sq + y_plus_gap_sq) - m_foodRadius;
+    double distFood2 = sqrt(x_plus_gap_sq + y_plus_gap_sq) - m_foodRadius;
+    double distFood3 = sqrt(x_minus_gap_sq + y_minus_gap_sq) - m_foodRadius;
+
+    m_distNest    = distNest  < 0.0 ? 0.0 : distNest;
     m_distFood[0] = distFood1 < 0.0 ? 0.0 : distFood1;
     m_distFood[1] = distFood2 < 0.0 ? 0.0 : distFood2;
     m_distFood[2] = distFood3 < 0.0 ? 0.0 : distFood3;
@@ -217,15 +239,18 @@ void CFootBotBT::calculateDistancesExp7(double x, double y)
     Poi target;
     Poi other;
 
-    if (m_robotType == 0) // red/blue - targeting red
+    if (m_robotType == 1 && (m_project == "generic_subbehaviours_in_fitness_function" ||
+                             m_project == "generic_multi_nest_and_food"))
     {
-        target = m_arena[0];
-        other = m_arena[1];
-    }
-    else // green/yellow - targeting green
-    {
+        // green/yellow - targeting green
         target = m_arena[1];
         other = m_arena[0];
+    }
+    else
+    {
+        // red/blue - targeting red
+        target = m_arena[0];
+        other = m_arena[1];
     }
 
     double distTarget = sqrt(hypotenuseSquared(x, y, target.m_x,  target.m_y))  - target.m_r;
@@ -370,6 +395,12 @@ void CFootBotBT::setArenaParams(int arenaLayout, float nest, float food, float g
     m_nestRadius = nest;
     m_foodRadius = food;
     m_gap = gap;
+}
+
+void CFootBotBT::error(const std::string message, bool error)
+{
+    m_message = message;
+    m_error = error;
 }
 
 void CFootBotBT::createAndSendPayload(std::vector<uint64_t> distances) const
@@ -851,7 +882,7 @@ void CFootBotBT::ControlStep()
         m_blackBoard->setActions(0);
     }
 
-    if (m_count % m_trialLength == 0 && m_project == "generic_objectives_cast_to_grid_perceived")
+    if (m_count % m_trialLength == 0 && m_project == "subbehaviours_cast_to_grid_perceived")
     {
         m_scores[0].push_back(m_blackBoard->getAbsoluteDelta());
 
@@ -861,7 +892,7 @@ void CFootBotBT::ControlStep()
         m_scores[3].push_back(m_blackBoard->getDifferenceInDistanceFromFood());
     }
 
-    if (m_count % m_trialLength == 0 && m_project == "generic_objectives_cast_to_grid_absolute")
+    if (m_count % m_trialLength == 0 && m_project == "subbehaviours_cast_to_grid_absolute")
     {
         m_scores[0].push_back(m_blackBoard->getAbsoluteDelta());
 

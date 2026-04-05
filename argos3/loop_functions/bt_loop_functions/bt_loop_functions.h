@@ -44,17 +44,23 @@ private:
 
     void addRobots(const std::vector<std::string> tokens, const std::string& project, const uint velocity, bool playback);
 
+    void moveRobotsOutOfRange();
+
     void postStepRandom();
     void postStepLattice();
     void postStepLocalised();
+    void postStepInNest();
     void postStepTwoRobots();
 
     void randomFormation(CFootBotEntity* pcFB);
     void latticeFormation(CFootBotEntity* pcFB, int i, int j);
     void localisedFormation(CFootBotEntity* footbot, int index);
+    void inNestFormation(CFootBotEntity* footbot);
     void twoRobotFormation(CFootBotEntity* footbot, int index);
 
-    void setArenaPOIs(CFootBotBT& controller);
+    void setArenaPOIs(CFootBotEntity* footbot);
+    bool usingDynamicArena();
+    bool usingArenaPOIs();
 
 private:
 
@@ -82,5 +88,6 @@ private:
     float m_gap;
 
     bool m_error;
+    std::string m_message;
 };
 

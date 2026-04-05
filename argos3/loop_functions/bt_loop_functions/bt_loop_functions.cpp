@@ -27,7 +27,8 @@ CBTLoopFunctions::CBTLoopFunctions() :
     m_food(0.0),
     m_offset(0.0),
     m_gap(0.0),
-    m_error(false)
+    m_error(false),
+    m_message("")
 {
     m_ms = duration_cast< milliseconds >(system_clock::now().time_since_epoch());
     //std::cout << "start " << m_ms.count() << std::endl;
@@ -45,7 +46,7 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 {
     m_pcFloor = &GetSpace().GetFloorEntity();
 
-    m_pcRNG = CRandom::CreateRNG("argos");;
+    m_pcRNG = CRandom::CreateRNG("argos");
 
     // get the filename for chromosome (best/chromosome)
     std::string filename;
@@ -66,9 +67,9 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
     float velocity = 0.0;
 
     if (readConfigFile(path, project, repertoireFilename, velocity) &&
-        generateArenas() &&
         readSeedAndGap(path+"/seed"+std::to_string(index)+".txt") &&
-        readChromosome(path+"/"+filename, chromosome))
+        readChromosome(path+"/"+filename, chromosome) &&
+        generateArenas())
     {
         std::map<std::string, std::vector<std::string>> subBehaviours;
         tokeniseSubbehaviors(repertoireFilename, subBehaviours);
@@ -89,12 +90,86 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
     else
     {
         m_error = true;
+        std::cout << "error - "+m_message << "\n";
     }
 }
 
 bool CBTLoopFunctions::generateArenas()
 {
-    if (!(m_arenaLayout == 6 || m_arenaLayout == 7 || m_arenaLayout == 8))
+    if (m_arenaLayout == 2)
+    {
+        std::vector<CFootBotBT::Poi> arena;
+
+        CFootBotBT::Poi nest = CFootBotBT::Poi();
+        nest.m_x = 0.0;
+        nest.m_y = m_gap;
+        nest.m_r = m_nest;
+        arena.push_back(nest);
+
+        CFootBotBT::Poi food = CFootBotBT::Poi();
+        food.m_x = 0.0;
+        food.m_y = m_gap * -1;
+        food.m_r = m_food;
+        arena.push_back(food);
+
+        m_arenas.push_back(arena);
+    }
+
+    if (m_arenaLayout == 3)
+    {
+        std::vector<CFootBotBT::Poi> arena;
+
+        CFootBotBT::Poi nest = CFootBotBT::Poi();
+        nest.m_x = 0.0;
+        nest.m_y = 0.0;
+        nest.m_r = m_nest;
+        arena.push_back(nest);
+
+        CFootBotBT::Poi food = CFootBotBT::Poi();
+        food.m_x = 0.0;
+        food.m_y = (m_gap + m_food + m_nest);
+        food.m_r = m_food;
+        arena.push_back(food);
+
+        m_arenas.push_back(arena);
+    }
+
+    if (m_arenaLayout == 5)
+    {
+        float x = 0.0;
+        float y = 0.0;
+        float gap = (m_gap / 2) + m_food;
+
+        std::vector<CFootBotBT::Poi> arena;
+
+        CFootBotBT::Poi nest = CFootBotBT::Poi();
+        nest.m_x = x - gap;
+        nest.m_y = y + gap;
+        nest.m_r = m_food;
+        arena.push_back(nest);
+
+        CFootBotBT::Poi food1 = CFootBotBT::Poi();
+        food1.m_x = x + gap;
+        food1.m_y = y - gap;
+        food1.m_r = m_food;
+        arena.push_back(food1);
+
+        CFootBotBT::Poi food2 = CFootBotBT::Poi();
+        food2.m_x = x - gap;
+        food2.m_y = y - gap;
+        food2.m_r = m_food;
+        arena.push_back(food2);
+
+        CFootBotBT::Poi food3 = CFootBotBT::Poi();
+        food3.m_x = x + gap;
+        food3.m_y = y + gap;
+        food3.m_r = m_food;
+        arena.push_back(food3);
+
+        m_arenas.push_back(arena);
+    }
+
+    if (!usingDynamicArena())
     {
         return true;
     }
@@ -132,6 +207,12 @@ bool CBTLoopFunctions::generateArenas()
         pf.m_r = std::stod(r);
         m_arenas.back().push_back(pf);
     }
+
+    if (!found)
+    {
+        m_message = "no arena";
+    }
+
     return found;
 }
 
@@ -195,7 +276,7 @@ bool CBTLoopFunctions::readConfigFile(const std::string& path, std::string& proj
 
     if (project == "" || m_sqrtRobots == 0 || m_numIterations == 0 || m_experimentLength == 0 || repertoireFilename == "" ||
         m_arenaLayout == 0 || m_nest == 0.0 || m_food == 0.0 || m_commsRange == 0 || velocity == 0.0 ||
-        (m_formation != "random" && m_formation != "lattice" && m_formation != "localised" && m_formation != "two_robots"))
+        (m_formation != "random" && m_formation != "lattice" && m_formation != "localised" && m_formation != "nest" && m_formation != "two_robots"))
     {
         std::cout << "cancelled\n";
         std::cout << "project: " << project << "\n";
@@ -209,9 +290,39 @@ bool CBTLoopFunctions::readConfigFile(const std::string& path, std::string& proj
         std::cout << "commsRange: " << std::to_string(m_commsRange) << "\n";
         std::cout << "velocity: " << std::to_string(velocity) << "\n";
         std::cout << "formation: " << m_formation << "\n";
+
+        m_message = "config file";
         m_experimentLength = 0;
         return false;
     }
+
+    if (m_arenaLayout == 1 && m_formation == "localised")
+    {
+        m_message = "localised formation is not compatible with arena 1";
+        m_experimentLength = 0;
+        return false;
+    }
+
+    if (m_arenaLayout == 4 && m_formation == "localised")
+    {
+        m_message = "localised formation is not compatible with arena 4";
+        m_experimentLength = 0;
+        return false;
+    }
+    if (m_arenaLayout == 4 && m_formation == "nest")
+    {
+        m_message = "in nest formation is not compatible with arena 4";
+        m_experimentLength = 0;
+        return false;
+    }
+
+    if (m_arenaLayout == 5 && m_nest != m_food)
+    {
+        m_message = "nest and food radii must match for arena 5";
+        m_experimentLength = 0;
+        return false;
+    }
+
 
     return true;
 }
@@ -236,6 +347,7 @@ bool CBTLoopFunctions::readSeedAndGap(const std::string& filename)
         std::cout << "cancelled\n";
         std::cout << "seed: " << std::to_string(seed) << "\n";
         std::cout << "gap: " << std::to_string(m_gap) << "\n";
+        m_message = "seed file error";
         m_experimentLength = 0;
         return false;
     }
@@ -264,6 +376,7 @@ bool CBTLoopFunctions::readChromosome(const std::string& filename, std::string& 
     {
         std::cout << "cancelled\n";
         std::cout << "chromosome: " << chromosome << "\n";
+        m_message = "chromosome file error";
         m_experimentLength = 0;
         return false;
     }
@@ -416,6 +529,10 @@ void CBTLoopFunctions::addRobots(const std::vector<std::string> tokens, const st
             {
                 localisedFormation(pcFB, i * m_sqrtRobots + j);
             }
+            else if (m_formation == "nest")
+            {
+                inNestFormation(pcFB);
+            }
             else if (m_formation == "two_robots")
             {
                 twoRobotFormation(pcFB, j);
@@ -429,7 +546,7 @@ void CBTLoopFunctions::addRobots(const std::vector<std::string> tokens, const st
             CFootBotBT& controller = dynamic_cast<CFootBotBT&>(pcFB->GetControllableEntity().GetController());
             controller.buildTree(tokens);
             controller.setArenaParams(m_arenaLayout, m_nest, m_food, m_gap);
-            setArenaPOIs(controller);
+            setArenaPOIs(pcFB);
 
             uint robotType = (i * m_sqrtRobots + j) % 2;
             //robotType = playback ? 0 : robotType;
@@ -447,8 +564,32 @@ void CBTLoopFunctions::addRobots(const std::vector<std::string> tokens, const st
     }
 }
 
+void CBTLoopFunctions::moveRobotsOutOfRange()
+{
+    for (int i = 0; i < m_sqrtRobots * m_sqrtRobots; ++i)
+    {
+        CVector3 cFBPos;
+        CQuaternion cFBRot;
+
+        cFBRot.FromAngleAxis(CRadians::ZERO - CRadians::PI_OVER_TWO, CVector3::Z);
+
+        double x = 2.3;
+        double y = 0.3 * i - 2.3;
+
+        cFBPos.Set(x, y, 0.0f);
+
+        CFootBotEntity* footbot = m_footbots[i];
+        MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot);
+    }
+}
+
 CColor CBTLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane)
 {
+    if (m_error)
+    {
+        return CColor::GRAY90;
+    }
+
     if (m_arenaLayout == 2)
     {
         return getFloorColorExp2(c_position_on_plane);
@@ -538,11 +679,18 @@ CColor CBTLoopFunctions::getFloorColorExp3(const CVector2& c_position_on_plane)
     double x = c_position_on_plane.GetX();
     double y = c_position_on_plane.GetY();
 
-    double foodX = x > 0.0 ? m_gap : m_gap * -1;
-    double foodY = y > 0.0 ? m_gap : m_gap * -1;
-    double rFood = sqrt(((x - foodX) * (x - foodX)) + ((y - foodY) * (y - foodY)));
+    double gap = m_gap + m_food + m_nest;
 
-    double rNest = sqrt((x * x) + (y * y));
+    double x_plus_gap_sq  = (x + gap) * (x + gap);
+    double y_plus_gap_sq  = (y + gap) * (y + gap);
+    double x_minus_gap_sq = (x - gap) * (x - gap);
+    double y_minus_gap_sq = (y - gap) * (y - gap);
+
+    double rNest  = sqrt((x * x) + (y * y));
+    double rFood1 = sqrt((x * x) + y_minus_gap_sq);
+    double rFood2 = sqrt((x * x) + y_plus_gap_sq);
+    double rFood3 = sqrt(x_plus_gap_sq + (y * y));
+    double rFood4 = sqrt(x_minus_gap_sq + (y * y));
 
     if (fmod(x, 1) == 0 || fmod(y, 1) == 0)
     {
@@ -554,7 +702,7 @@ CColor CBTLoopFunctions::getFloorColorExp3(const CVector2& c_position_on_plane)
         return CColor::RED; // nest
     }
 
-    else if (rFood < m_food)
+    else if (rFood1 < m_food || rFood2 < m_food || rFood3 < m_food || rFood4 < m_food)
     {
         return CColor::GREEN; // food
     }
@@ -590,25 +738,17 @@ CColor CBTLoopFunctions::getFloorColorExp5(const CVector2& c_position_on_plane)
     double x = c_position_on_plane.GetX();
     double y = c_position_on_plane.GetY();
 
-    double x_plus_gap_sq = (x + m_gap + 0.05) * (x + m_gap + 0.05);
-    double y_plus_gap_sq = (y + m_gap + 0.05) * (y + m_gap + 0.05);
-    double x_minus_gap_sq = (x - (m_gap + 0.05)) * (x - (m_gap + 0.05));
-    double y_minus_gap_sq = (y - (m_gap + 0.05)) * (y - (m_gap + 0.05));
+    float gap = (m_gap / 2) + m_food;
 
-    //double x_plus_offset_sq = (x + 0.1) * (x + 0.1);
-    //double y_plus_offset_sq = (y + 0.1) * (y + 0.1);
-    //double x_minus_offset_sq = (x - 0.1) * (x - 0.1);
-    //double y_minus_offset_sq = (y - 0.1) * (y - 0.1);
+    double x_plus_gap_sq  = (x + gap) * (x + gap);
+    double y_plus_gap_sq  = (y + gap) * (y + gap);
+    double x_minus_gap_sq = (x - gap) * (x - gap);
+    double y_minus_gap_sq = (y - gap) * (y - gap);
 
-    //double rNest = sqrt(x_minus_offset_sq + y_minus_gap_sq);
-    //double rFood1 = sqrt(x_plus_offset_sq + y_plus_gap_sq);
-    //double rFood2 = sqrt(x_plus_gap_sq + y_plus_offset_sq);
-    //double rFood3 = sqrt(x_minus_gap_sq + y_minus_offset_sq);
-
-    double rNest = sqrt((x * x) + y_minus_gap_sq);
-    double rFood1 = sqrt((x * x) + y_plus_gap_sq);
-    double rFood2 = sqrt(x_plus_gap_sq + (y * y));
-    double rFood3 = sqrt(x_minus_gap_sq + (y * y));
+    double rNest  = sqrt(x_plus_gap_sq + y_minus_gap_sq);
+    double rFood1 = sqrt(x_minus_gap_sq + y_plus_gap_sq);
+    double rFood2 = sqrt(x_plus_gap_sq + y_plus_gap_sq);
+    double rFood3 = sqrt(x_minus_gap_sq + y_minus_gap_sq);
 
     if (fmod(x, 1) == 0 || fmod(y, 1) == 0)
     {
@@ -640,11 +780,6 @@ CColor CBTLoopFunctions::getFloorColorExp5(const CVector2& c_position_on_plane)
 
 CColor CBTLoopFunctions::getFloorColorExp6(const CVector2& c_position_on_plane)
 {
-    if (m_error)
-    {
-        return CColor::GRAY90;
-    }
-
     double x = c_position_on_plane.GetX();
     double y = c_position_on_plane.GetY();
 
@@ -690,11 +825,6 @@ CColor CBTLoopFunctions::getFloorColorExp6(const CVector2& c_position_on_plane)
 
 CColor CBTLoopFunctions::getFloorColorExp7(const CVector2& c_position_on_plane)
 {
-    if (m_error)
-    {
-        return CColor::GRAY90;
-    }
-
     double x = c_position_on_plane.GetX();
     double y = c_position_on_plane.GetY();
 
@@ -731,11 +861,6 @@ CColor CBTLoopFunctions::getFloorColorExp7(const CVector2& c_position_on_plane)
 
 CColor CBTLoopFunctions::getFloorColorExp8(const CVector2& c_position_on_plane)
 {
-    if (m_error)
-    {
-        return CColor::GRAY90;
-    }
-
     double x = c_position_on_plane.GetX();
     double y = c_position_on_plane.GetY();
 
@@ -811,6 +936,10 @@ void CBTLoopFunctions::PostStep()
         {
             postStepLocalised();
         }
+        else if (m_formation == "nest")
+        {
+            postStepInNest();
+        }
         else if (m_formation == "two_robots")
         {
             postStepTwoRobots();
@@ -820,15 +949,24 @@ void CBTLoopFunctions::PostStep()
             postStepRandom();
         }
     }
+    if (m_error)
+    {
+        for (CFootBotEntity* footbot : m_footbots)
+        {
+            CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
+            controller.error(m_message, m_error);
+        }
+    }
 }
 
 void CBTLoopFunctions::postStepRandom()
 {
+    moveRobotsOutOfRange();
+
     for (CFootBotEntity* footbot : m_footbots)
     {
         randomFormation(footbot);
-        CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
-        setArenaPOIs(controller);
+        setArenaPOIs(footbot);
     }
 }
 
@@ -840,23 +978,34 @@ void CBTLoopFunctions::postStepLattice()
         {
             CFootBotEntity* footbot = m_footbots[i * m_sqrtRobots + j];
             latticeFormation(footbot, i, j);
-            CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
-            setArenaPOIs(controller);
+            setArenaPOIs(footbot);
         }
     }
 }
 
 void CBTLoopFunctions::postStepLocalised()
 {
+    moveRobotsOutOfRange();
+
     for (int i = 0; i < m_sqrtRobots; ++i)
     {
         for (int j = 0; j < m_sqrtRobots; ++j)
         {
             CFootBotEntity* footbot = m_footbots[i * m_sqrtRobots + j];
             localisedFormation(footbot, i * m_sqrtRobots + j);
-            CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
-            setArenaPOIs(controller);
+            setArenaPOIs(footbot);
         }
+    }
+}
+
+void CBTLoopFunctions::postStepInNest()
+{
+    moveRobotsOutOfRange();
+
+    for (CFootBotEntity* footbot : m_footbots)
+    {
+        inNestFormation(footbot);
+        setArenaPOIs(footbot);
     }
 }
 
@@ -867,8 +1016,7 @@ void CBTLoopFunctions::postStepTwoRobots()
         CFootBotEntity* footbot = m_footbots[i];
         twoRobotFormation(footbot, i);
 
-        CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
-        setArenaPOIs(controller);
+        setArenaPOIs(footbot);
     }
 }
 
@@ -890,9 +1038,13 @@ void CBTLoopFunctions::randomFormation(CFootBotEntity* footbot)
 
         if (MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot))
         {
-            break;
+            return;
         }
     }
+
+    m_error = true;
+    std::cout << "Failed to place robot\n";
+    m_message = "Failed to place robot";
 }
 
 void CBTLoopFunctions::latticeFormation(CFootBotEntity* footbot, int i, int j)
@@ -925,12 +1077,13 @@ void CBTLoopFunctions::latticeFormation(CFootBotEntity* footbot, int i, int j)
 void CBTLoopFunctions::localisedFormation(CFootBotEntity* footbot, int index)
 {
     uint robotType = (index % 2 == 0) ? 0 : 1;
+    uint iteration = (usingDynamicArena()) ? m_currentIteration : 0;
 
     CFootBotBT::Poi target = (robotType == 0)
-        ? m_arenas[m_currentIteration][1]
-        : m_arenas[m_currentIteration][0];
+        ? m_arenas[iteration][1]
+        : m_arenas[iteration][0];
 
-    double radius = sqrt((target.m_r * target.m_r) / 2);
+    double halfBoundaryEdge = std::max(sqrt((target.m_r * target.m_r) / 2), 0.5);
 
     CVector3 cFBPos;
     CQuaternion cFBRot;
@@ -938,10 +1091,10 @@ void CBTLoopFunctions::localisedFormation(CFootBotEntity* footbot, int index)
     auto rotation = m_pcRNG->Uniform(CRadians::UNSIGNED_RANGE);
     cFBRot.FromAngleAxis(rotation, CVector3::Z);
 
-    double xMax = std::min(target.m_x + radius, 2.3);
-    double xMin = std::max(target.m_x - radius, -2.3);
-    double yMax = std::min(target.m_y + radius, 2.3);
-    double yMin = std::max(target.m_y - radius, -2.3);
+    double xMax = std::min(target.m_x + halfBoundaryEdge, 2.3);
+    double xMin = std::max(target.m_x - halfBoundaryEdge, -2.3);
+    double yMax = std::min(target.m_y + halfBoundaryEdge, 2.3);
+    double yMin = std::max(target.m_y - halfBoundaryEdge, -2.3);
 
     CRange<Real> areaRangeX(xMin, xMax);
     CRange<Real> areaRangeY(yMin, yMax);
@@ -955,9 +1108,62 @@ void CBTLoopFunctions::localisedFormation(CFootBotEntity* footbot, int index)
 
         if (MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot))
         {
-            break;
+            return;
         }
     }
+
+    m_error = true;
+    std::cout << "Failed to place robot\n";
+    m_message = "Failed to place robot";
+}
+
+void CBTLoopFunctions::inNestFormation(CFootBotEntity* footbot)
+{
+    CFootBotBT::Poi target = CFootBotBT::Poi();
+    target.m_x = 0.0;
+    target.m_y = 0.0;
+    target.m_r = 0.5;
+
+    if (usingArenaPOIs())
+    {
+        uint iteration = (usingDynamicArena()) ? m_currentIteration : 0;
+        target.m_x = m_arenas[iteration][0].m_x;
+        target.m_y = m_arenas[iteration][0].m_y;
+        target.m_r = m_arenas[iteration][0].m_r;
+    }
+
+    double halfBoundaryEdge = std::max(sqrt((target.m_r * target.m_r) / 2), 0.5);
+
+    CVector3 cFBPos;
+    CQuaternion cFBRot;
+
+    auto rotation = m_pcRNG->Uniform(CRadians::UNSIGNED_RANGE);
+    cFBRot.FromAngleAxis(rotation, CVector3::Z);
+
+    double xMax = std::min(target.m_x + halfBoundaryEdge, 2.3);
+    double xMin = std::max(target.m_x - halfBoundaryEdge, -2.3);
+    double yMax = std::min(target.m_y + halfBoundaryEdge, 2.3);
+    double yMin = std::max(target.m_y - halfBoundaryEdge, -2.3);
+
+    CRange<Real> areaRangeX(xMin, xMax);
+    CRange<Real> areaRangeY(yMin, yMax);
+
+    for (int i = 0; i < 10; ++i)
+    {
+        double x = m_pcRNG->Uniform(areaRangeX);
+        double y = m_pcRNG->Uniform(areaRangeY);
+
+        cFBPos.Set(x, y, 0.0f);
+
+        if (MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot))
+        {
+            return;
+        }
+    }
+
+    m_error = true;
+    std::cout << "Failed to place robot\n";
+    m_message = "Failed to place robot";
 }
 
 void CBTLoopFunctions::twoRobotFormation(CFootBotEntity* footbot, int index)
@@ -982,12 +1188,24 @@ void CBTLoopFunctions::twoRobotFormation(CFootBotEntity* footbot, int index)
     MoveEntity(footbot->GetEmbodiedEntity(), cFBPos, cFBRot);
 }
 
-void CBTLoopFunctions::setArenaPOIs(CFootBotBT& controller)
+void CBTLoopFunctions::setArenaPOIs(CFootBotEntity* footbot)
 {
-    if (m_arenaLayout == 6 || m_arenaLayout == 7 || m_arenaLayout == 8)
+    if (usingDynamicArena())
     {
+        CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
         controller.setArenaPOIs(m_arenas[m_currentIteration]);
     }
+}
+
+bool CBTLoopFunctions::usingDynamicArena()
+{
+    return (m_arenaLayout == 6 || m_arenaLayout == 7 || m_arenaLayout == 8);
+}
+
+bool CBTLoopFunctions::usingArenaPOIs()
+{
+    return (m_arenaLayout == 2 || m_arenaLayout == 3 || m_arenaLayout == 5 ||
+            m_arenaLayout == 6 || m_arenaLayout == 7 || m_arenaLayout == 8);
 }
 
 bool CBTLoopFunctions::IsExperimentFinished()

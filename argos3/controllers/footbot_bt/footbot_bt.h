@@ -38,8 +38,8 @@ public:
     void buildTree(std::vector<std::string> tokens);
     void setParams(const std::string project, int commsRange, float velocity, int trialLength, uint robotType);
     void setArenaParams(int arenaLayout, float nest, float food, float gap);
-
     void setArenaPOIs(std::vector<Poi> arena) {m_arena = arena;}
+    void error(const std::string message, bool error);
 
     void calculateDistances(double x, double y);
     void calculateDistancesExp1(double x, double y);
@@ -91,6 +91,8 @@ private:
     std::vector<int> m_trackingIDs;
     bool m_verbose;
     int m_count;
+    bool m_error;
+    std::string m_message;
 
     std::string m_project;
 
