@@ -30,7 +30,7 @@ class QD():
         creator.create("Single_Objective_Fitness", base.Fitness, weights=(1.0,))
         creator.create("Single_Objective_Individual", gp.PrimitiveTree, fitness=creator.Single_Objective_Fitness, features=list)
         toolbox.register("expr_init", genEmpty)
-        toolbox.register("Single_Objective_Individual", tools.initIterate, creator.Individual, toolbox.expr_init)
+        toolbox.register("Single_Objective_Individual", tools.initIterate, creator.IndividualGP, toolbox.expr_init)
         toolbox.register("Single_Objective_Population", tools.initRepeat, list, toolbox.Single_Objective_Individual)
 
         self.qdpy_toolbox = toolbox

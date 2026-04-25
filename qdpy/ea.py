@@ -38,17 +38,17 @@ class EA():
 
         self.utilities = Utilities(params, self.behaviours)
 
+        tournament = self.selTournament
         if self.params.tournament == "agnosticTournament":
-            self.utilities.setupToolbox(self.agnosticTournament)
+            tournament = self.agnosticTournament
         elif self.params.tournament == "multiFoodTournament":
-            self.utilities.setupToolbox(self.multiFoodTournament)
+            tournament = self.multiFoodTournament
         elif self.params.tournament == "multiFoodMaxTournament":
-            self.utilities.setupToolbox(self.multiFoodMaxTournament)
+            tournament = self.multiFoodMaxTournament
         elif self.params.tournament == "multiFoodFloorTournament":
-            self.utilities.setupToolbox(self.multiFoodFloorTournament)
-        else:
-            self.utilities.setupToolbox(self.selTournament)
+            tournament = self.multiFoodFloorTournament
 
+        self.utilities.toolbox = self.utilities.setupToolboxGP(tournament)
         self.utilities.saveConfigurationFile()
         self.toolbox = self.utilities.toolbox
 

@@ -27,16 +27,14 @@ class Combine():
         self.params.is_qdpy = True
         self.params.using_repertoire = False
 
-        self.utilities = Utilities(self.params)
-        self.utilities.setupToolbox(self.selTournament)
-        self.redundancy = Redundancy(self.params)
-
         self.save = False
         self.legacy = False
         self.output_type = "final"
         self.experiments = self.params.experiments
+        self.bins = self.params.nb_bins
         self.domain = self.params.features_domain
         self.objectives = self.params.objectives
+        self.destination = self.params.algorithm
 
         self.cancelled = False
         self.configure()
@@ -46,14 +44,19 @@ class Combine():
             print("\nCancelled\n")
             return
 
+        self.utilities = Utilities(self.params)
+        self.utilities.toolbox = self.utilities.setupToolboxGP(self.selTournament)
+        self.redundancy = Redundancy(self.params)
+
         self.objective = self.params.objectives[self.params.indexes[0]]
         self.description = self.utilities.getExperimentDescription(self.params.indexes[0], self.params.repertoire_type)
+        self.directory = self.utilities.getExperimentDirectory(self.params.indexes[0], self.params.repertoire_type)
 
         print()
 
     def configure(self):
-        permitted = ["algorithm", "output_type", "repertoire_type", "experiment", "experiments",
-                     "arena", "objectives", "objective", "domain", "runs", "generations", "save", "legacy"]
+        permitted = ["project", "algorithm", "output_type", "repertoire_type", "destination", "experiment", "experiments",
+                     "arena", "objectives", "objective", "bins", "domain", "runs", "generations", "save", "legacy"]
         with open(self.params.shared_path+"/combine.txt", 'r') as f:
             for line in f:
                 data = line.split()
@@ -68,16 +71,23 @@ class Combine():
     def update(self, data):
 
         if data[0] == "algorithm":
-            algorithms = ["gp", "qdpy", "cma-es"]
+            algorithms = ["gp", "qdpy", "cma-es", "ga"]
             if data[1] in algorithms:
                 self.params.algorithm = data[1]
             else:
                 print("\nAlgorithm not recognised: "+data[1]+"\n")
                 self.cancelled = True
-        
+
+        if data[0] == "destination":
+            algorithms = ["gp", "qdpy", "ga"]
+            if data[1] in algorithms:
+                self.destination = data[1]
+            else:
+                print("\nDestination algorithm not recognised: "+data[1]+"\n")
+                self.cancelled = True
 
         if data[0] == "output_type":
-            algorithms = ["interim", "final"]
+            algorithms = ["interim", "heterogeneous", "final"]
             if data[1] in algorithms:
                 self.output_type = data[1]
             else:
@@ -105,11 +115,17 @@ class Combine():
             for i in range(1, len(data)):
                 self.experiments.append(data[i])
 
+        if data[0] == "bins" and len(data) > 1:
+            self.bins = []
+            for bins in data[1:]:
+                self.bins.append(int(bins))
+
         if data[0] == "domain" and len(data) > 1:
             self.domain = []
             for i in range(1, len(data), 2):
                 self.domain.append((float(data[i]), float(data[i+1])))
 
+        if data[0] == "project": self.params.project = data[1]
         if data[0] == "experiment" and len(data) > 1: self.experiment = data[1]
         if data[0] == "arena" and len(data) > 1: self.params.arena_layout = int(data[1])
         if data[0] == "runs": self.params.runs = int(data[1])
@@ -137,7 +153,7 @@ class Combine():
 
             missing = 0
 
-            input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.description
+            input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.directory
 
             for seed in range(1, self.params.runs + 1):
 
@@ -173,6 +189,11 @@ class Combine():
                 output_filename = output_path+"/"+self.objective+".txt"
                 if os.path.exists(output_filename):
                     exists = True
+            if self.output_type == "heterogeneous":
+                output_path = self.params.shared_path+"/"+self.destination+"/"+self.experiment+"/"+self.description
+                output_filename = output_path+"/"+self.objective+".txt"
+                if os.path.exists(output_filename):
+                    exists = True
             else:
                 output_path = self.params.shared_path+"/gp/"+self.experiment+"/repertoires/"+self.params.repertoire_type
                 for experiment in self.experiments:
@@ -193,13 +214,13 @@ class Combine():
         if self.cancelled:
             return []
 
-        experiments = [self.experiment] if self.output_type == "interim" else self.experiments
+        experiments = self.experiments if self.output_type == "final" else [self.experiment]
 
         for experiment in experiments:
 
-            input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.description
+            input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.directory
 
-            container = (Grid(shape = [8,8,8],
+            container = (Grid(shape = self.bins,
                               max_items_per_bin = 1,
                               fitness_domain = [(0.,1.0),],
                               features_domain = self.domain,
@@ -210,7 +231,7 @@ class Combine():
                 if not self.legacy:
                     input_filename += "-"+self.objective
                 input_filename += ".txt"
-                container = self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
+                container = self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, input_filename)
 
             containers.append(container)
 
@@ -245,24 +266,29 @@ class Combine():
         if self.cancelled:
             return
 
-        if self.output_type == "interim":
-            experiments = [self.experiment]
-            output_path = self.params.shared_path+"/"+self.params.algorithm+"/"+self.experiment+"/"+self.description
-        else:
+        if self.output_type == "final":
             experiments = self.experiments
             output_path = self.params.shared_path+"/gp/"+self.experiment+"/repertoires/"+self.params.repertoire_type
+        elif self.output_type == "heterogeneous":
+            experiments = [self.experiment]
+            output_path = self.params.shared_path+"/"+self.destination+"/"+self.experiment+"/"+self.description
+        else:
+            experiments = [self.experiment]
+            output_path = self.params.shared_path+"/"+self.params.algorithm+"/"+self.experiment+"/"+self.description
 
         print()
 
         for i in range(len(experiments)):
 
-            if self.output_type == "interim":
-                output_file = output_path+"/"+self.objective+".txt"
-            else:
+            if self.output_type == "final":
                 output_file = output_path+"/"+experiments[i]+"/"+self.objective+"-"+str(self.params.generations)+".txt"
+            else:
+                output_file = output_path+"/"+self.objective+".txt"
 
             if self.save:
                 print("Writing to "+output_file)
+                if self.output_type == "heterogeneous":
+                    Path(output_path).mkdir(parents=True, exist_ok=True)
                 if self.output_type == "final":
                     Path(output_path+"/"+experiments[i]).mkdir(parents=True, exist_ok=True)
                 container_string = self.utilities.writeContainerToString(containers[i])

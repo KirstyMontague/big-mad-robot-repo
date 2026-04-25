@@ -25,12 +25,7 @@ class Heatmaps():
     def __init__(self):
         self.analyse = Analysis()
         self.params = eaParams()
-        self.utilities = Utilities(self.params, None)
-        self.redundancy = Redundancy(self.params)
-
         self.params.is_qdpy = True
-        self.utilities.setupToolbox(self.selTournament)
-
         self.objective = self.params.indexes[0]
         self.generations = self.params.generations
         self.seed = 0
@@ -41,9 +36,13 @@ class Heatmaps():
         self.cancelled = False
         self.configure()
 
+        self.utilities = Utilities(self.params, None)
+        self.utilities.toolbox = self.utilities.setupToolboxGP(self.selTournament)
+
+        self.redundancy = Redundancy(self.params)
 
     def configure(self):
-        permitted = ["objective", "experiment", "generations", "seed", "bins", "domain", "save"]
+        permitted = ["project", "objective", "experiment", "generations", "seed", "bins", "domain", "save"]
         with open(self.params.shared_path+"/heatmaps.txt", 'r') as f:
             for line in f:
                 data = line.split()
@@ -72,6 +71,7 @@ class Heatmaps():
                 self.domain.append((float(data[i]), float(data[i+1])))
             print(self.domain)
 
+        if data[0] == "project": self.params.project = data[1]
         if data[0] == "experiment" and len(data) > 1: self.experiment = data[1]
         if data[0] == "generations": self.generations = int(data[1])
         if data[0] == "seed": self.seed = int(data[1])
@@ -82,7 +82,7 @@ class Heatmaps():
 
         path = self.params.input_path+"/gp/"+self.experiment+"/"+self.objective_name
         checkpoint_input_filename = path+"/"+str(self.seed)+"/checkpoint-"+self.objective_name+"-"+str(self.seed)+"-"+str(self.generations)+"-"+self.objective_name+".txt"
-        container = self.utilities.updateContainerFromString(self.redundancy, container, checkpoint_input_filename)
+        container = self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, checkpoint_input_filename)
 
         return container
 
@@ -93,7 +93,7 @@ class Heatmaps():
 
         input_path = self.params.shared_path+"/gp/"+self.experiment+"/"+description
         checkpoint_input_filename = input_path+"/"+str(self.seed)+"/checkpoint-"+description+"-"+str(self.seed)+"-"+str(self.generations)+"-"+self.objective_name+".txt"
-        container = self.utilities.updateContainerFromString(self.redundancy, container, checkpoint_input_filename)
+        container = self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, checkpoint_input_filename)
 
         return container
 
@@ -101,7 +101,7 @@ class Heatmaps():
 
         path = self.params.input_path+"/qdpy/"+self.experiment+"/"+self.objective_name
         checkpoint_input_filename = path+"/"+str(self.seed)+"/checkpoint-"+self.objective_name+"-"+str(self.seed)+"-"+str(self.generations)+"-"+self.objective_name+".txt"
-        container = self.utilities.updateContainerFromString(self.redundancy, container, checkpoint_input_filename)
+        container = self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, checkpoint_input_filename)
 
         return container
 

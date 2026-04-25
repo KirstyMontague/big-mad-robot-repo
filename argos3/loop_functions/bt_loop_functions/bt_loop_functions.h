@@ -36,13 +36,13 @@ private:
     bool readConfigFile(const std::string& path, std::string& project, std::string& repertoireFilename, float& velocity);
     bool generateArenas();
     bool readSeedAndGap(const std::string& filename);
-    bool readChromosome(const std::string& filename, std::string& chromosome);
+    bool readChromosomes(const std::string& project, const std::string& filename, std::vector<std::string>& chromosomes);
 
     void tokeniseSubbehaviors(const std::string& filename, std::map<std::string, std::vector<std::string>>& subBehaviours);
     void tokeniseChromosome(const std::map<std::string, std::vector<std::string>>& subBehaviours, const std::string& chromosome, std::vector<std::string>& tokens);
     void tokeniseAgnosticChromosome(std::map<std::string, std::vector<std::string>>& subBehaviours, const std::string& chromosome, std::vector<std::string>& tokens);
 
-    void addRobots(const std::vector<std::string> tokens, const std::string& project, const uint velocity, bool playback);
+    void addRobots(const std::vector<std::vector<std::string>> tokens, const std::string& project, const uint velocity, bool playback);
 
     void moveRobotsOutOfRange();
 

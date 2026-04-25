@@ -3,6 +3,7 @@ import subprocess
 import time
 from datetime import datetime
 import pickle
+import random
 import threading
 
 from deap import gp
@@ -47,7 +48,7 @@ class Utilities():
         self.behaviours = behaviours
         self.primitivetree = gp.PrimitiveTree([])
     
-    def setupToolbox(self, tournament):
+    def setupToolboxGP(self, tournament):
 
         toolbox = base.Toolbox()
 
@@ -57,12 +58,12 @@ class Utilities():
         weights = [] if self.params.is_qdpy else [(1.0),(1.0),(1.0)]
         for i in range(self.params.features): weights.append(1.0)
 
-        creator.create("Fitness", base.Fitness, weights=(weights))
-        creator.create("Individual", gp.PrimitiveTree, fitness=creator.Fitness)
+        creator.create("FitnessGP", base.Fitness, weights=(weights))
+        creator.create("IndividualGP", gp.PrimitiveTree, fitness=creator.FitnessGP)
 
         toolbox.register("expr_init", local.genFull, pset=self.pset, min_=1, max_=4)
 
-        toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.expr_init)
+        toolbox.register("individual", tools.initIterate, creator.IndividualGP, toolbox.expr_init)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
         toolbox.register("evaluate", self.evaluateRobot, thread_index=1)
@@ -81,10 +82,41 @@ class Utilities():
 
         # for creating trimmed population
         toolbox.register("expr_empty", local.genEmpty, pset=self.pset, min_=1, max_=4)
-        toolbox.register("empty_individual", tools.initIterate, creator.Individual, toolbox.expr_empty)
+        toolbox.register("empty_individual", tools.initIterate, creator.IndividualGP, toolbox.expr_empty)
         toolbox.register("empty_population", tools.initRepeat, list, toolbox.empty_individual)
 
-        self.toolbox = toolbox
+        return toolbox
+
+    def setupToolboxGA(self, repertoire, mutation_operator, flat_indexes, grid_indexes):
+
+        self.repertoire = repertoire
+
+        creator.create("FitnessGA", base.Fitness, weights=(1.0,))
+        creator.create("IndividualGA", list, fitness=creator.FitnessGA)
+
+        toolbox = base.Toolbox()
+
+        def randomIndex(): return random.choice(grid_indexes)
+        toolbox.register("attr_index", randomIndex)
+        toolbox.register("individual", tools.initRepeat, creator.IndividualGA, toolbox.attr_index, 9)
+        toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+
+        toolbox.register("select", tools.selTournament, tournsize=3)
+        toolbox.register("mate", tools.cxTwoPoint)
+        toolbox.register("mutate", mutation_operator, flat_indexes=flat_indexes, grid_indexes=grid_indexes, indpb=0.05)
+        toolbox.register("evaluate", self.evaluateSwarm, thread_index=1)
+
+        self.evaluation_functions = []
+        for i in range(1,9):
+            toolbox.register("evaluate"+str(i), self.evaluateSwarm, thread_index=i)
+            self.evaluation_functions.append(self.makeEvaluationFunction("evaluate"+str(i)))
+
+        def zero(): return [0,0,0]
+        toolbox.register("attr_empty", zero)
+        toolbox.register("empty_individual", tools.initRepeat, creator.IndividualGA, toolbox.attr_empty, 9)
+        toolbox.register("empty_population", tools.initRepeat, list, toolbox.empty_individual)
+
+        return toolbox
 
     def evaluateRobot(self, individual, thread_index):
         
@@ -181,6 +213,101 @@ class Utilities():
         else:
             return (fitness + features)
 
+    def evaluateSwarm(self, swarm, thread_index):
+
+        # print ("")
+        # print (swarm)
+
+        chromosomes = ""
+        for ind in swarm:
+            ig = tuple(ind)
+            ind = self.repertoire.solutions[ig][0]
+            chromosomes += str(ind)+"\n"
+
+        # save chromosomes to file
+        with open(self.params.local_path+'/chromosome'+str(thread_index)+'.txt', 'w') as f:
+            f.write(str(chromosomes[0:-1]))
+
+        totals = []
+        for i in range(self.params.features + 3):
+            totals.append(0.0)
+
+        fitness = []
+        features = []
+        robots = {}
+        seed = 0
+        error = False
+
+        num_data = self.params.max_objectives
+
+        for i in self.params.arena_params:
+
+            # write seed and offset to file
+            seed += 1
+            with open(self.params.local_path+'/seed'+str(thread_index)+'.txt', 'w') as f:
+                f.write(str(seed))
+                f.write("\n")
+                f.write(str(self.params.arenaOffset(i)))
+
+            # run argos
+            subprocess.call(["/bin/bash", "../evaluate", str(thread_index), self.params.local_path, "./"])
+
+            # result from file
+            with open(self.params.local_path+"/result"+str(thread_index)+".txt", "r") as f:
+
+                for line in f:
+                    first = line[0:line.find(" ")]
+                    if first == "error":
+                        error = True
+                        self.raiseError("ARGoS "+line.strip('\t\n\r'))
+                        break
+                    if error:
+                        continue
+                    if first == "result":
+                        lines = line.split()
+                        robotId = int(float(lines[1]))
+                        robots[robotId] = []
+                        for j in range(num_data):
+                            for k in range(self.params.iterations):
+                                if j in self.params.indexes:
+                                    index = (j * self.params.iterations) + k + 2
+                                    robots[robotId].append(float(lines[index]))
+                        for j in range(3):
+                            for k in range(self.params.iterations):
+                                index = (j * self.params.iterations) + (num_data * self.params.iterations) + k + 2
+                                robots[robotId].append(float(lines[index]))
+
+            # get scores for each robot and add to cumulative total
+            for k in range(self.params.features + 3):
+                totals[k] += self.collectFitnessScore(robots, k)
+
+            # increment counter and pause to free up CPU
+            time.sleep(self.params.trialSleep)
+
+        # divide to get average per seed and arena configuration then apply derating factor
+        deratingFactor = 1.0
+        features = []
+
+        for i in range(self.params.features):
+            fitness.append(self.getAvgAndDerate(totals[i], swarm, deratingFactor))
+        for i in range(self.params.characteristics):
+            features.append(self.getAvgAndDerate(totals[i + self.params.features], swarm, deratingFactor))
+
+        try:
+            os.remove(self.params.local_path+"/seed"+str(thread_index)+".txt")
+            os.remove(self.params.local_path+"/chromosome"+str(thread_index)+".txt")
+            os.remove(self.params.local_path+"/result"+str(thread_index)+".txt")
+        except Exception as e:
+            self.raiseError(str(e))
+
+        # pause to free up CPU
+        time.sleep(self.params.evalSleep)
+
+        if self.params.is_qdpy:
+            return (fitness, features)
+        else:
+            return (fitness + features)
+
     def collectFitnessScore(self, robots, feature, maxScore = 1.0):
 
         thisFitness = 0.0
@@ -246,7 +373,7 @@ class Utilities():
         for i in range(len(offspring)):
             trimmed_str = redundancy.removeRedundancy(str(offspring[i]))
             trimmed_tree = self.primitivetree.from_string(trimmed_str, self.pset)
-            trimmed_ind = creator.Individual(trimmed_tree)
+            trimmed_ind = creator.IndividualGP(trimmed_tree)
             trimmed[i] = trimmed_ind
         
         return trimmed
@@ -280,7 +407,7 @@ class Utilities():
             container_string += str(ind.features)+"\n"
         return container_string
 
-    def updateContainerFromString(self, redundancy, container, filename):
+    def updateContainerFromString(self, redundancy, toolbox, container, filename):
 
         individuals = []
 
@@ -297,13 +424,13 @@ class Utilities():
 
                 trimmed = redundancy.removeRedundancy(str(ind))
                 tree = self.primitivetree.from_string(trimmed, self.pset)
-                individual = creator.Individual(tree)
+                individual = creator.IndividualGP(tree)
                 individual.fitness.values = (fitness, )
                 individual.features = features
 
                 individuals.append(individual)
 
-        population = self.toolbox.empty_population(n=len(individuals))
+        population = toolbox.empty_population(n=len(individuals))
 
         for j in range(len(population)):
             population[j] = individuals[j]
@@ -398,6 +525,26 @@ class Utilities():
 
         return best
 
+    def getBestHeterogenousSwarm(self, population):
+
+        for individual in population:
+
+            thisFitness = individual.fitness
+
+            currentBest = False
+
+            if ('best' not in locals()):
+                currentBest = True
+
+            elif (thisFitness > bestFitness):
+                currentBest = True
+
+            if (currentBest):
+                best = individual
+                bestFitness = thisFitness
+
+        return best
+
     def getBestAll(self, population, derate = True):
 
         allBest = []
@@ -447,10 +594,10 @@ class Utilities():
 
         output = "---------\n"
         for m in minVals:
-            output += str(m)+" "
+            output += str("%.6f" % m)+" "
         output += "\n"
         for m in maxVals:
-            output += str(m)+" "
+            output += str("%.6f" % m)+" "
         output += "\n---------\n"
 
         if include_trees:
@@ -508,34 +655,6 @@ class Utilities():
                 offspring.pop(i)
 
     def convertToNewGrid(self, container, objective, objective_index, features, shape, fitness_domain, features_domain):
-        
-        # from deap import base, creator, tools, gp
-        # weights = (1.0,)
-        # if features == 3: weights = (1.0,1.0,1.0,)
-
-        # creator.create("Fitness", base.Fitness, weights=weights)
-        # creator.create("Individual", gp.PrimitiveTree, fitness=creator.Fitness, features=list)
-        # pset = gp.PrimitiveSet("MAIN", 0)
-
-        fittest_flat = []
-        for idx, inds in container.solutions.items():
-            if len(inds) == 0:
-                continue
-            best = None
-            for ind in inds:
-                if best is None:
-                    best = ind
-                elif features > 1:
-                    if ind.fitness.values[objective_index] > best.fitness.values[objective_index]:
-                        best = ind
-                elif ind.fitness.values[0] > best.fitness.values[0]:
-                    best = ind
-            if features > 1:
-                fitness = []
-                for i in range(features):
-                    fitness.append(best.fitness.values[objective_index])
-                best.fitness.values = fitness
-            fittest_flat.append(best)
 
         grid = Grid(shape = shape,
                     max_items_per_bin = 1,
@@ -543,7 +662,11 @@ class Utilities():
                     features_domain = features_domain,
                     storage_type=list)
 
-        nb_updated = grid.update(fittest_flat, issue_warning = True)
+        population = []
+        for ind in container:
+            population.append(ind)
+
+        nb_updated = grid.update(population, issue_warning = True)
         return grid
 
     def saveBestToFile(self, best):
@@ -833,6 +956,13 @@ class Utilities():
             if objective in [3, 4, 5]: return self.params.objectives[3]+"-"+self.params.objectives[4]+"-"+self.params.objectives[5]
         else:
             return self.params.objectives[objective]
+
+    def getExperimentDirectory(self, objective, algorithm):
+        if self.params.objectives[objective] == "foraging":
+            # currently only used in combine.py so always default to baseline
+            return "foraging/baseline"
+        else:
+            return self.getExperimentDescription(objective, algorithm)
 
     def evaluate(self, assign_fitness, invalid_ind):
 

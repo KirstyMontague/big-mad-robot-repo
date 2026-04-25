@@ -91,7 +91,7 @@ void CFootBotBT::Init(TConfigurationNode& t_node)
         m_scores.push_back(std::vector<float>());
     }
 
-    uint foodRegions = (m_arenaLayout == 6) ? 3 : 1;
+    uint foodRegions = numFoodRegions();
     for (uint i = 0; i < foodRegions; ++i)
     {
         m_distFood.push_back(0.0);
@@ -314,7 +314,11 @@ void CFootBotBT::setColour() const
     if (m_project == "straight_to_foraging" ||
         m_project == "multi_food_foraging_with_subbehaviours")
     {
-        if (m_blackBoard->getCarryingFood(0))
+        if (m_blackBoard->getInNest())
+        {
+            m_pcLEDs->SetAllColors(inTrackingIDs() ? CColor::YELLOW : CColor::RED);
+        }
+        else if (m_blackBoard->getCarryingFood(0))
         {
             m_pcLEDs->SetAllColors(inTrackingIDs() ? CColor::YELLOW : CColor::GREEN);
         }
@@ -561,7 +565,7 @@ std::pair<Real, Real> CFootBotBT::getLocation(bool tracking)
 
 void CFootBotBT::position(bool tracking)
 {
-    uint foodRegions = (m_arenaLayout == 6) ? 3 : 1;
+    uint foodRegions = numFoodRegions();
 
     // position data
     std::pair<Real, Real> location = getLocation(tracking);
@@ -599,7 +603,7 @@ void CFootBotBT::recordRangeAndBearingData(const Real distance, const CRadians b
 
 void CFootBotBT::rangeAndBearing(bool tracking)
 {
-    uint foodRegions = (m_arenaLayout == 6) ? 3 : 1;
+    uint foodRegions = numFoodRegions();
     float maxDistance = 500;
 
     // range and bearing data
@@ -903,7 +907,8 @@ void CFootBotBT::ControlStep()
     }
 
     if (m_count % m_trialLength == 0 && (m_project == "straight_to_foraging" ||
-                                         m_project == "multi_food_foraging_with_subbehaviours"))
+                                         m_project == "multi_food_foraging_with_subbehaviours" ||
+                                         m_project == "heterogeneous_genetic_algorithm"))
     {
         m_scores[0].push_back(m_blackBoard->getTotalFood());
 
@@ -924,6 +929,11 @@ void CFootBotBT::ControlStep()
 bool CFootBotBT::inTrackingIDs() const
 {
     return (std::find(m_trackingIDs.begin(), m_trackingIDs.end(), std::stoi(GetId())) != m_trackingIDs.end());
+}
+
+uint CFootBotBT::numFoodRegions() const
+{
+    return (m_arenaLayout == 5 || m_arenaLayout == 6) ? 3 : 1;
 }
 
 REGISTER_CONTROLLER(CFootBotBT, "footbot_bt_controller")

@@ -80,8 +80,8 @@ private:
     void recordRangeAndBearingData(const Real distance, const CRadians bearing, float& shortestDistance, CRadians& shortestDirection) const;
 
     float hypotenuseSquared(float x1, float y1, float x2, float y2) const;
-
     bool inTrackingIDs() const;
+    uint numFoodRegions() const;
 
 private:
 

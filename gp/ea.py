@@ -38,7 +38,7 @@ class EA():
         self.behaviours = Behaviours(params)
 
         self.utilities = Utilities(params, self.behaviours)
-        self.utilities.setupToolbox(self.selTournament)
+        self.utilities.toolbox = self.utilities.setupToolboxGP(self.selTournament)
         self.utilities.saveConfigurationFile()
 
         self.logs = Logs(self.params, self.utilities)

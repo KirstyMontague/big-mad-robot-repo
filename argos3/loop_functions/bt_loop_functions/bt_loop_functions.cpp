@@ -63,34 +63,33 @@ void CBTLoopFunctions::Init(TConfigurationNode& t_tree)
 
     std::string repertoireFilename = "";
     std::string project = "";
-    std::string chromosome = "";
+    std::vector<std::string> chromosomes;
     float velocity = 0.0;
 
     if (readConfigFile(path, project, repertoireFilename, velocity) &&
         readSeedAndGap(path+"/seed"+std::to_string(index)+".txt") &&
-        readChromosome(path+"/"+filename, chromosome) &&
+        readChromosomes(project, path+"/"+filename, chromosomes) &&
         generateArenas())
     {
         std::map<std::string, std::vector<std::string>> subBehaviours;
         tokeniseSubbehaviors(repertoireFilename, subBehaviours);
 
-        std::vector<std::string> tokens;
+        std::vector<std::vector<std::string>> allTokens;
 
-        if (project == "multi_food_foraging_with_subbehaviours")
+        for (uint i = 0; i < chromosomes.size(); ++i)
         {
-            tokeniseAgnosticChromosome(subBehaviours, chromosome, tokens);
-        }
-        else
-        {
-            tokeniseChromosome(subBehaviours, chromosome, tokens);
+            std::vector<std::string> tokens;
+            allTokens.push_back(tokens);
+            tokeniseChromosome(subBehaviours, chromosomes[i], allTokens[i]);
         }
 
-        addRobots(tokens, project, velocity, (filename == "best.txt"));
+        addRobots(allTokens, project, velocity, (filename == "best.txt"));
     }
+
     else
     {
         m_error = true;
-        std::cout << "error - "+m_message << "\n";
+        std::cout << "error - " << m_message << "\n";
     }
 }
 
@@ -323,7 +322,6 @@ bool CBTLoopFunctions::readConfigFile(const std::string& path, std::string& proj
         return false;
     }
 
-
     return true;
 }
 
@@ -355,27 +353,27 @@ bool CBTLoopFunctions::readSeedAndGap(const std::string& filename)
     return true;
 }
 
-bool CBTLoopFunctions::readChromosome(const std::string& filename, std::string& chromosome)
+bool CBTLoopFunctions::readChromosomes(const std::string& project, const std::string& filename, std::vector<std::string>& chromosomes)
 {
     // read chromosome from file
     std::ifstream chromosomeFile(filename);
     std::string line = "";
     while( getline(chromosomeFile, line) )
     {
-        //std::cout << line << std::endl;
         line.erase(std::remove(line.begin(), line.end(), ','), line.end());
 
         std::replace( line.begin(), line.end(), '(', ' ');
         std::replace( line.begin(), line.end(), ')', ' ');
 
-        chromosome = line;
-        std::cout << chromosome << std::endl;
+        chromosomes.push_back(line);
     }
 
-    if (chromosome == "")
+    if (chromosomes.size() == 0 ||
+        (project == "heterogeneous_genetic_algorithm" && chromosomes.size() != m_sqrtRobots * m_sqrtRobots))
     {
         std::cout << "cancelled\n";
-        std::cout << "chromosome: " << chromosome << "\n";
+        std::cout << "robots: " << m_sqrtRobots * m_sqrtRobots << "\n";
+        std::cout << "chromosomes: " << chromosomes.size() << "\n";
         m_message = "chromosome file error";
         m_experimentLength = 0;
         return false;
@@ -511,7 +509,7 @@ void CBTLoopFunctions::tokeniseAgnosticChromosome(std::map<std::string, std::vec
     }
 }
 
-void CBTLoopFunctions::addRobots(const std::vector<std::string> tokens, const std::string& project, const uint velocity, bool playback)
+void CBTLoopFunctions::addRobots(const std::vector<std::vector<std::string>> tokens, const std::string& project, const uint velocity, bool playback)
 {
     for (int i = 0; i < m_sqrtRobots; ++i)
     {
@@ -542,15 +540,16 @@ void CBTLoopFunctions::addRobots(const std::vector<std::string> tokens, const st
                 randomFormation(pcFB);
             }
 
+            uint robotType = (i * m_sqrtRobots + j) % 2;
+            uint chromosomeIndex = (project == "heterogeneous_genetic_algorithm") ? i * m_sqrtRobots + j : 0;
+
             // create robot
             CFootBotBT& controller = dynamic_cast<CFootBotBT&>(pcFB->GetControllableEntity().GetController());
-            controller.buildTree(tokens);
-            controller.setArenaParams(m_arenaLayout, m_nest, m_food, m_gap);
-            setArenaPOIs(pcFB);
 
-            uint robotType = (i * m_sqrtRobots + j) % 2;
-            //robotType = playback ? 0 : robotType;
+            controller.buildTree(tokens[chromosomeIndex]);
+            controller.setArenaParams(m_arenaLayout, m_nest, m_food, m_gap);
             controller.setParams(project, m_commsRange, velocity, m_experimentLength / m_numIterations, robotType);
+            setArenaPOIs(pcFB);
 
             if (m_formation == "two_robots" && j == 1)
             {
@@ -1204,8 +1203,7 @@ bool CBTLoopFunctions::usingDynamicArena()
 
 bool CBTLoopFunctions::usingArenaPOIs()
 {
-    return (m_arenaLayout == 2 || m_arenaLayout == 3 || m_arenaLayout == 5 ||
-            m_arenaLayout == 6 || m_arenaLayout == 7 || m_arenaLayout == 8);
+    return (m_arenaLayout == 2 || m_arenaLayout == 3 || m_arenaLayout == 5 || usingDynamicArena());
 }
 
 bool CBTLoopFunctions::IsExperimentFinished()

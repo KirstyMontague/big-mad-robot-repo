@@ -45,7 +45,7 @@ class SubBehaviours():
         self.cancelled = self.cancelled or "repro" in self.params.shared_path
 
         self.utilities = Utilities(self.params)
-        self.utilities.setupToolbox(self.selTournament)
+        self.utilities.toolbox = self.utilities.setupToolboxGP(self.selTournament)
 
         if self.params.using_repertoire:
             self.params.using_repertoire = False
@@ -195,7 +195,7 @@ class SubBehaviours():
                     if not self.legacy:
                         input_filename += "/"+description
                     input_filename += "/"+objective+".txt"
-                    self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
+                    self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, input_filename)
 
                 elif self.input_type == "external":
                     for experiment in self.experiments:
@@ -203,7 +203,7 @@ class SubBehaviours():
                         if not self.legacy:
                             input_filename += "/"+self.repertoire_type
                         input_filename += "/"+experiment+"/"+objective+"-"+str(self.generation)+".txt"
-                        self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
+                        self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, input_filename)
 
                 else:
                     input_path = self.input_path+"/"+algorithm+"/"+self.input_dir+"/"+description
@@ -212,7 +212,7 @@ class SubBehaviours():
                         if not self.legacy:
                             input_filename += "-"+objective
                         input_filename += ".txt"
-                        self.utilities.updateContainerFromString(self.redundancy, container, input_filename)
+                        self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, input_filename)
 
             except FileNotFoundError as e:
                 print(str(e)+"\n")
@@ -250,7 +250,7 @@ class SubBehaviours():
 
                         if ind is not None:
                             trimmed = self.redundancy.removeRedundancy(str(ind))
-                            trimmed = [creator.Individual.from_string(trimmed, self.pset)][0]
+                            trimmed = [creator.IndividualGP.from_string(trimmed, self.pset)][0]
 
                             output += subbehaviour+str(index)
                             output += " "+str(trimmed)

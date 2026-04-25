@@ -49,7 +49,8 @@ class eaParams():
                          "straight_to_foraging",
                          "multi_food_foraging_with_subbehaviours",
                          "multi_nest_and_food",
-                         "generic_multi_nest_and_food"]
+                         "generic_multi_nest_and_food",
+                         "heterogeneous_genetic_algorithm"]
 
         self.project = "objectives_in_fitness_function"
 
@@ -98,7 +99,7 @@ class eaParams():
         self.saveBestIndividuals = True
         self.saveAllIndividuals = True
 
-        self.eaRunSleep = 1.0
+        self.eaRunSleep = 0.0
         self.genSleep = 0.0
         self.evalSleep = 0.0
         self.trialSleep = 0.0
@@ -126,7 +127,7 @@ class eaParams():
         self.unseenIterations = 10
         self.unseenParams = [.3, .4, .5, .6, .7, .8, .9, 1.0]
 
-        self.crossoverProbability = .8
+        self.crossoverProbability = 0.8
         self.mutSRProbability = 0.05         # mutUniform
         self.mutSSProbability = 0.1          # mutShrink
         self.mutNRProbability = 0.5          # mutNodeReplacement
@@ -329,24 +330,24 @@ class eaParams():
         if data[0] == "velocity": self.velocity = float(data[1])
         if data[0] == "iterations": self.iterations = int(data[1])
         if data[0] == "trial_length": self.trial_length = int(data[1])
-        if data[0] == "loadCheckpoint": self.loadCheckpoint = False if data[1] == "False" else True
+        if data[0] == "loadCheckpoint": self.loadCheckpoint = True if data[1] == "True" else False
         if data[0] == "runs": self.runs = int(data[1])
         if data[0] == "start_gen": self.start_gen = int(data[1])
         if data[0] == "generations": self.generations = int(data[1])
         if data[0] == "genSleep": self.genSleep = float(data[1])
         if data[0] == "evalSleep": self.evalSleep = float(data[1])
         if data[0] == "trialSleep": self.trialSleep = float(data[1])
-        if data[0] == "printEliteScores": self.printEliteScores = False if data[1] == "False" else True
-        if data[0] == "printFitnessScores": self.printFitnessScores = False if data[1] == "False" else True
-        if data[0] == "printBestIndividuals": self.printBestIndividuals = False if data[1] == "False" else True
-        if data[0] == "printExtrema": self.printExtrema = False if data[1] == "False" else True
+        if data[0] == "printEliteScores": self.printEliteScores = True if data[1] == "True" else False
+        if data[0] == "printFitnessScores": self.printFitnessScores = True if data[1] == "True" else False
+        if data[0] == "printBestIndividuals": self.printBestIndividuals = True if data[1] == "True" else False
+        if data[0] == "printExtrema": self.printExtrema = True if data[1] == "True" else False
         if data[0] == "useArchive": self.useArchive = True if data[1] == "True" else False
-        if data[0] == "saveOutput": self.saveOutput = False if data[1] == "False" else True
-        if data[0] == "saveCSV": self.saveCSV = False if data[1] == "False" else True
-        if data[0] == "readCheckpoint": self.readCheckpoint = False if data[1] == "False" else True
-        if data[0] == "loadCheckpoint": self.loadCheckpoint = False if data[1] == "False" else True
-        if data[0] == "saveCheckpoint": self.saveCheckpoint = False if data[1] == "False" else True
-        if data[0] == "saveContainer": self.saveContainer = False if data[1] == "False" else True
+        if data[0] == "saveOutput": self.saveOutput = True if data[1] == "True" else False
+        if data[0] == "saveCSV": self.saveCSV = True if data[1] == "True" else False
+        if data[0] == "readCheckpoint": self.readCheckpoint = True if data[1] == "True" else False
+        if data[0] == "loadCheckpoint": self.loadCheckpoint = True if data[1] == "True" else False
+        if data[0] == "saveCheckpoint": self.saveCheckpoint = True if data[1] == "True" else False
+        if data[0] == "saveContainer": self.saveContainer = True if data[1] == "True" else False
         if data[0] == "save_period": self.save_period = int(data[1])
         if data[0] == "csv_save_period": self.csv_save_period = int(data[1])
         if data[0] == "csv_save_interval": self.csv_save_interval = int(data[1])
@@ -423,7 +424,12 @@ class eaParams():
             else:
                 conditions = ["ifGotFood1", "ifOnFood1", "ifInNest"]
 
-        elif self.project == "straight_to_foraging":
+        elif self.project == "legacy":
+            conditions = ["ifInNest", "ifNestToLeft", "ifNestToRight",
+                          "ifGotFood", "ifOnFood", "ifFoodToLeft", "ifFoodToRight",
+                          "ifRobotToLeft", "ifRobotToRight"]
+
+        elif self.project in ["straight_to_foraging", "heterogeneous_genetic_algorithm"]:
             conditions = ["ifInNest", "ifNestToLeft", "ifNestToRight", 
                           "ifGotFood1", "ifOnFood1", "ifFoodToLeft1", "ifFoodToRight1",
                           "ifGotFood2", "ifOnFood2", "ifFoodToLeft2", "ifFoodToRight2",
