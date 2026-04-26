@@ -9,6 +9,7 @@ class Arena:
 
         self.arena = 6
         self.num_points = 4
+        self.num_arenas = 10
 
         self.parseArguments()
 
@@ -19,10 +20,10 @@ class Arena:
         elif self.num_points < 6:
             self.spawn_range = 3.0
             self.min_radius_sq = 1.5
-            self.minimum_gap = 0.15
+            self.minimum_gap = 0.2
         else:
             self.spawn_range = 4.0
-            self.min_radius_sq = 0.5
+            self.min_radius_sq = 1.0
             self.minimum_gap = 0.1
 
         filename = "argos3/arena"+str(self.arena)+".txt"
@@ -32,7 +33,7 @@ class Arena:
             f.write("layout "+str(self.arena)+" with "+str(self.num_points)+" points\n")
             f.write("\n")
 
-        for i in range(10):
+        for i in range(self.num_arenas):
 
             self.points = []
 
@@ -55,14 +56,18 @@ class Arena:
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--arena', type=int, default=None, help="Arena layout")
-        parser.add_argument('--qty', type=int, default=None, help="How many POIs")
+        parser.add_argument('--points', type=int, default=None, help="How many POIs")
+        parser.add_argument('--qty', type=int, default=None, help="How many arenas")
         args = parser.parse_args()
 
         if args.arena != None:
             self.arena = args.arena
 
+        if args.points != None:
+            self.num_points = args.points
+
         if args.qty != None:
-            self.num_points = args.qty
+            self.num_arenas = args.qty
 
     def getPoints(self, i):
 
@@ -106,7 +111,7 @@ class Arena:
                     hpt = math.sqrt(self.hptSq(self.points[i]["x"], self.points[i]["y"], self.points[j]["x"], self.points[j]["y"]))
                     if (hpt / 2) + self.minimum_gap < radius:
                         radius = hpt / 2
-                self.points[i]["r"] = radius
+                self.points[i]["r"] = min(radius, 1.0)
 
         for i in range(len(self.points)):
 
@@ -118,7 +123,7 @@ class Arena:
                     remainder = (hpt - self.points[j]["r"]) - self.minimum_gap
                     if remainder < radius:
                         radius = remainder
-            self.points[i]["r"] = radius
+            self.points[i]["r"] = min(radius, 1.0)
 
     def hptSq(self, x1, y1, x2, y2):
         horizontal = x2 - x1

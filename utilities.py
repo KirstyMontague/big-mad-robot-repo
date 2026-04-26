@@ -883,6 +883,8 @@ class Utilities():
             f.write("velocity:"+str(self.params.velocity)+"\n")
             f.write("formation:"+self.params.formation+"\n")
             f.write("arenaLayout:"+str(self.params.arena_layout)+"\n")
+            if self.params.arena_layout == 9:
+                f.write("arenaBias:"+str(self.params.arena_bias)+"\n")
 
     def saveParams(self):
 

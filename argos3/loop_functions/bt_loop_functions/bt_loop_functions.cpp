@@ -23,6 +23,7 @@ CBTLoopFunctions::CBTLoopFunctions() :
     m_experimentLength(0),
     m_formation("random"),
     m_arenaLayout(0),
+    m_arenaBias(-1),
     m_nest(0.0),
     m_food(0.0),
     m_offset(0.0),
@@ -212,6 +213,50 @@ bool CBTLoopFunctions::generateArenas()
         m_message = "no arena";
     }
 
+    if (m_arenaLayout == 9)
+    {
+        for (uint i = 0; i < m_arenas.size(); ++i)
+        {
+            auto& points = m_arenas[i];
+
+            // move the POI that's closest to the nest to the
+            // index for the preferred food at this iteration
+
+            double smallestDistance = 5.0;
+            int closestIndex = 0;
+
+            for (int j = 1; j < m_arenas.back().size(); ++j)
+            {
+                double centreToCentre = sqrt(hypotenuseSquared(points[0].m_x, points[0].m_y, points[j].m_x, points[j].m_y));
+                double edgeToEdge = centreToCentre - (points[0].m_r + points[j].m_r);
+                if (edgeToEdge < smallestDistance)
+                {
+                    smallestDistance = edgeToEdge;
+                    closestIndex = j;
+                }
+            }
+
+            // uncomment to use different sections of the arenas vector for each bias
+            // uint foodIndex = std::floor(i / m_numIterations) + 1;
+            uint foodIndex = 1;
+
+            CFootBotBT::Poi closest = points[closestIndex];
+            points[closestIndex] = points[foodIndex];
+            points[foodIndex] = closest;
+        }
+
+        /* uncomment to use different sections of the arenas vector for each bias
+        if (m_arenas.size() < (m_arenaBias * m_numIterations) + m_numIterations)
+        {
+            m_message = "too many iterations for arena 9";
+            m_message += "\narenas: " + std::to_string(m_arenas.size());
+            m_message += "\niterations: " + std::to_string((m_arenaBias * m_numIterations) + m_numIterations);
+            m_experimentLength = 0;
+            return false;
+        }
+        */
+    }
+
     return found;
 }
 
@@ -254,6 +299,10 @@ bool CBTLoopFunctions::readConfigFile(const std::string& path, std::string& proj
         if (key == "arenaLayout")
         {
             m_arenaLayout = std::stoi(value);
+        }
+        if (key == "arenaBias")
+        {
+            m_arenaBias = std::stoi(value);
         }
         if (key == "nestRadius")
         {
@@ -318,6 +367,13 @@ bool CBTLoopFunctions::readConfigFile(const std::string& path, std::string& proj
     if (m_arenaLayout == 5 && m_nest != m_food)
     {
         m_message = "nest and food radii must match for arena 5";
+        m_experimentLength = 0;
+        return false;
+    }
+
+    if (m_arenaLayout == 9 && m_arenaBias == -1)
+    {
+        m_message = "missing bias for arena 9";
         m_experimentLength = 0;
         return false;
     }
@@ -547,7 +603,7 @@ void CBTLoopFunctions::addRobots(const std::vector<std::vector<std::string>> tok
             CFootBotBT& controller = dynamic_cast<CFootBotBT&>(pcFB->GetControllableEntity().GetController());
 
             controller.buildTree(tokens[chromosomeIndex]);
-            controller.setArenaParams(m_arenaLayout, m_nest, m_food, m_gap);
+            controller.setArenaParams(m_arenaLayout, m_arenaBias, m_nest, m_food, m_gap);
             controller.setParams(project, m_commsRange, velocity, m_experimentLength / m_numIterations, robotType);
             setArenaPOIs(pcFB);
 
@@ -616,6 +672,10 @@ CColor CBTLoopFunctions::GetFloorColor(const CVector2& c_position_on_plane)
     else if (m_arenaLayout == 8)
     {
         return getFloorColorExp8(c_position_on_plane);
+    }
+    else if (m_arenaLayout == 9)
+    {
+        return getFloorColorExp9(c_position_on_plane);
     }
     else
     {
@@ -911,6 +971,90 @@ CColor CBTLoopFunctions::getFloorColorExp8(const CVector2& c_position_on_plane)
     return CColor::GRAY90; // remaining space
 }
 
+CColor CBTLoopFunctions::getFloorColorExp9(const CVector2& c_position_on_plane)
+{
+    double x = c_position_on_plane.GetX();
+    double y = c_position_on_plane.GetY();
+
+    if (fmod(x*4, 1) == 0 || fmod(y*8, 1) == 0)
+    {
+        return CColor::GRAY80; // tile edges
+    }
+
+    // uncomment to use different sections of the arenas vector for each bias
+    // uint arenaIndex = m_arenaBias * m_numIterations + m_currentIteration;
+    uint arenaIndex = m_currentIteration;
+
+    const auto& points = m_arenas[arenaIndex];
+
+    CFootBotBT::Poi nest = points[0];
+    double distNest = hypotenuseSquared(x, y, nest.m_x,  nest.m_y);
+
+    if (distNest < m_arenas[arenaIndex][0].m_r * m_arenas[arenaIndex][0].m_r)
+    {
+        return CColor::RED; // nest
+    }
+
+    uint foodRegions = 3;
+    std::vector<std::vector<CFootBotBT::Poi>> food;
+    std::vector<CColor> colours{CColor::GREEN, CColor::BLUE, CColor::PURPLE};
+
+    /* uncomment to use different sections of the arenas vector for each bias
+    for (uint i = 0; i < foodRegions; ++i)
+    {
+        std::vector<CFootBotBT::Poi> foodOfType;
+        food.push_back(foodOfType);
+        food[i].push_back(points[i+1]);
+    }
+
+    food[m_arenaBias].push_back(points[4]);
+    food[m_arenaBias].push_back(points[5]);
+    */
+
+    for (uint i = 0; i < foodRegions; ++i)
+    {
+        std::vector<CFootBotBT::Poi> foodOfType;
+        food.push_back(foodOfType);
+        if (m_arenaBias == i)
+        {
+            food[i].push_back(points[1]);
+            food[i].push_back(points[2]);
+            food[i].push_back(points[3]);
+        }
+    }
+
+    if (m_arenaBias == 0)
+    {
+        food[1].push_back(points[4]);
+        food[2].push_back(points[5]);
+    }
+
+    if (m_arenaBias == 1)
+    {
+        food[2].push_back(points[4]);
+        food[0].push_back(points[5]);
+    }
+
+    if (m_arenaBias == 2)
+    {
+        food[0].push_back(points[4]);
+        food[1].push_back(points[5]);
+    }
+
+    for (uint i = 0; i < foodRegions; ++i)
+    {
+        for (const auto& foodOfType : food[i])
+        {
+            if (hypotenuseSquared(x, y, foodOfType.m_x, foodOfType.m_y) < foodOfType.m_r * foodOfType.m_r)
+            {
+                return colours[i];
+            }
+        }
+    }
+
+    return CColor::GRAY90; // remaining space
+}
+
 float CBTLoopFunctions::hypotenuseSquared(const float x1, const float y1, const float x2, const float y2) const
 {
     float horizontal = x2 - x1;
@@ -1191,14 +1335,21 @@ void CBTLoopFunctions::setArenaPOIs(CFootBotEntity* footbot)
 {
     if (usingDynamicArena())
     {
+        // uncomment to use different sections of the arenas vector for each bias
+        // uint arenaIndex = (m_arenaLayout == 9)
+            // ? m_arenaBias * m_numIterations + m_currentIteration
+            // : m_currentIteration;
+
+        uint arenaIndex = m_currentIteration;
+
         CFootBotBT& controller = dynamic_cast<CFootBotBT&>(footbot->GetControllableEntity().GetController());
-        controller.setArenaPOIs(m_arenas[m_currentIteration]);
+        controller.setArenaPOIs(m_arenas[arenaIndex]);
     }
 }
 
 bool CBTLoopFunctions::usingDynamicArena()
 {
-    return (m_arenaLayout == 6 || m_arenaLayout == 7 || m_arenaLayout == 8);
+    return (m_arenaLayout == 6 || m_arenaLayout == 7 || m_arenaLayout == 8 || m_arenaLayout == 9);
 }
 
 bool CBTLoopFunctions::usingArenaPOIs()

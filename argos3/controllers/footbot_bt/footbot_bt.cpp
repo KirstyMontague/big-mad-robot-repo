@@ -137,6 +137,10 @@ void CFootBotBT::calculateDistances(double x, double y)
     {
         calculateDistancesExp8(x, y);
     }
+    else if (m_arenaLayout == 9)
+    {
+        calculateDistancesExp9(x, y);
+    }
     else
     {
         calculateDistancesExp1(x, y);
@@ -302,6 +306,73 @@ void CFootBotBT::calculateDistancesExp8(double x, double y)
     m_distFood[0] = distFood < 0.0 ? 0.0 : distFood;
 }
 
+void CFootBotBT::calculateDistancesExp9(double x, double y)
+{
+    Poi nest = m_arena[0];
+    double distNest  = sqrt(hypotenuseSquared(x, y, nest.m_x,  nest.m_y))  - nest.m_r;
+    m_distNest = distNest < 0.0 ? 0.0 : distNest;
+
+    uint foodregions = numFoodRegions();
+
+    std::vector<std::vector<Poi>> food;
+
+    /* uncomment to use different sections of the arenas vector for each bias
+    for (uint i = 0; i < foodregions; ++i)
+    {
+        std::vector<Poi> foodOfType;
+        food.push_back(foodOfType);
+        food[i].push_back(m_arena[i+1]);
+    }
+
+    food[m_arenaBias].push_back(m_arena[4]);
+    food[m_arenaBias].push_back(m_arena[5]);
+    */
+
+    for (uint i = 0; i < foodregions; ++i)
+    {
+        std::vector<Poi> foodOfType;
+        food.push_back(foodOfType);
+        if (m_arenaBias == i)
+        {
+            food[i].push_back(m_arena[1]);
+            food[i].push_back(m_arena[2]);
+            food[i].push_back(m_arena[3]);
+        }
+    }
+
+    if (m_arenaBias == 0)
+    {
+        food[1].push_back(m_arena[4]);
+        food[2].push_back(m_arena[5]);
+    }
+    if (m_arenaBias == 1)
+    {
+        food[2].push_back(m_arena[4]);
+        food[0].push_back(m_arena[5]);
+    }
+    if (m_arenaBias == 2)
+    {
+        food[0].push_back(m_arena[4]);
+        food[1].push_back(m_arena[5]);
+    }
+
+    for (uint i = 0; i < foodregions; ++i)
+    {
+        double distFood = 5.0;
+        for (const auto& foodOfType : food[i])
+        {
+            float hpt = sqrt(hypotenuseSquared(x, y, foodOfType.m_x, foodOfType.m_y));
+            float distance = hpt - foodOfType.m_r;
+
+            if (distance < distFood)
+            {
+                distFood = distance;
+            }
+        }
+        m_distFood[i] = distFood < 0.0 ? 0.0 : distFood;
+    }
+}
+
 float CFootBotBT::hypotenuseSquared(float x1, float y1, float x2, float y2) const
 {
     float horizontal = x2 - x1;
@@ -393,9 +464,10 @@ void CFootBotBT::setParams(const std::string project, int commsRange, float velo
     m_lWheelVelocity = velocity * noise;
 }
 
-void CFootBotBT::setArenaParams(int arenaLayout, float nest, float food, float gap)
+void CFootBotBT::setArenaParams(int arenaLayout, int arenaBias, float nest, float food, float gap)
 {
     m_arenaLayout = arenaLayout;
+    m_arenaBias = arenaBias;
     m_nestRadius = nest;
     m_foodRadius = food;
     m_gap = gap;
@@ -933,7 +1005,7 @@ bool CFootBotBT::inTrackingIDs() const
 
 uint CFootBotBT::numFoodRegions() const
 {
-    return (m_arenaLayout == 5 || m_arenaLayout == 6) ? 3 : 1;
+    return (m_arenaLayout == 5 || m_arenaLayout == 6 || m_arenaLayout == 9) ? 3 : 1;
 }
 
 REGISTER_CONTROLLER(CFootBotBT, "footbot_bt_controller")

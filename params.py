@@ -111,6 +111,7 @@ class eaParams():
         self.velocity = 5.0
         self.formation = "random"
         self.arena_layout = 1
+        self.arena_bias = 0
 
         self.trial_length = 20
         if self.description == "foraging":
@@ -166,7 +167,9 @@ class eaParams():
 
     def basePath(self):
         path = self.shared_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description
-        if self.description == "foraging":
+        if self.project == "straight_to_foraging" and self.arena_layout == 9:
+            path += "/straight_to_foraging/bias"+str(self.arena_bias)
+        elif self.description == "foraging":
             if self.using_repertoire:
                 path += "/"+self.repertoire_type+str(self.repertoire_size)
             else:
@@ -322,6 +325,7 @@ class eaParams():
         if data[0] == "sqrt_robots": self.sqrt_robots = int(data[1])
         if data[0] == "formation": self.formation = data[1]
         if data[0] == "arena_layout": self.arena_layout = int(data[1])
+        if data[0] == "arena_bias": self.arena_bias = int(data[1])
         if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
         if data[0] == "population_size": self.populationSize = int(data[1])
         if data[0] == "food_radius": self.food_radius = float(data[1])

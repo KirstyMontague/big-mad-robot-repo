@@ -30,6 +30,7 @@ private:
     CColor getFloorColorExp6(const CVector2& c_position_on_plane);
     CColor getFloorColorExp7(const CVector2& c_position_on_plane);
     CColor getFloorColorExp8(const CVector2& c_position_on_plane);
+    CColor getFloorColorExp9(const CVector2& c_position_on_plane);
 
     float hypotenuseSquared(const float x1, const float y1, const float x2, const float y2) const;
 
@@ -80,6 +81,7 @@ private:
 
     std::string m_formation;
     int m_arenaLayout;
+    int m_arenaBias;
     std::vector<std::vector<CFootBotBT::Poi>> m_arenas;
 
     float m_nest;

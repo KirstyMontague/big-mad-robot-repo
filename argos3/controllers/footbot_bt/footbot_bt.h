@@ -37,7 +37,7 @@ public:
 
     void buildTree(std::vector<std::string> tokens);
     void setParams(const std::string project, int commsRange, float velocity, int trialLength, uint robotType);
-    void setArenaParams(int arenaLayout, float nest, float food, float gap);
+    void setArenaParams(int arenaLayout, int arenaBias, float nest, float food, float gap);
     void setArenaPOIs(std::vector<Poi> arena) {m_arena = arena;}
     void error(const std::string message, bool error);
 
@@ -50,6 +50,7 @@ public:
     void calculateDistancesExp6(double x, double y);
     void calculateDistancesExp7(double x, double y);
     void calculateDistancesExp8(double x, double y);
+    void calculateDistancesExp9(double x, double y);
 
 private:
 
@@ -102,6 +103,7 @@ private:
     uint m_robotType;
 
     int m_arenaLayout;
+    int m_arenaBias;
     std::vector<Poi> m_arena;
     float m_nestRadius;
     float m_foodRadius;
