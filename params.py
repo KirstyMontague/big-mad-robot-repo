@@ -15,6 +15,7 @@ class eaParams():
         self.show_warnings = True
         self.printOffspring = False
         self.printContainer = False
+        self.usingNewGrid = True
 
         self.num_threads = 8
 
@@ -190,6 +191,8 @@ class eaParams():
 
     def makePaths(self):
 
+        print("\nPath: "+self.path())
+
         if self.experiment == "":
             self.experiment = "vanilla"
 
@@ -304,7 +307,10 @@ class eaParams():
         if data[0] == "domain" and len(data) > 1:
             self.features_domain = []
             for i in range(1, len(data), 2):
-                self.features_domain.append((float(data[i]), float(data[i+1])))
+                if self.usingNewGrid:
+                    self.features_domain.append([float(data[i]), float(data[i+1])])
+                else:
+                    self.features_domain.append((float(data[i]), float(data[i+1])))
 
         if data[0] == "tournament":
             permitted = ["agnosticTournament", "multiFoodMaxTournament", "multiFoodTournament", "multiFoodFloorTournament", "selTournament"]

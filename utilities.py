@@ -13,9 +13,8 @@ from deap import creator
 
 import local
 
-# QD2
-from containers import *
-# from extended_containers import *
+# from containers import *
+from grid import Grid
 
 # === heatmap =======
 
@@ -47,7 +46,7 @@ class Utilities():
         self.params = params
         self.behaviours = behaviours
         self.primitivetree = gp.PrimitiveTree([])
-    
+
     def setupToolboxGP(self, tournament):
 
         toolbox = base.Toolbox()
@@ -380,12 +379,15 @@ class Utilities():
 
     def printContainer(self, container):
 
+        population = container.items() if self.params.usingNewGrid else container.solutions.items()
+
         output = "\nPrint all individuals in container\n\n"
 
-        for idx, inds in container.solutions.items():
+        for index, value in population:
+            inds = [value] if self.params.usingNewGrid else value
             if len(inds) == 0:
                 continue
-            output += str(idx)+"\n"
+            output += str(index)+"\n"
             for ind in inds:
                 for fitness in ind.fitness.values:
                     output += str("%.9f" % fitness) + "  \t"
@@ -400,8 +402,10 @@ class Utilities():
 
     def writeContainerToString(self, container):
 
+        population = container.values() if self.params.usingNewGrid else container
+
         container_string = ""
-        for ind in container:
+        for ind in population:
             container_string += str(ind)+":"
             container_string += str(ind.fitness)+":"
             container_string += str(ind.features)+"\n"
@@ -440,41 +444,12 @@ class Utilities():
 
         return container
 
-    def printBestMax(self, container, qty = 1):
-        
-        best = []
-        for ind in container:
-            if len(best) < qty:
-                best.append(ind)
-            else:
-                # worst = 0.0
-                worst = 100.0
-                worstIndex = qty
-                for i in range(qty):
-                    if best[i].fitness.values[0] < worst:
-                        worst = best[i].fitness.values[0]
-                        worstIndex = i
-                
-                if ind.fitness.values[0] > worst:
-                    best[worstIndex] = ind
-
-        output = "\nPrint best individual(s)\n\n"
-        for ind in best:
-            output += str("%.9f" % ind.fitness.values[0]) + "  \t"
-            for f in ind.features:
-                output += str("%.4f" % f) + " \t"
-            if len(ind) > 50:
-                output += "\n"+str(ind)+"\n"
-            else:
-                output += "\n"+self.formatChromosome(ind)+"\n"
-                output += "\n"+str(ind)+"\n"
-
-        self.params.console(output)
-    
     def getBestMax(self, container, qty = 1):
-        
+
+        population = container.values() if self.params.usingNewGrid else container
+
         best = []
-        for ind in container:
+        for ind in population:
             if len(best) < qty:
                 best.append(ind)
             else:
@@ -490,7 +465,29 @@ class Utilities():
                     best[worstIndex] = ind
         return best
 
-    def getBestHDRandom(self, population, feature = -1, derate = True):
+    def printBestMax(self, container, qty = 1):
+
+        best = self.getBestMax(container, qty)
+
+        output = "\nPrint best individual(s)\n\n"
+        for ind in best:
+            output += str("%.9f" % ind.fitness.values[0]) + "  \t"
+            for f in ind.features:
+                output += str("%.4f" % f) + " \t"
+            if len(ind) > 50:
+                output += "\n"+str(ind)+"\n"
+            else:
+                output += "\n"+self.formatChromosome(ind)+"\n"
+                output += "\n"+str(ind)+"\n"
+
+        self.params.console(output)
+
+    def getBestFromContainer(self, container, feature = -1, derate = True):
+
+        population = container.values() if self.params.usingNewGrid else container
+        return self.getBestFromPopulation(population, feature, derate)
+
+    def getBestFromPopulation(self, population, feature = -1, derate = True):
 
         if (feature == -1):
             feature = random.randint(0, self.params.features - 1)
@@ -547,12 +544,14 @@ class Utilities():
 
     def getBestAll(self, population, derate = True):
 
-        allBest = []
+        best = []
         for feature in range(self.params.features):
-            allBest.append(self.getBestHDRandom(population, feature, derate))
-        return allBest
+            best.append(self.getBestFromPopulation(population, feature, derate))
+        return best
 
-    def getExtremis(self, population, objective):
+    def getExtremis(self, container, objective):
+
+        population = container.values() if self.params.usingNewGrid else container
 
         val = 1.0 if objective < len(self.params.sub_behaviours) / 2 else -1.0
 
@@ -574,23 +573,24 @@ class Utilities():
 
     def getExtrema(self, container, include_trees = False):
 
+        population = container.values() if self.params.usingNewGrid else container
+
         minVals = [1.0,1.0,1.0]
         maxVals = [-1.0,-1.0,-1.0]
         minIndividuals = [None, None, None]
         maxIndividuals = [None, None, None]
 
-        for idx, inds in container.solutions.items():
-            if len(inds) == 0:
-                continue
+        for axis in range(len(self.params.nb_bins)):
 
-            for i in range(len(self.params.nb_bins)):
-                for ind in inds:
-                    if minVals[i] > ind.features[i]:
-                        minVals[i] = ind.features[i]
-                        minIndividuals[i] = ind
-                    if maxVals[i] < ind.features[i]:
-                        maxVals[i] = ind.features[i]
-                        maxIndividuals[i] = ind
+            for ind in population:
+
+                if ind.features[axis] < minVals[axis]:
+                    minVals[axis] = ind.features[axis]
+                    minIndividuals[axis] = ind
+                if ind.features[axis] > maxVals[axis]:
+                    maxVals[axis] = ind.features[axis]
+                    maxIndividuals[axis] = ind
+
 
         output = "---------\n"
         for m in minVals:
@@ -636,10 +636,17 @@ class Utilities():
         return best
 
     def removeDuplicates(self, offspring, container):
+
+        # this function is for preventing duplicates from reaching qdpy's
+        # update function because of a bug which discards duplicates but
+        # also discards the individuals they would have replaced
+
+        population = container.values() if self.params.usingNewGrid else container.items
+
         for i in reversed(range(len(offspring))):
             ind = offspring[i]
             duplicate = ""
-            if ind in container.items:
+            if ind in population:
                 duplicate = "DUPLICATE container"
             else:
                 for j in reversed(range(i)):
@@ -654,19 +661,19 @@ class Utilities():
                 output = duplicate + "\t" + performance
                 offspring.pop(i)
 
-    def convertToNewGrid(self, container, objective, objective_index, features, shape, fitness_domain, features_domain):
+    def convertToNewGrid(self, container, shape):
 
-        grid = Grid(shape = shape,
-                    max_items_per_bin = 1,
-                    fitness_domain = fitness_domain,
-                    features_domain = features_domain,
-                    storage_type=list)
-
-        population = []
-        for ind in container:
-            population.append(ind)
-
-        nb_updated = grid.update(population, issue_warning = True)
+        if self.params.usingNewGrid:
+            population = container.values()
+            grid = Grid(shape, self.params.features_domain)
+        else:
+            population = container
+            grid = Grid(shape = shape,
+                        max_items_per_bin = 1,
+                        fitness_domain = self.params.fitness_domain,
+                        features_domain = self.params.features_domain,
+                        storage_type=list)
+        grid.update(population)
         return grid
 
     def saveBestToFile(self, best):
@@ -782,49 +789,39 @@ class Utilities():
 
     def getFilledBins(self, container):
 
-        filled_bins = 0.0
-        for i in range(len(container.nb_items_per_bin)):
-            for j in range(len(container.nb_items_per_bin[i])):
-                for k in range(len(container.nb_items_per_bin[i][j])):
-                    if container.nb_items_per_bin[i][j][k] > 0:
-                        filled_bins += 1
-        return filled_bins
+        if self.params.usingNewGrid:
+            return len(container.items())
+        else:
+            return container.filled_bins
 
     def getCoverage(self, container):
         
         """ get the ratio of filled vs empty bins, returns a value between 0 and 1"""
-        
-        filled_bins = 0.0
-        for i in range(len(container.nb_items_per_bin)):
-            for j in range(len(container.nb_items_per_bin[i])):
-                for k in range(len(container.nb_items_per_bin[i][j])):
-                    if container.nb_items_per_bin[i][j][k] > 0:
-                        filled_bins += 1
+
+        filled_bins = self.getFilledBins(container)
         shape = self.params.nb_bins
         filled_bins /= shape[0]*shape[1]*shape[2]
-        # print(container.nb_items_per_bin)
         return filled_bins
 
-    def getQDScore(self, container):
-        
-        # can only handle one objective
-        
-        shape = self.params.nb_bins
-                
-        grid = self.convertToNewGrid(container,
-                                     self.params.description,
-                                     self.params.indexes[0],
-                                     self.params.features,
-                                     shape,
-                                     self.params.fitness_domain,
-                                     self.params.features_domain)
-        
+    def getGridForQDScore(self, container, shape):
+
+        if shape == self.params.nb_bins and self.params.max_items_per_bin == 1:
+            return container
+        else:
+            return self.convertToNewGrid(container, shape)
+
+    def getQDScore(self, container, shape = None):
+
+        if shape == None:
+            shape = self.params.nb_bins
+
+        grid = self.getGridForQDScore(container, shape)
+
+        population = grid.values() if self.params.usingNewGrid else grid
+
         total_fitness = 0.0
-        for idx, inds in grid.solutions.items():
-            if len(inds) == 0:
-                continue
-            for ind in inds:
-                total_fitness += ind.fitness.values[0]
+        for ind in population:
+            total_fitness += ind.fitness.values[0]
         total_fitness /= shape[0]*shape[1]*shape[2]
         
         return total_fitness
@@ -834,23 +831,16 @@ class Utilities():
         if shape == None:
             shape = self.params.nb_bins
 
-        grid = self.convertToNewGrid(container,
-                                     self.params.description,
-                                     self.params.indexes[0],
-                                     self.params.features,
-                                     shape,
-                                     self.params.fitness_domain,
-                                     self.params.features_domain)
+        grid = self.getGridForQDScore(container, shape)
+
+        population = grid.values() if self.params.usingNewGrid else grid
 
         total_fitness = 0.0
-        for idx, inds in grid.solutions.items():
-            if len(inds) == 0:
-                continue
-            for ind in inds:
-                if self.params.description == "foraging":
-                    total_fitness += ind.fitness.values[0]
-                else:
-                    total_fitness += ind.fitness.values[0] - 0.5
+        for ind in population:
+            if self.params.description == "foraging":
+                total_fitness += ind.fitness.values[0]
+            else:
+                total_fitness += ind.fitness.values[0] - 0.5
         total_fitness /= shape[0]*shape[1]*shape[2]
 
         if self.params.description != "foraging":
@@ -1017,3 +1007,9 @@ class Utilities():
             f.write("\n")
         with open(self.params.local_path+"/runtime.txt", "w") as f:
             f.write("cancel\n")
+
+    def printError(self, args):
+        self.params.console("\n\nException")
+        for arg in args:
+            self.params.console(arg)
+        print("\n\n")

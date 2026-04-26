@@ -8,7 +8,8 @@ from deap import tools
 from deap import base
 from deap import creator
 
-from containers import *
+# from containers import *
+from grid import Grid
 
 import local
 
@@ -39,14 +40,15 @@ class QD():
 
         for objective in self.params.indexes:
 
-            fitness_domain = [(0.,1.0),] if self.params.indexes != [6] else [(0., numpy.inf)]
-            features_domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)] if self.params.indexes != [6] else [(-200.0, 200.0), (-200.0, 200.0), (0.0, 1.0)]
-
-            self.grids.append(Grid(shape = [8,8,8],
-                              max_items_per_bin = 1,
-                              fitness_domain = fitness_domain,
-                              features_domain = features_domain,
-                              storage_type=list))
+            if self.params.usingNewGrid:
+                self.grids.append(Grid(self.params.nb_bins,
+                                       self.params.features_domain))
+            else:
+                self.grids.append(Grid(shape = self.params.nb_bins,
+                                       max_items_per_bin = 1,
+                                       fitness_domain = self.params.fitness_domain,
+                                       features_domain = self.params.features_domain,
+                                       storage_type=list))
 
     def addPopulation(self, population):
 
@@ -70,25 +72,20 @@ class QD():
 
             grid = self.grids[i]
             self.utilities.removeDuplicates(pop, grid)
-            nb_updated = grid.update(pop, issue_warning = True)
+            if self.params.usingNewGrid:
+                grid.update(pop)
+            else:
+                try:
+                    grid.update(pop, issue_warning = True)
+                except UserWarning as error:
+                    raise ValueError(error)
 
     def getQDScores(self):
 
         qd_scores = []
 
         for i in range(self.params.features):
-
-            score = 0.0
-            for idx, inds in self.grids[i].solutions.items():
-                if len(inds) == 0:
-                    continue
-                for ind in inds:
-                    score += ind.fitness.values[0]
-
-            shape = self.grids[i].shape
-            score /= shape[0]*shape[1]*shape[2]
-
-            qd_scores.append(score)
+            qd_scores.append(str("%.12f" % self.utilities.getQDScore(self.grids[i])))
 
         return qd_scores
 

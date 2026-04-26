@@ -15,8 +15,6 @@ from deap import tools
 from deap import base
 from deap import creator
 
-from containers import *
-
 from archive import Archive
 from behaviours import Behaviours
 from checkpoint import Checkpoint
@@ -52,8 +50,8 @@ class EA():
         for i in range(k):
             aspirants = tools.selRandom(individuals, tournsize)
             feature = int(random.random() * self.params.features)
-            # best = self.getBestHDRandom(aspirants, i % self.params.features)
-            best = self.utilities.getBestHDRandom(aspirants, feature)
+            # best = self.getBestFromPopulation(aspirants, i % self.params.features)
+            best = self.utilities.getBestFromPopulation(aspirants, feature)
             chosen.append(best)
         return chosen
 
@@ -215,13 +213,20 @@ class EA():
             return
 
         elif self.params.loadCheckpoint:
+            try:
+                population, self.grid.grids = self.checkpoint.load(self.logs)
+            except ValueError as error:
+                self.utilities.printError(error.args)
+                return
             self.archive.setCompleteArchive(self.archive.getArchive())
-            population, self.grid.grids = self.checkpoint.load(self.logs)
             generation = self.params.start_gen
 
         else:
-            generation = 0
-            population = self.startWithNewPopulation()
+            try:
+                population = self.startWithNewPopulation()
+            except ValueError as error:
+                self.utilities.printError(error.args)
+                return
 
             best = self.utilities.getBestAll(population)
 
@@ -230,12 +235,16 @@ class EA():
             self.utilities.saveBestToFile(best[0])
             self.grid.save(self.params.generations)
 
+            generation = 0
             self.params.runtime()
 
         self.utilities.saveParams()
-        
-        # begin evolution
-        self.eaLoop(population, generation)
+
+        try:
+            self.eaLoop(population, generation)
+        except ValueError as error:
+            self.utilities.printError(error.args)
+            return
 
         end_time = round(time.time() * 1000)
         self.utilities.saveDuration(start_time, end_time)
@@ -254,7 +263,7 @@ class EA():
 
             elites = []
             for i in range(self.params.features):
-                elite = self.utilities.getBestHDRandom(population, i)
+                elite = self.utilities.getBestFromPopulation(population, i)
                 elites.append(elite)
             
             offspring = self.utilities.toolbox.select(population, len(population)-self.params.features)

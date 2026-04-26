@@ -47,7 +47,10 @@ class Archive():
         cumulative_archive = self.getCumulativeArchive()
 
         directory_path = self.params.shared_path
-        if self.params.description == "foraging":
+        if self.params.project == "straight_to_foraging" and self.params.arena_layout == 9:
+            results_directory = self.params.experiment+"/"+self.params.foraging_path+"/"
+            results_directory += "straight_to_foraging/bias"+str(self.params.arena_bias)
+        elif self.params.description == "foraging":
             results_directory = self.params.experiment+"/"+self.params.foraging_path
             if self.params.using_repertoire:
                 results_directory += "/"+self.params.repertoire_type+str(self.params.repertoire_size)

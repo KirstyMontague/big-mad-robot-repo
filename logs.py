@@ -22,7 +22,7 @@ class Logs():
 
         parameters += str(self.params.iterations)+","
 
-        for param in self.params.arenaParams:
+        for param in self.params.arena_params:
             parameters += str(param)+" "
 
         parameters += ",,"
@@ -57,12 +57,12 @@ class Logs():
 
     def getChromosomes(self, population):
 
-        allBest = []
+        all_best = []
         for i in range(self.params.features):
-            allBest.append(self.utilities.getBestHDRandom(population, i))
+            all_best.append(self.utilities.getBestFromContainer(population, i))
 
         chromosomes = ",\""
-        for best in allBest:
+        for best in all_best:
             chromosomes += str(best)+" + "
         chromosomes = chromosomes[0:-3]
         chromosomes += "\",,"

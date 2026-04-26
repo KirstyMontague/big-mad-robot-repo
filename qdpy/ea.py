@@ -8,8 +8,8 @@ import pickle
 import warnings
 warnings.filterwarnings("error")
 
-from qdpy.phenotype import *
-from containers import *
+# from containers import *
+from grid import Grid
 
 from deap import tools
 
@@ -73,23 +73,40 @@ class EA():
             return
 
         elif self.params.loadCheckpoint:
-            self.current_batch, containers = self.checkpoint.load(self.logs)
+            try:
+                self.current_batch, containers = self.checkpoint.load(self.logs)
+            except ValueError as error:
+                self.utilities.printError(error.args)
+                return
             self.container = containers[0]
             generation = self.params.start_gen
 
         else:
-            self.container = Grid(shape = self.params.nb_bins,
-                                  max_items_per_bin = self.params.max_items_per_bin,
-                                  fitness_domain = self.params.fitness_domain,
-                                  features_domain = self.params.features_domain,
-                                  storage_type=list)
+            if self.params.usingNewGrid:
+                self.container = Grid(self.params.nb_bins, self.params.features_domain)
+            else:
+                self.container = Grid(shape = self.params.nb_bins,
+                                      max_items_per_bin = self.params.max_items_per_bin,
+                                      fitness_domain = self.params.fitness_domain,
+                                      features_domain = self.params.features_domain,
+                                      storage_type=list)
 
             self.current_batch = self.toolbox.population(n = self.params.populationSize)
             generation = 0
-            self.evaluateNewPopulation(self.container, generation, self.current_batch, "w")
+
+            try:
+                self.evaluateNewPopulation(self.container, generation, self.current_batch, "w")
+            except ValueError as error:
+                self.utilities.printError(error.args)
+                return
+
             self.params.runtime()
 
-        self.eaLoop(self.container, generation)
+        try:
+            self.eaLoop(self.container, generation)
+        except ValueError as error:
+            self.utilities.printError(error.args)
+            return
 
         self.checkpoint.save(self.params.generations, self.current_batch, [self.container], self.logs)
         self.archive.saveArchive(self.redundancy, self.params.generations)
@@ -110,7 +127,8 @@ class EA():
 
             generation += 1
 
-            batch = self.toolbox.select(container, self.params.populationSize)
+            population = list(container.values()) if self.params.usingNewGrid else container
+            batch = self.toolbox.select(population, self.params.populationSize)
             offspring = self.varAnd(batch, self.toolbox)
 
             self.evaluateNewPopulation(container, generation, offspring, "a")
@@ -118,7 +136,7 @@ class EA():
             self.current_batch = offspring
 
             self.checkpoint.save(generation, self.current_batch, [container], self.logs)
-            self.logs.saveCSV(generation, self.utilities.getBestMax(container))
+            self.logs.saveCSV(generation, container)
             self.archive.saveArchive(self.redundancy, generation)
             self.utilities.saveBestIndividuals(self.utilities.getBestMax(container, 25), generation)
 
@@ -165,7 +183,14 @@ class EA():
         # removing duplicates here because container throws away the individual that would have been replaced before throwing away the duplicate
         self.utilities.removeDuplicates(offspring, container)
 
-        nb_updated = container.update(offspring, issue_warning = self.params.show_warnings)
+        if self.params.usingNewGrid:
+            container.update(offspring)
+        else:
+            try:
+                container.update(offspring, issue_warning = self.params.show_warnings)
+            except UserWarning as error:
+                raise ValueError(error)
+                return
 
         self.printOutput(generation, invalid_new, invalid_orig, matched)
 
@@ -200,15 +225,16 @@ class EA():
             time.sleep(self.params.genSleep)
 
     def printOutput(self, generation, invalid_new, invalid_orig, matched):
-        
+
+        population = self.container.values() if self.params.usingNewGrid else self.container
+
         avg = 0
-        for x in self.container:
+        for x in population:
             avg += len(x)
-        avg = avg / len(self.container)
+        avg = avg / len(population)
         avg_string = str("%.1f" % avg)
-        
-        # no repro after this change (29/7/25) because no longer using RNG
-        best = self.utilities.getBestHDRandom(self.container, 0)
+
+        best = self.utilities.getBestFromContainer(self.container, 0)
         best_fitness = str("%.6f" % best.fitness.values[0])
 
         if self.params.using_repertoire:
@@ -224,8 +250,8 @@ class EA():
             derated = best.fitness.values[0] * self.utilities.deratingFactor(best)
         fitness = str("%.6f" % derated)+" ("+best_fitness+")"
         
-        coverage = str("%.4f" % self.utilities.getCoverage(self.container))
-        filled = str(int(self.utilities.getFilledBins(self.container)))
+        coverage = str("%.6f" % self.utilities.getCoverage(self.container))
+        filled = str(self.utilities.getFilledBins(self.container))
         total = str(self.params.nb_bins[0] * self.params.nb_bins[1] * self.params.nb_bins[2])
 
         qd_score = str("%.6f" % self.utilities.getAdjustedQDScore(self.container))
@@ -273,7 +299,7 @@ class EA():
         chosen = []
         for i in range(k):
             aspirants = tools.selRandom(individuals, tournsize)
-            best = self.utilities.getBestHDRandom(aspirants, 0)
+            best = self.utilities.getBestFromPopulation(aspirants, 0)
             chosen.append(best)
         return chosen
 
@@ -301,7 +327,7 @@ class EA():
         chosen = []
         for i in range(k):
             aspirants = tools.selRandom(individuals, tournsize)
-            best = self.utilities.getBestHDRandom(aspirants, 0)
+            best = self.utilities.getBestFromPopulation(aspirants, 0)
             chosen.append(best)
         return chosen
 

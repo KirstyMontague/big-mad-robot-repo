@@ -27,8 +27,15 @@ class Checkpoint():
 
         print("population size: "+str(len(population)))
 
-        for i in range(len(containers)):
-            print("container "+str(i)+": "+str(len(containers[i])))
+        try:
+            for i in range(len(containers)):
+                if self.params.usingNewGrid:
+                    print("container "+str(i)+": "+str(len(containers[i].items())))
+                else:
+                    print("container "+str(i)+": "+str(len(containers[i])))
+        except:
+            print("\n\nFailed to get container length, params.usingNewGrid must match input file format\n")
+
 
         print("============================================")
 
@@ -41,12 +48,18 @@ class Checkpoint():
         print("qd score: "+str(qd_scores))
         print("coverage: "+str(coverage))
 
-        best = self.utilities.getBestAll(population, False)
+
+        best = []
+        for feature in range(self.params.features):
+            best.append(self.utilities.getBestFromPopulation(population, feature, False))
         print("best from population: "+str(best[0].fitness.values)+" ("+str(len(best[0]))+" nodes)")
 
-        for i in range(len(containers)):
-            best = self.utilities.getBestHDRandom(containers[i], 0, False)
-            print("best from container: "+str(best.fitness.values)+" ("+str(len(best))+" nodes)")
+        try:
+            for i in range(len(containers)):
+                best = self.utilities.getBestFromContainer(containers[i], 0, False)
+                print("best from container: "+str(best.fitness.values)+" ("+str(len(best))+" nodes)")
+        except:
+            print("\n\nFailed to get best from container, params.usingNewGrid must match input file format\n")
 
         return population
 
@@ -54,6 +67,12 @@ class Checkpoint():
 
         with open(self.params.checkpointInputFilename(self.params.start_gen)+".pkl", "rb") as checkpoint_file:
             checkpoint = pickle.load(checkpoint_file)
+
+        type_check = checkpoint["containers"][0].features_domain[0]
+        if self.params.usingNewGrid and not isinstance(type_check, list):
+            raise ValueError("params.usingNewGrid (currently True) must match input file format")
+        if not self.params.usingNewGrid and not isinstance(type_check, tuple):
+            raise ValueError("params.usingNewGrid (currently False) must match input file format")
 
         random.setstate(checkpoint["rndstate"])
 
