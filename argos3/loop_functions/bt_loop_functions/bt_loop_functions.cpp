@@ -136,37 +136,35 @@ bool CBTLoopFunctions::generateArenas()
 
     if (m_arenaLayout == 5)
     {
-        float x = 0.0;
-        float y = 0.0;
-        float gap = (m_gap / 2) + m_food;
+        double gap = (m_gap / 2) + m_food;
 
-        std::vector<CFootBotBT::Poi> arena;
+        std::vector<CFootBotBT::Poi> points;
+        points.push_back(CFootBotBT::Poi(0.0 - gap, 0.0 + gap, m_nest));
+        points.push_back(CFootBotBT::Poi(0.0 + gap, 0.0 - gap, m_food));
+        points.push_back(CFootBotBT::Poi(0.0 - gap, 0.0 - gap, m_food));
+        points.push_back(CFootBotBT::Poi(0.0 + gap, 0.0 + gap, m_food));
 
-        CFootBotBT::Poi nest = CFootBotBT::Poi();
-        nest.m_x = x - gap;
-        nest.m_y = y + gap;
-        nest.m_r = m_food;
-        arena.push_back(nest);
+        std::vector<std::vector<uint>> permutations;
+        permutations.push_back(std::vector<uint>{0, 1, 2, 3});
+        permutations.push_back(std::vector<uint>{0, 1, 3, 2});
+        permutations.push_back(std::vector<uint>{0, 2, 1, 3});
+        permutations.push_back(std::vector<uint>{0, 2, 3, 1});
+        permutations.push_back(std::vector<uint>{0, 3, 1, 2});
+        permutations.push_back(std::vector<uint>{0, 3, 2, 1});
 
-        CFootBotBT::Poi food1 = CFootBotBT::Poi();
-        food1.m_x = x + gap;
-        food1.m_y = y - gap;
-        food1.m_r = m_food;
-        arena.push_back(food1);
+        for (const auto& permutation : permutations)
+        {
+            std::vector<CFootBotBT::Poi> arena;
 
-        CFootBotBT::Poi food2 = CFootBotBT::Poi();
-        food2.m_x = x - gap;
-        food2.m_y = y - gap;
-        food2.m_r = m_food;
-        arena.push_back(food2);
+            for (const uint& index : permutation)
+            {
+                arena.push_back(points[index]);
+            }
 
-        CFootBotBT::Poi food3 = CFootBotBT::Poi();
-        food3.m_x = x + gap;
-        food3.m_y = y + gap;
-        food3.m_r = m_food;
-        arena.push_back(food3);
+            m_arenas.push_back(arena);
+        }
 
-        m_arenas.push_back(arena);
+        return true;
     }
 
     if (!usingDynamicArena())
@@ -174,10 +172,11 @@ bool CBTLoopFunctions::generateArenas()
         return true;
     }
 
+    bool found = false;
+
     std::string filename = "./arena"+std::to_string(m_arenaLayout)+".txt";
     std::ifstream arenasFile(filename);
     std::string line = "";
-    bool found = false;
 
     while( getline(arenasFile, line) )
     {
@@ -797,41 +796,29 @@ CColor CBTLoopFunctions::getFloorColorExp5(const CVector2& c_position_on_plane)
     double x = c_position_on_plane.GetX();
     double y = c_position_on_plane.GetY();
 
-    float gap = (m_gap / 2) + m_food;
-
-    double x_plus_gap_sq  = (x + gap) * (x + gap);
-    double y_plus_gap_sq  = (y + gap) * (y + gap);
-    double x_minus_gap_sq = (x - gap) * (x - gap);
-    double y_minus_gap_sq = (y - gap) * (y - gap);
-
-    double rNest  = sqrt(x_plus_gap_sq + y_minus_gap_sq);
-    double rFood1 = sqrt(x_minus_gap_sq + y_plus_gap_sq);
-    double rFood2 = sqrt(x_plus_gap_sq + y_plus_gap_sq);
-    double rFood3 = sqrt(x_minus_gap_sq + y_minus_gap_sq);
-
     if (fmod(x, 1) == 0 || fmod(y, 1) == 0)
     {
         return CColor::GRAY80; // tile edges
     }
 
-    else if (rNest < m_nest)
+    const std::vector<CFootBotBT::Poi>& arena = m_arenas[m_currentIteration];
+
+    const CFootBotBT::Poi& nest = arena[0];
+    double distNest  = sqrt(hypotenuseSquared(x, y, nest.m_x,  nest.m_y));
+    if (distNest < m_arenas[m_currentIteration][0].m_r)
     {
         return CColor::RED; // nest
     }
 
-    else if (rFood1 < m_food)
-    {
-        return CColor::GREEN; // food
-    }
+    std::vector<CColor> colours{CColor::GREEN, CColor::BLUE, CColor::PURPLE};
 
-    else if (rFood2 < m_food)
+    for (uint i = 0; i < colours.size(); ++i)
     {
-        return CColor::BLUE; // food
-    }
-
-    else if (rFood3 < m_food)
-    {
-        return CColor::PURPLE; // food
+        const CFootBotBT::Poi& food = arena[i+1];
+        if (hypotenuseSquared(x, y, food.m_x, food.m_y) < food.m_r * food.m_r)
+        {
+            return colours[i]; // food
+        }
     }
 
     return CColor::GRAY90; // remaining space
@@ -1070,6 +1057,7 @@ void CBTLoopFunctions::PostStep()
     {
         m_currentIteration = floor(m_count / (m_experimentLength / m_numIterations));
         m_pcFloor->SetChanged();
+        moveRobotsOutOfRange();
 
         if (m_formation == "lattice")
         {
@@ -1104,8 +1092,6 @@ void CBTLoopFunctions::PostStep()
 
 void CBTLoopFunctions::postStepRandom()
 {
-    moveRobotsOutOfRange();
-
     for (CFootBotEntity* footbot : m_footbots)
     {
         randomFormation(footbot);
@@ -1128,8 +1114,6 @@ void CBTLoopFunctions::postStepLattice()
 
 void CBTLoopFunctions::postStepLocalised()
 {
-    moveRobotsOutOfRange();
-
     for (int i = 0; i < m_sqrtRobots; ++i)
     {
         for (int j = 0; j < m_sqrtRobots; ++j)
@@ -1143,8 +1127,6 @@ void CBTLoopFunctions::postStepLocalised()
 
 void CBTLoopFunctions::postStepInNest()
 {
-    moveRobotsOutOfRange();
-
     for (CFootBotEntity* footbot : m_footbots)
     {
         inNestFormation(footbot);
@@ -1349,12 +1331,13 @@ void CBTLoopFunctions::setArenaPOIs(CFootBotEntity* footbot)
 
 bool CBTLoopFunctions::usingDynamicArena()
 {
-    return (m_arenaLayout == 6 || m_arenaLayout == 7 || m_arenaLayout == 8 || m_arenaLayout == 9);
+    return (m_arenaLayout == 5 || m_arenaLayout == 6 || m_arenaLayout == 7 ||
+            m_arenaLayout == 8 || m_arenaLayout == 9);
 }
 
 bool CBTLoopFunctions::usingArenaPOIs()
 {
-    return (m_arenaLayout == 2 || m_arenaLayout == 3 || m_arenaLayout == 5 || usingDynamicArena());
+    return (m_arenaLayout == 2 || m_arenaLayout == 3 || usingDynamicArena());
 }
 
 bool CBTLoopFunctions::IsExperimentFinished()

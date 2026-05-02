@@ -202,22 +202,18 @@ void CFootBotBT::calculateDistancesExp4(double x, double y)
 
 void CFootBotBT::calculateDistancesExp5(double x, double y)
 {
-    float gap = m_gap / 2;
+    const std::vector<Poi>& arena = m_arena;
 
-    double x_plus_gap_sq = (x + gap + m_foodRadius) * (x + gap + m_foodRadius);
-    double y_plus_gap_sq = (y + gap + m_foodRadius) * (y + gap + m_foodRadius);
-    double x_minus_gap_sq = (x - (gap + m_foodRadius)) * (x - (gap + m_foodRadius));
-    double y_minus_gap_sq = (y - (gap + m_foodRadius)) * (y - (gap + m_foodRadius));
+    const CFootBotBT::Poi& nest = arena[0];
+    double distNest  = sqrt(hypotenuseSquared(x, y, nest.m_x,  nest.m_y)) - nest.m_r;
+    m_distNest = distNest  < 0.0 ? 0.0 : distNest;
 
-    double distNest  = sqrt(x_plus_gap_sq + y_minus_gap_sq) - m_nestRadius;
-    double distFood1 = sqrt(x_minus_gap_sq + y_plus_gap_sq) - m_foodRadius;
-    double distFood2 = sqrt(x_plus_gap_sq + y_plus_gap_sq) - m_foodRadius;
-    double distFood3 = sqrt(x_minus_gap_sq + y_minus_gap_sq) - m_foodRadius;
-
-    m_distNest    = distNest  < 0.0 ? 0.0 : distNest;
-    m_distFood[0] = distFood1 < 0.0 ? 0.0 : distFood1;
-    m_distFood[1] = distFood2 < 0.0 ? 0.0 : distFood2;
-    m_distFood[2] = distFood3 < 0.0 ? 0.0 : distFood3;
+    for (uint i = 0; i < numFoodRegions(); ++i)
+    {
+        const CFootBotBT::Poi& food = arena[i+1];
+        double distance = sqrt(hypotenuseSquared(x, y, food.m_x,  food.m_y)) - food.m_r;
+        m_distFood[i] = distance < 0.0 ? 0.0 : distance;
+    }
 }
 
 void CFootBotBT::calculateDistancesExp6(double x, double y)

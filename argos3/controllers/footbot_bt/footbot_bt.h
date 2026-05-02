@@ -25,6 +25,20 @@ public:
         double m_x;
         double m_y;
         double m_r;
+
+        Poi()
+        {
+            m_x = 0.0;
+            m_y = 0.0;
+            m_r = 1.0;
+        }
+
+        Poi(double x, double y, double r)
+        {
+            m_x = x;
+            m_y = y;
+            m_r = r;
+        }
     };
 
     CFootBotBT();
