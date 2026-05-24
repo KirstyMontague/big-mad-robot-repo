@@ -8,9 +8,6 @@ import pickle
 import warnings
 warnings.filterwarnings("error")
 
-# from containers import *
-from grid import Grid
-
 from deap import tools
 
 from params import eaParams
@@ -29,8 +26,15 @@ class EA():
     def __init__(self, params):
 
         self.params = params
+
+        if not self.params.usingNewGrid:
+            bins = self.params.nb_bins
+            if bins[0] * bins[1] * bins[2] > 80 * 80 * 80:
+                self.params.console("\n\nToo many bins for qdpy ("+str(bins)+")\n")
+                self.params.cancelled = True
+                return
+
         self.params.is_qdpy = True
-        self.params.makePaths()
 
         random.seed(self.params.deapSeed)
 
@@ -47,9 +51,10 @@ class EA():
             tournament = self.multiFoodMaxTournament
         elif self.params.tournament == "multiFoodFloorTournament":
             tournament = self.multiFoodFloorTournament
+        elif self.params.tournament == "biasedTournament":
+            tournament = self.biasedTournament
 
         self.utilities.toolbox = self.utilities.setupToolboxGP(tournament)
-        self.utilities.saveConfigurationFile()
         self.toolbox = self.utilities.toolbox
 
         self.redundancy = Redundancy(self.params)
@@ -64,33 +69,35 @@ class EA():
             return
 
         start_time = round(time.time() * 1000)
-        self.utilities.saveParams()
-
-        self.archive.getArchives(self.redundancy)
 
         if self.params.readCheckpoint:
-            self.checkpoint.read()
+            try:
+                self.checkpoint.read()
+            except FileNotFoundError as error:
+                print("\n"+str(error)+"\n")
             return
 
-        elif self.params.loadCheckpoint:
+        self.params.makePaths()
+        self.utilities.saveConfigurationFile()
+        self.archive.getArchives(self.redundancy)
+
+        if self.params.loadCheckpoint:
             try:
                 self.current_batch, containers = self.checkpoint.load(self.logs)
+                self.container = containers[0]
+                generation = self.params.start_gen
             except ValueError as error:
                 self.utilities.printError(error.args)
-                return
-            self.container = containers[0]
-            generation = self.params.start_gen
+                self.params.cancelled = True
+            except FileNotFoundError as error:
+                print("\n"+str(error)+"\n")
+                self.params.cancelled = True
 
         else:
-            if self.params.usingNewGrid:
-                self.container = Grid(self.params.nb_bins, self.params.features_domain)
-            else:
-                self.container = Grid(shape = self.params.nb_bins,
-                                      max_items_per_bin = self.params.max_items_per_bin,
-                                      fitness_domain = self.params.fitness_domain,
-                                      features_domain = self.params.features_domain,
-                                      storage_type=list)
-
+            self.container = self.utilities.createContainer(self.params.nb_bins,
+                                                            self.params.features_domain,
+                                                            self.params.max_items_per_bin,
+                                                            self.params.bias)
             self.current_batch = self.toolbox.population(n = self.params.populationSize)
             generation = 0
 
@@ -98,19 +105,21 @@ class EA():
                 self.evaluateNewPopulation(self.container, generation, self.current_batch, "w")
             except ValueError as error:
                 self.utilities.printError(error.args)
-                return
+                self.params.cancelled = True
 
             self.params.runtime()
+
+        if self.params.cancelled:
+            self.params.console("\naborted\n")
+            self.params.deleteTempFiles()
+            return
+
+        self.utilities.saveParams()
 
         try:
             self.eaLoop(self.container, generation)
         except ValueError as error:
             self.utilities.printError(error.args)
-            return
-
-        self.checkpoint.save(self.params.generations, self.current_batch, [self.container], self.logs)
-        self.archive.saveArchive(self.redundancy, self.params.generations)
-        self.utilities.saveBestIndividuals(self.utilities.getBestMax(self.container, 25), self.params.generations)
 
         self.params.deleteTempFiles()
 
@@ -136,7 +145,7 @@ class EA():
             self.current_batch = offspring
 
             self.checkpoint.save(generation, self.current_batch, [container], self.logs)
-            self.logs.saveCSV(generation, container)
+            self.logs.saveCSV(generation, container.values() if self.params.usingNewGrid else container)
             self.archive.saveArchive(self.redundancy, generation)
             self.utilities.saveBestIndividuals(self.utilities.getBestMax(container, 25), generation)
 
@@ -173,7 +182,7 @@ class EA():
         if self.params.printOffspring:
             output = "\nPrint all offspring\n\n"
             for ind in offspring:
-                output += str("%.5f" % ind.fitness.values[0]) + "  \t"
+                output += str("%.5f" % ind.fitness.values[0]) + "  \t|\t"
                 for f in ind.features:
                     output += str("%.5f" % f) + " \t"
                 output += "\n"
@@ -194,24 +203,27 @@ class EA():
 
         self.printOutput(generation, invalid_new, invalid_orig, matched)
 
-        if (self.params.printContainer and generation == self.params.generations):
-            self.utilities.printContainer(container)
+        if generation > 0 and (generation % self.params.verbose_interval == 0 or generation == self.params.generations):
 
-        if (self.params.printExtrema and (generation % self.params.verbose_interval == 0 or generation == self.params.generations)):
-            self.params.console(self.utilities.getExtrema(container))
-            filename = self.params.path()+"/extrema.txt"
-            with open(filename, "w") as f:
-                f.write(self.utilities.getExtrema(container, True))
+            if self.params.printContainer:
+                self.utilities.printContainer(container)
 
-        if (self.params.printBestIndividuals and generation == self.params.generations):
-            self.utilities.printBestMax(container)
-            adjustedqdscore = self.utilities.getAdjustedQDScore(container)
-            qdscore = self.utilities.getQDScore(container)
-            coverage = self.utilities.getCoverage(container)
-            qd_score_and_coverage = "QD Score: "+str("%.9f" % adjustedqdscore)+" (was "+str("%.9f" % qdscore)+")\n"
-            qd_score_and_coverage += "Coverage: "+str("%.9f" % coverage)+"\n"
-            self.params.console(qd_score_and_coverage)
-            self.params.console(self.utilities.printRepertoireQdScores(container))
+            if self.params.printExtrema:
+                self.params.console("\nPrint extrema")
+                self.params.console(self.utilities.printExtrema(container))
+                filename = self.params.path()+"/extrema.txt"
+                with open(filename, "w") as f:
+                    f.write(self.utilities.printExtrema(container, True))
+
+            if self.params.printBestIndividuals:
+                self.utilities.printBestMax(container)
+                adjustedqdscore = self.utilities.getAdjustedQDScore(container)
+                qdscore = self.utilities.getQDScore(container)
+                coverage = self.utilities.getCoverage(container)
+                qd_score_and_coverage = "QD Score: "+str("%.9f" % adjustedqdscore)+" (was "+str("%.9f" % qdscore)+")\n"
+                qd_score_and_coverage += "Coverage: "+str("%.9f" % coverage)+"\n"
+                self.params.console(qd_score_and_coverage)
+                self.params.console(self.utilities.printRepertoireQdScores(container))
 
         if self.params.saveCSV or self.params.saveCheckpoint:
             self.logs.logFitness(generation, self.utilities.getBestMax(container))
@@ -234,7 +246,10 @@ class EA():
         avg = avg / len(population)
         avg_string = str("%.1f" % avg)
 
-        best = self.utilities.getBestFromContainer(self.container, 0)
+        if self.params.bias > -1:
+            best = self.utilities.getExtremaFromContainer(self.container)[self.params.bias]
+        else:
+            best = self.utilities.getBestFromContainer(self.container, 0)
         best_fitness = str("%.6f" % best.fitness.values[0])
 
         if self.params.using_repertoire:
@@ -282,6 +297,15 @@ class EA():
         for ind, fit in zip(population, fitnesses):
             ind.fitness.values = fit[0]
             ind.features = fit[1]
+
+    def biasedTournament(self, individuals, k, tournsize, fit_attr="fitness"):
+
+        chosen = []
+        for i in range(k):
+            aspirants = tools.selRandom(individuals, tournsize)
+            best = self.utilities.getExtremaFromPopulation(aspirants)[self.params.bias]
+            chosen.append(best)
+        return chosen
 
     def agnosticTournament(self, individuals, k, tournsize, fit_attr="fitness"):
 

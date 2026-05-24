@@ -21,6 +21,7 @@ class eaParams():
 
         self.deapSeed = 0
         self.indexes = [0]
+        self.bias = -1
         self.populationSize = 25
         self.tournament = "selTournament"
 
@@ -112,7 +113,6 @@ class eaParams():
         self.velocity = 5.0
         self.formation = "random"
         self.arena_layout = 1
-        self.arena_bias = 0
 
         self.trial_length = 20
         if self.description == "foraging":
@@ -177,7 +177,7 @@ class eaParams():
             description = self.description
         path = "/"+self.experiment+"/"+description
         if self.project == "straight_to_foraging" and self.arena_layout == 9:
-            path += "/straight_to_foraging/bias"+str(self.arena_bias)
+            path += "/straight_to_foraging/bias"+str(self.bias)
         elif self.description == "foraging":
             if self.using_repertoire:
                 path += "/"+self.repertoire_type+str(self.repertoire_size)
@@ -199,7 +199,7 @@ class eaParams():
 
     def makePaths(self):
 
-        print("\nPath: "+self.path())
+        self.console("\nPath: "+self.path())
 
         if self.experiment == "":
             self.experiment = "vanilla"
@@ -321,25 +321,30 @@ class eaParams():
                     self.features_domain.append((float(data[i]), float(data[i+1])))
 
         if data[0] == "tournament":
-            permitted = ["agnosticTournament", "multiFoodMaxTournament", "multiFoodTournament", "multiFoodFloorTournament", "selTournament"]
-            if data[1] in permitted:
-                self.tournament = data[1]
-            else:
-                print(data[1]+" tournament not supported")
+            permitted = ["agnosticTournament", "biasedTournament", "multiFoodMaxTournament",
+                         "multiFoodTournament", "multiFoodFloorTournament", "selTournament"]
+            if data[1] not in permitted:
+                self.console("\n"+data[1]+" tournament not supported\n")
                 self.stop = True
+            elif data[1] == "biasedTournament" and not self.usingNewGrid:
+                self.console("\nBias is not supported by qdpy\n")
+                self.stop = True
+            if self.stop:
                 self.saveOutput = False
                 self.saveCSV = False
                 self.generations = 0
+            else:
+                self.tournament = data[1]
 
         if data[0] == "arena_params" and len(data) > 1:
             self.arena_params = []
             for param in data[1:]:
                 self.arena_params.append(float(param))
 
+        if data[0] == "bias": self.bias = int(data[1])
         if data[0] == "sqrt_robots": self.sqrt_robots = int(data[1])
         if data[0] == "formation": self.formation = data[1]
         if data[0] == "arena_layout": self.arena_layout = int(data[1])
-        if data[0] == "arena_bias": self.arena_bias = int(data[1])
         if data[0] == "tournamentSize": self.tournamentSize = int(data[1])
         if data[0] == "population_size": self.populationSize = int(data[1])
         if data[0] == "food_radius": self.food_radius = float(data[1])
@@ -349,7 +354,6 @@ class eaParams():
         if data[0] == "iterations": self.iterations = int(data[1])
         if data[0] == "trial_length": self.trial_length = int(data[1])
         if data[0] == "loadCheckpoint": self.loadCheckpoint = True if data[1] == "True" else False
-        if data[0] == "runs": self.runs = int(data[1])
         if data[0] == "start_gen": self.start_gen = int(data[1])
         if data[0] == "generations": self.generations = int(data[1])
         if data[0] == "genSleep": self.genSleep = float(data[1])
@@ -358,6 +362,8 @@ class eaParams():
         if data[0] == "printEliteScores": self.printEliteScores = True if data[1] == "True" else False
         if data[0] == "printFitnessScores": self.printFitnessScores = True if data[1] == "True" else False
         if data[0] == "printBestIndividuals": self.printBestIndividuals = True if data[1] == "True" else False
+        if data[0] == "printContainer": self.printContainer = True if data[1] == "True" else False
+        if data[0] == "printOffspring": self.printOffspring = True if data[1] == "True" else False
         if data[0] == "printExtrema": self.printExtrema = True if data[1] == "True" else False
         if data[0] == "useArchive": self.useArchive = True if data[1] == "True" else False
         if data[0] == "saveOutput": self.saveOutput = True if data[1] == "True" else False

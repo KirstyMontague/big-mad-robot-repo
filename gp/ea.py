@@ -37,7 +37,6 @@ class EA():
 
         self.utilities = Utilities(params, self.behaviours)
         self.utilities.toolbox = self.utilities.setupToolboxGP(self.selTournament)
-        self.utilities.saveConfigurationFile()
 
         self.logs = Logs(self.params, self.utilities)
         self.redundancy = Redundancy(self.params)
@@ -201,23 +200,28 @@ class EA():
             self.params.console("\naborted\n")
             return
 
-        start_time = round(time.time() * 1000)
-        
-        self.archive.getArchives(self.redundancy)
-        
-        invalid_orig = 0
-        invalid_new = 0
-
         if self.params.readCheckpoint:
-            self.checkpoint.read()
+            try:
+                self.checkpoint.read()
+            except FileNotFoundError as error:
+                self.params.console("\n"+str(error)+"\n")
             return
 
-        elif self.params.loadCheckpoint:
+        start_time = round(time.time() * 1000)
+
+        self.params.makePaths()
+        self.utilities.saveConfigurationFile()
+        self.archive.getArchives(self.redundancy)
+
+        if self.params.loadCheckpoint:
             try:
                 population, self.grid.grids = self.checkpoint.load(self.logs)
             except ValueError as error:
                 self.utilities.printError(error.args)
-                return
+                self.params.cancelled = True
+            except FileNotFoundError as error:
+                self.params.console("\n"+str(error)+"\n")
+                self.params.cancelled = True
             self.archive.setCompleteArchive(self.archive.getArchive())
             generation = self.params.start_gen
 
@@ -226,17 +230,24 @@ class EA():
                 population = self.startWithNewPopulation()
             except ValueError as error:
                 self.utilities.printError(error.args)
-                return
+                self.params.cancelled = True
 
-            best = self.utilities.getBestAll(population)
+            if not self.params.cancelled:
 
-            self.checkpoint.save(self.params.generations, population, self.grid.grids, self.logs)
-            self.archive.saveArchive(self.redundancy, self.params.generations)
-            self.utilities.saveBestToFile(best[0])
-            self.grid.save(self.params.generations)
+                best = self.utilities.getBestAll(population)
 
-            generation = 0
-            self.params.runtime()
+                self.checkpoint.save(self.params.generations, population, self.grid.grids, self.logs)
+                self.archive.saveArchive(self.redundancy, self.params.generations)
+                self.utilities.saveBestToFile(best[0])
+                self.grid.save(self.params.generations)
+
+                generation = 0
+                self.params.runtime()
+
+        if self.params.cancelled:
+            self.params.deleteTempFiles()
+            self.params.console("\naborted\n")
+            return
 
         self.utilities.saveParams()
 
@@ -244,14 +255,13 @@ class EA():
             self.eaLoop(population, generation)
         except ValueError as error:
             self.utilities.printError(error.args)
-            return
+
+        self.params.deleteTempFiles()
 
         end_time = round(time.time() * 1000)
         self.utilities.saveDuration(start_time, end_time)
 
         time.sleep(self.params.eaRunSleep)
-
-        return population
 
     def eaLoop(self, population, generation):
 

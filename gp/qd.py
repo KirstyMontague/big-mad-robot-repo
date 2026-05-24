@@ -20,6 +20,13 @@ class QD():
         self.params = params
         self.utilities = utilities
 
+        if not self.params.usingNewGrid:
+            bins = self.params.nb_bins
+            if bins[0] * bins[1] * bins[2] > 80 * 80 * 80:
+                self.params.console("\n\nToo many bins for qdpy ("+str(bins)+")\n")
+                self.params.cancelled = True
+                return
+
         def genEmpty():
             return []
 
@@ -40,15 +47,7 @@ class QD():
 
         for objective in self.params.indexes:
 
-            if self.params.usingNewGrid:
-                self.grids.append(Grid(self.params.nb_bins,
-                                       self.params.features_domain))
-            else:
-                self.grids.append(Grid(shape = self.params.nb_bins,
-                                       max_items_per_bin = 1,
-                                       fitness_domain = self.params.fitness_domain,
-                                       features_domain = self.params.features_domain,
-                                       storage_type=list))
+            self.grids.append(self.utilities.createContainer(self.params.nb_bins, self.params.features_domain, 1))
 
     def addPopulation(self, population):
 

@@ -1,10 +1,11 @@
 
-import subprocess
-import time
 from datetime import datetime
+import numpy
 import pickle
 import random
+import subprocess
 import threading
+import time
 
 from deap import gp
 from deap import tools
@@ -398,16 +399,15 @@ class Utilities():
                 for f in ind.features:
                     output += str("%.4f" % f) + " \t"
                 output += "\n"
-                output +=  str(ind)+"\n"
                 # print (self.printTree(ind))
             output += "---\n"
 
         self.params.console(output)
 
-    def createContainer(self, bins, domain, max_per_bin):
+    def createContainer(self, bins, domain, max_per_bin, bias = -1):
 
         if self.params.usingNewGrid:
-            container = Grid(bins, domain)
+            container = Grid(bins, domain, bias)
         else:
             container = Grid(shape = bins,
                              max_items_per_bin = max_per_bin,
@@ -718,7 +718,7 @@ class Utilities():
                         f.write("\n============================================\n")
 
     def formatChromosome(self, chromosome):
-        
+
         tree = ""
         indent = ""
         lineEnding = "\n"
@@ -888,7 +888,7 @@ class Utilities():
             f.write("formation:"+self.params.formation+"\n")
             f.write("arenaLayout:"+str(self.params.arena_layout)+"\n")
             if self.params.arena_layout == 9:
-                f.write("arenaBias:"+str(self.params.arena_bias)+"\n")
+                f.write("arenaBias:"+str(self.params.bias)+"\n")
 
     def saveParams(self):
 
@@ -978,8 +978,10 @@ class Utilities():
         return self.getExperimentDescription(objective, algorithm, objectives)
 
     def getExperimentDescription(self, objective, algorithm, objectives = None):
+
         if objectives == None:
             objectives = self.params.objectives
+
         if algorithm == "mtc":
             if objective in [0, 1, 5]: return objectives[0]+"-"+objectives[1]+"-"+objectives[5]
             if objective in [2, 3, 4]: return objectives[2]+"-"+objectives[3]+"-"+objectives[4]
@@ -991,7 +993,7 @@ class Utilities():
 
     def getExperimentDirectory(self, objective, algorithm):
         if self.params.objectives[objective] == "foraging":
-            # currently only used in combine.py so always default to baseline
+            # currently only used in combine.py and extrema.py so always default to baseline
             return "foraging/baseline"
         else:
             return self.getExperimentDescription(objective, algorithm)

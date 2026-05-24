@@ -59,7 +59,7 @@ class Logs():
 
         all_best = []
         for i in range(self.params.features):
-            all_best.append(self.utilities.getBestFromContainer(population, i))
+            all_best.append(self.utilities.getBestFromPopulation(population, i))
 
         chromosomes = ",\""
         for best in all_best:

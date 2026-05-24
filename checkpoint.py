@@ -89,6 +89,11 @@ class Checkpoint():
 
             if self.params.saveCheckpoint:
 
+                if not self.params.usingNewGrid:
+                    bins = self.params.nb_bins[0] * self.params.nb_bins[1] * self.params.nb_bins[2]
+                    if bins > 10 * 10 * 10:
+                        raise ValueError("too many bins to save save qdpy checkpoint")
+
                 checkpoint = dict(containers=containers,
                                   population=population,
                                   generation=self.params.generations,

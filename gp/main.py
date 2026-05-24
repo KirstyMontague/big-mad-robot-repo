@@ -80,12 +80,8 @@ if not params.stop:
         # trimOneIndividual()
         # return
 
-        params.makePaths()
-
         ea = EA(params)
         ea.eaInit()
-
-        params.deleteTempFiles()
 
 
     if __name__ == "__main__":

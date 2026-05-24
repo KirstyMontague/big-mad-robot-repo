@@ -9,11 +9,12 @@ class Grid():
     Only stores one individual per bin, no handling for duplicates
     """
 
-    def __init__(self, nb_bins, features_domain):
+    def __init__(self, nb_bins, features_domain, bias = -1):
 
         self.container = {}
         self.nb_bins = nb_bins
         self.features_domain = features_domain
+        self.bias = bias
         self.discard_out_of_bounds = False
 
         self.bin_sizes = []
@@ -30,7 +31,7 @@ class Grid():
         count = 0
         for ind in population:
             count += self.add(ind)
-        print("added "+str(count))
+        return count
 
     def add(self, individual):
 
@@ -55,11 +56,20 @@ class Grid():
 
         location = tuple(indexes)
 
-        if location not in self.container or individual.fitness > self.container[location].fitness:
+        if location not in self.container:
             self.container[location] = individual
             return 1
-        else:
-            return 0
+
+        if self.bias > -1:
+            if individual.features[self.bias] > self.container[location].features[self.bias]:
+                self.container[location] = individual
+                return 1
+
+        elif individual.fitness > self.container[location].fitness:
+            self.container[location] = individual
+            return 1
+
+        return 0
 
     def values(self):
         return self.container.values()
