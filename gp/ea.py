@@ -211,7 +211,7 @@ class EA():
 
         self.params.makePaths()
         self.utilities.saveConfigurationFile()
-        self.archive.getArchives(self.redundancy)
+        self.archive.getArchives()
 
         if self.params.loadCheckpoint:
             try:

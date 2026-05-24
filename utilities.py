@@ -224,8 +224,11 @@ class Utilities():
 
         chromosomes = ""
         for ind in swarm:
-            ig = tuple(ind)
-            ind = self.repertoire.solutions[ig][0]
+            if self.params.usingNewGrid:
+                ind = self.repertoire.container[tuple(ind)]
+            else:
+                ig = tuple(ind)
+                ind = self.repertoire.solutions[ig][0]
             chromosomes += str(ind)+"\n"
 
         # save chromosomes to file
@@ -404,6 +407,15 @@ class Utilities():
 
         self.params.console(output)
 
+    def checkContainerSize(self):
+        if not self.params.usingNewGrid:
+            bins = self.params.nb_bins
+            if bins[0] * bins[1] * bins[2] > 80 * 80 * 80:
+                self.params.console("\n\nToo many bins for qdpy ("+str(bins)+")\n")
+                self.params.cancelled = True
+                return False
+        return True
+
     def createContainer(self, bins, domain, max_per_bin, bias = -1):
 
         if self.params.usingNewGrid:
@@ -552,7 +564,12 @@ class Utilities():
 
         return best
 
-    def getBestHeterogenousSwarm(self, population):
+    def getBestSwarmFromContainer(self, container):
+
+        population = container.values() if self.params.usingNewGrid else container
+        return self.getBestSwarmFromPopulation(population)
+
+    def getBestSwarmFromPopulation(self, population):
 
         for individual in population:
 
@@ -719,6 +736,9 @@ class Utilities():
 
     def formatChromosome(self, chromosome):
 
+        if self.params.algorithm == "ga":
+            return str(chromosome)
+
         tree = ""
         indent = ""
         lineEnding = "\n"
@@ -800,6 +820,19 @@ class Utilities():
                     else: break
         
         return tree
+
+    def printHeterogeneousSwarm(self, repertoire, chromosome):
+
+        chromosomes = ""
+        for ind in chromosome:
+            if self.params.usingNewGrid:
+                ind = repertoire.container[tuple(ind)]
+            else:
+                ig = tuple(ind)
+                ind = self.repertoire.solutions[ig][0]
+            chromosomes += str(ind)+"\n"
+        print()
+        print(chromosomes)
 
     def getFilledBins(self, container):
 

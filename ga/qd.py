@@ -10,11 +10,12 @@ import pickle
 import warnings
 warnings.filterwarnings("error")
 
-from qdpy.phenotype import *
-from containers import *
+# from containers import *
+from grid import Grid
 
 from deap import tools
 
+from archive import Archive
 from params import eaParams
 from behaviours import Behaviours
 from redundancy import Redundancy
@@ -25,11 +26,11 @@ class EA():
 
     def __init__(self, params):
 
+        start_time = round(time.time() * 1000)
+
         self.params = params
         self.params.is_qdpy = True
         self.params.using_repertoire = False
-        self.params.deapSeed = 1
-        self.params.makePaths()
 
         random.seed(self.params.deapSeed)
 
@@ -38,27 +39,31 @@ class EA():
         self.utilities = Utilities(self.params, self.behaviours)
         self.redundancy = Redundancy(self.params)
 
-        self.repertoire = (Grid(shape = [50,50,50],
-                                max_items_per_bin = 1,
-                                fitness_domain = [(0.0,1.0),],
-                                features_domain = [(0,0.2), (0,0.2), (0,0.2)],
-                                storage_type=list))
+        self.gp_toolbox = self.utilities.setupToolboxGP(None)
 
-        self.gp_toolbox = self.utilities.setupToolboxGP(self.emptyTournament)
-        path = self.params.shared_path+"/ga/"+self.params.experiment+"/foraging/foraging.txt"
-        self.utilities.updateContainerFromString(self.redundancy, self.gp_toolbox, self.repertoire, path)
+        if not self.utilities.checkContainerSize():
+            return
+
+        self.params.makePaths()
+
+        # need nb_bins and features_domain from when the repertoire was generated
+        self.repertoire = self.utilities.createContainer(self.params.nb_bins, self.params.features_domain, self.params.max_items_per_bin)
+        repertoire_path = self.params.shared_path+"/ga/"+self.params.experiment+"/foraging/foraging.txt"
+        self.utilities.updateContainerFromString(self.redundancy, self.gp_toolbox, self.repertoire, repertoire_path, 0, 10)
 
         print()
         flat_indexes = []
         grid_indexes = []
-        for idx, inds in self.repertoire.solutions.items():
-            if len(inds) > 0:
-                ind = inds[0]
-                idx2 = self.repertoire.items.index(ind)
-                ig = self.repertoire.index_grid(ind.features)
-                flat_indexes.append(idx2)
-                grid_indexes.append(list(ig))
-        print("repertoire size "+str(len(self.repertoire))+"\n")
+
+        if self.params.usingNewGrid:
+            flat_indexes.extend(range(len(self.repertoire.items())))
+            grid_indexes = [key for key, value in self.repertoire.items()]
+            print("repertoire size "+str(len(self.repertoire.values()))+"\n")
+        else:
+            container = self.repertoire.solutions.items()
+            flat_indexes = [self.repertoire.items.index(inds[0]) for index, inds in container if len(inds) > 0]
+            grid_indexes = [self.repertoire.index_grid(inds[0].features) for index, inds in container if len(inds) > 0]
+            print("repertoire size "+str(len(self.repertoire))+"\n")
 
         self.utilities.toolbox = self.utilities.setupToolboxGA(self.repertoire, self.mutateOneIndividual, flat_indexes, grid_indexes)
 
@@ -67,27 +72,39 @@ class EA():
 
         self.CXPB, self.MUTPB = 0.5, 1.0
 
-    def run(self, init_batch = None, **kwargs):
+        self.archive = Archive(params, None)
+
+        end_time = round(time.time() * 1000)
+
+        duration = end_time - start_time
+        self.params.console("\nLoading time: " +self.utilities.formatDuration(duration)+"\n")
+
+
+    def run(self):
 
         if self.params.cancelled:
             self.params.console("\naborted\n")
             return
 
         start_time = round(time.time() * 1000)
+
+        self.archive.getArchives()
+
         self.utilities.saveParams()
 
-        self.container = Grid(shape = self.params.nb_bins,
-                              max_items_per_bin = self.params.max_items_per_bin,
-                              fitness_domain = self.params.fitness_domain,
-                              features_domain = self.params.features_domain,
-                              storage_type=list)
+        self.container = self.utilities.createContainer(self.params.nb_bins,
+                                                        self.params.features_domain,
+                                                        self.params.max_items_per_bin)
 
         self.current_batch = self.utilities.toolbox.population(n = self.params.populationSize)
+
         generation = 0
-        self.evaluateNewPopulation(self.container, generation, self.current_batch, "w")
+        self.evaluateNewPopulation(generation, self.current_batch, "w")
         self.params.runtime()
 
-        self.eaLoop(self.container, generation)
+        self.eaLoop(generation)
+
+        self.archive.saveArchive(None, self.params.generations)
 
         # self.params.deleteTempFiles()
 
@@ -96,7 +113,7 @@ class EA():
 
         time.sleep(self.params.eaRunSleep)
 
-    def eaLoop(self, container, generation):
+    def eaLoop(self, generation):
 
         max_gen = self.params.generations
 
@@ -104,7 +121,8 @@ class EA():
 
             generation += 1
 
-            offspring = self.utilities.toolbox.select(container, self.params.populationSize)
+            population = list(self.container.values()) if self.params.usingNewGrid else self.container
+            offspring = self.utilities.toolbox.select(population, self.params.populationSize)
             offspring = list(map(self.utilities.toolbox.clone, offspring))
 
             for child1, child2 in zip(offspring[::2], offspring[1::2]):
@@ -119,30 +137,58 @@ class EA():
                     self.utilities.toolbox.mutate(mutant)
                     del mutant.fitness.values
 
-            self.evaluateNewPopulation(container, generation, offspring, "a")
+            self.evaluateNewPopulation(generation, offspring, "a")
 
             self.current_batch = offspring
 
             self.params.runtime()
             max_gen = self.params.generations
 
-    def transferTrimmedFitnessScores(self, offspring, trimmed):
-        for i in range(len(offspring)):
-            offspring[i].fitness.values = trimmed[i].fitness.values
-            offspring[i].features = trimmed[i].features
+            self.archive.saveArchive(None, self.params.generations)
 
-    def evaluateNewPopulation(self, container, generation, offspring, mode):
+    def evaluateNewPopulation(self, generation, offspring, mode):
+
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        invalid_orig = len(invalid_ind)
+
+        matched = [0,0]
+        invalid_ind = self.archive.assignDuplicateFitness(invalid_ind, self.assignFitness, matched)
+        archive_ind = invalid_ind
 
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         invalid_new = len(invalid_ind)
 
         self.utilities.evaluate(self.assignPopulationFitness, invalid_ind)
 
-        self.utilities.removeDuplicates(offspring, container)
+        for ind in archive_ind:
+            self.archive.addToCompleteArchive(str(ind), tuple([ind.fitness.values[0]] + ind.features))
 
-        nb_updated = container.update(offspring, issue_warning = self.params.show_warnings)
+        for ind in invalid_ind:
+            self.archive.addToArchive(str(ind), tuple([ind.fitness.values[0]] + ind.features))
 
-        self.printOutput(generation, invalid_new)
+        self.utilities.removeDuplicates(offspring, self.container)
+
+        if self.params.usingNewGrid:
+            self.container.update(offspring)
+        else:
+            self.container.update(offspring, issue_warning = self.params.show_warnings)
+
+        self.printOutput(generation, invalid_new, invalid_orig, matched)
+
+        if (self.params.printExtrema and (generation % self.params.verbose_interval == 0 or generation == self.params.generations)):
+            self.params.console(self.utilities.printExtrema(self.container))
+            filename = self.params.path()+"extrema.txt"
+            if os.path.exists(self.params.path()):
+                with open(filename, "w") as f:
+                    f.write(self.utilities.printExtrema(self.container, True))
+
+        if self.params.printBestIndividuals and generation == self.params.generations:
+            best = self.utilities.getBestSwarmFromContainer(self.container)
+            self.utilities.printHeterogeneousSwarm(self.repertoire, best)
+            qd_score_and_coverage = "QD Score: "+str("%.9f" % self.utilities.getAdjustedQDScore(self.container))+"\n"
+            qd_score_and_coverage += "Coverage: "+str("%.9f" % self.utilities.getCoverage(self.container))+"\n"
+            self.params.console(qd_score_and_coverage)
+            self.params.console(self.utilities.printRepertoireQdScores(self.container))
 
         if generation != 0 and generation % 100 == 0 and invalid_new == 0:
             time.sleep(10.0)
@@ -150,13 +196,13 @@ class EA():
         if invalid_new > 0:
             time.sleep(self.params.genSleep)
 
-    def printOutput(self, generation, invalid_new):
+    def printOutput(self, generation, invalid_new, invalid_orig, matched):
 
-        best = self.utilities.getBestHeterogenousSwarm(self.container)
+        best = self.utilities.getBestSwarmFromContainer(self.container)
         fitness = str("%.6f" % best.fitness.values[0])
 
         coverage = str("%.4f" % self.utilities.getCoverage(self.container))
-        filled = str(len(self.container))
+        filled = str(int(self.utilities.getFilledBins(self.container)))
         total = str(self.params.nb_bins[0] * self.params.nb_bins[1] * self.params.nb_bins[2])
 
         qd_score = str("%.6f" % self.utilities.getAdjustedQDScore(self.container))
@@ -167,12 +213,17 @@ class EA():
         output_string += fitness+" | "
         output_string += filled+" / "+total+" | "
         output_string += qd_score
-        output_string += "\t| invalid "+str(invalid_new)
+        output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
+        output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
 
         write_out = False
         if generation % self.params.output_interval == 0 and invalid_new > 0: write_out = True
         if generation % 100 == 0 or generation == self.params.generations: write_out = True
         if write_out: self.params.console(output_string)
+
+    def assignFitness(self, offspring, fitness):
+        offspring.fitness.values = (fitness[0],)
+        offspring.features = [fitness[1], fitness[2], fitness[3]]
 
     def assignPopulationFitness(self, population, fitnesses):
         for ind, fit in zip(population, fitnesses):
@@ -209,9 +260,6 @@ class EA():
                 swarm[index] = random.choice(candidates)
 
         return swarm
-
-    def emptyTournament(self):
-        return []
 
     def selTournament(self, individuals, k, tournsize, fit_attr="fitness"):
 

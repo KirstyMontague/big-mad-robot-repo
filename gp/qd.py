@@ -20,12 +20,8 @@ class QD():
         self.params = params
         self.utilities = utilities
 
-        if not self.params.usingNewGrid:
-            bins = self.params.nb_bins
-            if bins[0] * bins[1] * bins[2] > 80 * 80 * 80:
-                self.params.console("\n\nToo many bins for qdpy ("+str(bins)+")\n")
-                self.params.cancelled = True
-                return
+        if not self.utilities.checkContainerSize():
+            return
 
         def genEmpty():
             return []

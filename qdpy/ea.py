@@ -26,21 +26,15 @@ class EA():
     def __init__(self, params):
 
         self.params = params
-
-        if not self.params.usingNewGrid:
-            bins = self.params.nb_bins
-            if bins[0] * bins[1] * bins[2] > 80 * 80 * 80:
-                self.params.console("\n\nToo many bins for qdpy ("+str(bins)+")\n")
-                self.params.cancelled = True
-                return
-
         self.params.is_qdpy = True
 
         random.seed(self.params.deapSeed)
 
         self.behaviours = Behaviours(params)
-
         self.utilities = Utilities(params, self.behaviours)
+
+        if not self.utilities.checkContainerSize():
+            return
 
         tournament = self.selTournament
         if self.params.tournament == "agnosticTournament":
@@ -79,7 +73,7 @@ class EA():
 
         self.params.makePaths()
         self.utilities.saveConfigurationFile()
-        self.archive.getArchives(self.redundancy)
+        self.archive.getArchives()
 
         if self.params.loadCheckpoint:
             try:
@@ -212,8 +206,9 @@ class EA():
                 self.params.console("\nPrint extrema")
                 self.params.console(self.utilities.printExtrema(container))
                 filename = self.params.path()+"/extrema.txt"
-                with open(filename, "w") as f:
-                    f.write(self.utilities.printExtrema(container, True))
+                if os.path.exists(self.params.path()):
+                    with open(filename, "w") as f:
+                        f.write(self.utilities.printExtrema(container, True))
 
             if self.params.printBestIndividuals:
                 self.utilities.printBestMax(container)

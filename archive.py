@@ -37,7 +37,7 @@ class Archive():
     def setCompleteArchive(self, archive):
         self.complete_archive = archive
 
-    def getArchives(self, redundancy):
+    def getArchives(self):
 
         if not self.params.useArchive:
             self.params.console("\nDisregarding archive\n")
@@ -47,42 +47,40 @@ class Archive():
         cumulative_archive = self.getCumulativeArchive()
 
         directory_path = self.params.shared_path
-        if self.params.project == "straight_to_foraging" and self.params.arena_layout == 9:
-            results_directory = self.params.experiment+"/"+self.params.foraging_path+"/"
-            results_directory += "straight_to_foraging/bias"+str(self.params.arena_bias)
-        elif self.params.description == "foraging":
-            results_directory = self.params.experiment+"/"+self.params.foraging_path
-            if self.params.using_repertoire:
-                results_directory += "/"+self.params.repertoire_type+str(self.params.repertoire_size)
-            else:
-                results_directory += "/baseline"
-        else:
-            if len(self.params.subbehaviours_path) > 0:
-                results_directory = self.params.subbehaviours_path+"/"+self.params.experiment+"/"+self.params.description
-            else:
-                results_directory = self.params.experiment+"/"+self.params.description
+        results_directory = self.params.directoryPath()
 
-        use_temp_archive = (directory_path == self.params.shared_path and results_directory == self.params.description)
+        use_temp_archive = (directory_path == self.params.shared_path and results_directory == self.params.directoryPath())
 
         output = "\n"
 
-        for i in range(30):
-            archive_path = directory_path+"/gp/"+results_directory+"/"+str(i+1)+"/"
-            if not use_temp_archive or archive_path != self.params.path():
-                if os.path.exists(archive_path+"archive.pkl"):
-                    with open(archive_path+"archive.pkl", "rb") as archive_file:
-                        cumulative_archive.update(pickle.load(archive_file))
-            else:
-                output += "disregarding "+archive_path+"\n"
+        if self.params.algorithm == "ga":
+            for i in range(30):
+                archive_path = directory_path+"/ga/"+results_directory+"/"+str(i+1)+"/"
+                if not use_temp_archive or archive_path != self.params.path():
+                    if os.path.exists(archive_path+"archive.pkl"):
+                        with open(archive_path+"archive.pkl", "rb") as archive_file:
+                            cumulative_archive.update(pickle.load(archive_file))
+                else:
+                    output += "disregarding "+archive_path+"\n"
 
-        for i in range(30):
-            archive_path = directory_path+"/qdpy/"+results_directory+"/"+str(i+1)+"/"
-            if not use_temp_archive or archive_path != self.params.path():
-                if os.path.exists(archive_path+"archive.pkl"):
-                    with open(archive_path+"archive.pkl", "rb") as archive_file:
-                        cumulative_archive.update(pickle.load(archive_file))
-            else:
-                output += "disregarding "+archive_path+"\n"
+        else:
+            for i in range(30):
+                archive_path = directory_path+"/gp/"+results_directory+"/"+str(i+1)+"/"
+                if not use_temp_archive or archive_path != self.params.path():
+                    if os.path.exists(archive_path+"archive.pkl"):
+                        with open(archive_path+"archive.pkl", "rb") as archive_file:
+                            cumulative_archive.update(pickle.load(archive_file))
+                else:
+                    output += "disregarding "+archive_path+"\n"
+
+            for i in range(30):
+                archive_path = directory_path+"/qdpy/"+results_directory+"/"+str(i+1)+"/"
+                if not use_temp_archive or archive_path != self.params.path():
+                    if os.path.exists(archive_path+"archive.pkl"):
+                        with open(archive_path+"archive.pkl", "rb") as archive_file:
+                            cumulative_archive.update(pickle.load(archive_file))
+                else:
+                    output += "disregarding "+archive_path+"\n"
 
         temp_archive = {}
         if use_temp_archive and os.path.exists(self.params.path()+"archive.pkl"):
@@ -175,8 +173,12 @@ class Archive():
 
     def addToArchive(self, chromosome, fitness):
 
-        new_chromosome = self.redundancy.trim(chromosome)
-        mapped_chromosome = self.mapNodesToArchive(str(new_chromosome))
+        if self.params.algorithm == "ga":
+            new_chromosome = chromosome
+            mapped_chromosome = chromosome
+        else:
+            new_chromosome = self.redundancy.trim(chromosome)
+            mapped_chromosome = self.mapNodesToArchive(str(new_chromosome))
 
         if mapped_chromosome in self.archive:
             expected = self.archive[mapped_chromosome]
@@ -195,8 +197,11 @@ class Archive():
 
     def addToCompleteArchive(self, chromosome, fitness):
 
-        new_chromosome = self.redundancy.trim(chromosome)
-        mapped_chromosome = self.mapNodesToArchive(str(new_chromosome))
+        if self.params.algorithm == "ga":
+            mapped_chromosome = chromosome
+        else:
+            new_chromosome = self.redundancy.trim(chromosome)
+            mapped_chromosome = self.mapNodesToArchive(str(new_chromosome))
 
         if mapped_chromosome not in self.complete_archive:
             self.complete_archive.update({str(mapped_chromosome) : fitness})
@@ -204,10 +209,15 @@ class Archive():
     def assignDuplicateFitness(self, offspring, assign_fitness, matched):
 
         offspring_chromosomes = []
-        for ind in offspring:
-            trimmed = self.redundancy.removeRedundancy(str(ind))
-            trimmed = self.mapNodesToArchive(trimmed)
-            offspring_chromosomes.append(trimmed)
+
+        if self.params.algorithm == "ga":
+            for ind in offspring:
+                offspring_chromosomes.append(str(ind))
+        else:
+            for ind in offspring:
+                trimmed = self.redundancy.removeRedundancy(str(ind))
+                trimmed = self.mapNodesToArchive(trimmed)
+                offspring_chromosomes.append(trimmed)
 
         archive = self.getArchive()
         cumulative_archive = self.getCumulativeArchive()
