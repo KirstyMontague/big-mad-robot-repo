@@ -22,6 +22,7 @@ class Aggregator():
                 if data[0] == "home": self.home_path = data[1][0:-1]
                 if data[0] == "local": self.local_path = data[1][0:-1]
                 if data[0] == "shared": self.shared_path = data[1][0:-1]
+                if data[0] == "input": self.input_path = data[1][0:-1]
 
         self.algorithm = "gp"
         self.experiment = "vanilla"
@@ -41,7 +42,7 @@ class Aggregator():
         self.configure()
         self.cancelled = self.cancelled or "repro" in self.shared_path
 
-        self.input_path = self.addRepertoireDir(self.shared_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description)
+        self.input_path = self.addRepertoireDir(self.input_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description)
         self.output_path = self.addRepertoireDir(self.home_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description)
 
     def configure(self):
@@ -97,7 +98,7 @@ class Aggregator():
         if data[0] == "delete": self.delete = True if data[1] == "True" else False
 
     def addRepertoireDir(self, path):
-        if self.objective == "foraging" and self.algorithm == "gp":
+        if self.objective == "foraging":
             if self.using_repertoire:
                 path += "/"+self.repertoire_type+str(self.repertoire_size)
             else:
@@ -214,15 +215,16 @@ class Aggregator():
 
     def copyOtherFiles(self):
 
-        test = input("Copy peripheral files to "+self.output_path+"? (y/N)\n")
-        if test != "y":
-            print("Skipped\n")
-            return
+        if self.save:
+            test = input("Copy peripheral files to "+self.output_path+"? (y/N)\n")
+            if test != "y":
+                print("Skipped\n")
+                return
+            print()
 
-        print()
+        filename = self.input_path+"/"+str(self.runs)+"/params.txt"
 
         params = ""
-        filename = self.input_path+"/"+str(self.runs)+"/params.txt"
         if os.path.exists(filename):
             if self.save:
                 with open(filename, "r") as f:

@@ -35,10 +35,6 @@ class Analysis():
 
     def getData(self, query, objective, algorithms, experiments, repertoires, runs, generation):
 
-        if objective["name"] == "foraging":
-            for i in range(len(algorithms)):
-                algorithms[i] = "gp"
-
         result = []
 
         for algorithm in algorithms:
@@ -53,7 +49,7 @@ class Analysis():
                     path = self.algorithms.info[algorithm]["path"]
 
                     features = 3 if "mt" in algorithm else 1
-                    csv_index = self.utilities.getCsvIndex(objective, algorithm)
+                    csv_index = self.utilities.getCsvIndex(objective["index"], algorithm)
 
                     filename = self.params.input_path+"/"+path+"/"+experiment+"/"+description+"/"
                     if objective["name"] == "foraging":
@@ -159,10 +155,10 @@ class Analysis():
 
         return ttest
 
-    def drawOneGeneration(self, filename, query, objective, algorithms, experiments, repertoires, runs, generation = 0):
+    def drawOneGeneration(self, filename, query_name, objective_index, algorithms, experiments, repertoires, runs, generation = 0):
 
-        objective = self.objectives.info[self.objectives.index[objective]]
-        query = self.queries.info[query]
+        objective = self.objectives.info[self.objectives.index[objective_index]]
+        query = self.queries.info[query_name]
 
         try:
             data = self.getData(query, objective, algorithms, experiments, repertoires, runs, generation)
@@ -202,16 +198,15 @@ class Analysis():
             for experiment in experiments:
                 for repertoire in repertoires:
                     if len(algorithms) > 1: label = self.algorithms.info[algorithm]["description"]
-                    if len(experiments) > 1: label = experiment
-                    if len(repertoires) > 1: label = repertoire.upper()
+                    elif len(experiments) > 1: label = experiment
+                    elif len(repertoires) > 1: label = repertoire.upper()
+                    else: label = algorithm
                     if objective["name"] == "foraging" and repertoire == "baseline":
                         generations = self.getGeneration(generation, objective["name"], repertoire)
                         label += "\n("+str(generations)+" gen)\n"
                     labels.append(label)
 
-        ylabel = query["ylabel"]
-
-        self.drawPlotsNoLabels(data, suptitle, title, labels, ylabel, filename)
+        self.drawPlotsNoLabels(data, suptitle, title, labels, query_name, objective_index, filename)
 
     def drawPlotsForaging(self, data, suptitle, title, labels, ylabel, filename):
 
@@ -273,14 +268,16 @@ class Analysis():
         print(filename)
         plt.show()
 
-    def drawPlotsNoLabels(self, data, suptitle, title, labels, ylabel, filename):
+    def drawPlotsNoLabels(self, data, suptitle, title, labels, query_name, objective_index, filename):
 
         plot_width = 6 + len(data)
 
         fig, ax = plt.subplots(figsize=(plot_width, 6))
         plt.subplots_adjust(wspace=0.0, hspace=0.0, bottom=0.1, top=0.97, left=0.1)
-
         plots = ax.boxplot(data, medianprops=dict(color='#000000'), patch_artist=True, labels=labels)
+
+        ylim = self.queries.info[query_name]["ylim"]
+        ax.set_ylim(ylim[objective_index])
 
         for patch in plots['boxes']:
             patch.set_facecolor('lightblue')
@@ -371,7 +368,7 @@ class Analysis():
             path = self.algorithms.info[algorithm]["path"]
 
             features = 3 if "mt" in algorithm else 1
-            csv_index = self.utilities.getCsvIndex(objective, algorithm)
+            csv_index = self.utilities.getCsvIndex(objective["index"], algorithm)
 
             csv_filename = self.params.input_path+"/"+path+"/"+experiment+"/"+description+"/"
             if objective["name"] == "foraging":
@@ -457,7 +454,7 @@ class Analysis():
 
         raw_data = None
 
-        csv_index = self.utilities.getCsvIndex(objective, algorithm["name"])
+        csv_index = self.utilities.getCsvIndex(objective["index"], algorithm["name"])
         features = 3 if "mt" in algorithm["name"] else 1
 
         try:
@@ -542,7 +539,7 @@ class Analysis():
         generations = self.getGeneration(generations, objective["name"], repertoire)
 
         csv_data = []
-        csv_index = self.utilities.getCsvIndex(objective, algorithm)
+        csv_index = self.utilities.getCsvIndex(objective["index"], algorithm)
 
         input_path = self.params.input_path+"/"+algorithm["path"]+"/"+experiment
         if objective["name"] == "foraging":
@@ -553,6 +550,7 @@ class Analysis():
             input_path += "/"+self.utilities.getExperimentDescription(objective["index"], algorithm["name"])
 
         input_file = input_path+"/"+query["name"]+str(generations)+".csv"
+        print("input file "+input_file)
 
         try:
             with open(input_file, "r") as f:
@@ -575,8 +573,9 @@ class Analysis():
         for i in range(len(csv_data)):
             for j in range(len(csv_data[i])):
                 csv_data[i][j] = float(csv_data[i][j])
-                if query["name"] == "coverage":
-                    csv_data[i][j] *= max_bins
+                # uncomment for number of bins filled
+                # if query["name"] == "coverage":
+                    # csv_data[i][j] *= max_bins
 
         xlabel = "Generations"
 

@@ -4,10 +4,13 @@ sys.path.insert(0, '..')
 
 import os
 from pathlib import Path
+import pickle
 
 from deap import creator
 from deap import gp
-from containers import *
+
+# from containers import *
+from grid import Grid
 
 import local
 from redundancy import Redundancy
@@ -18,15 +21,14 @@ class SubBehaviours():
 
     def __init__(self):
 
-        self.pset = local.PrimitiveSetExtended("MAIN", 0)
         self.params = eaParams()
+        self.pset = local.PrimitiveSetExtended("MAIN", 0)
         self.params.addUnpackedNodes(self.pset)
         self.params.is_qdpy = True
 
         self.experiment = self.params.experiment
         self.experiments = self.params.experiments
         self.subbehaviours = self.params.sub_behaviours
-        self.objectives = self.params.objectives
         self.domain = self.params.features_domain
         self.repertoire_type = self.params.repertoire_type
         self.repertoire_size = self.params.bins_per_axis
@@ -45,7 +47,7 @@ class SubBehaviours():
         self.cancelled = self.cancelled or "repro" in self.params.shared_path
 
         self.utilities = Utilities(self.params)
-        self.utilities.toolbox = self.utilities.setupToolboxGP(self.selTournament)
+        self.utilities.toolbox = self.utilities.setupToolboxGP(None)
 
         if self.params.using_repertoire:
             self.params.using_repertoire = False
@@ -95,7 +97,7 @@ class SubBehaviours():
             print("Cancelled\n")
 
     def configure(self):
-        permitted = ["experiment", "experiments", "input_type", "destination", "save", "legacy",
+        permitted = ["project", "experiment", "experiments", "input_type", "destination", "save", "legacy",
                      "subbehaviours", "objectives", "runs", "generations", "domain", "repertoire_type", "bins_per_axis"]
         with open(self.params.shared_path+"/subbehaviours.txt", 'r') as f:
             for line in f:
@@ -112,6 +114,9 @@ class SubBehaviours():
 
         if data[0] == "experiment" and len(data) > 1:
             self.experiment = data[1]
+
+        if data[0] == "project":
+            self.params.project = data[1]
 
         if data[0] == "experiments" and len(data) > 1:
             self.experiments = []
@@ -135,10 +140,9 @@ class SubBehaviours():
                 self.subbehaviours.append(data[i])
 
         if data[0] == "objectives" and len(data) > 1:
-            self.objectives = []
+            self.params.objectives = []
             for objective in data[1:]:
-                self.objectives.append(objective)
-            self.max_objectives = len(self.objectives)
+                self.params.objectives.append(objective)
 
         if data[0] == "runs":
                 self.runs = int(data[1])
@@ -175,19 +179,19 @@ class SubBehaviours():
 
         algorithm = "gp" if "mt" in self.repertoire_type or self.input_type == "external" else "qdpy"
 
-        for i in range(len(self.objectives)):
+        for i in range(len(self.params.objectives)):
 
-            objective = self.objectives[i]
+            objective = self.params.objectives[i]
+
+            if objective == "foraging":
+                continue
+
             if "mt" in self.repertoire_type:
                 description = self.utilities.getExperimentDescription(i, self.repertoire_type)
             else:
-                description = self.objectives[i]
+                description = self.params.objectives[i]
 
-            container = (Grid(shape = [8,8,8],
-                              max_items_per_bin = 3,
-                              fitness_domain = [(0.,1.0),],
-                              features_domain = self.domain,
-                              storage_type=list))
+            container = self.utilities.createContainer([8,8,8], self.domain, 3)
 
             try:
                 if self.input_type == "combined":
@@ -210,9 +214,11 @@ class SubBehaviours():
                     for seed in range(1, self.runs + 1):
                         input_filename = input_path+"/"+str(seed)+"/checkpoint-"+description+"-"+str(seed)+"-"+str(self.generation)
                         if not self.legacy:
-                            input_filename += "-"+objective
-                        input_filename += ".txt"
-                        self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, input_filename)
+                            input_filename += "-"+objective+".txt"
+                            self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, input_filename)
+                        else:
+                            input_filename = self.utilities.getLegacyCheckpointFilename(input_path, self.repertoire_type, seed, i, self.generation)
+                            self.utilities.getLegacyCheckpointContainer(container, algorithm, input_filename, i)
 
             except FileNotFoundError as e:
                 print(str(e)+"\n")
@@ -230,9 +236,12 @@ class SubBehaviours():
             with open(self.output_filename, 'w') as f:
                 f.write("")
 
-        for i in range(len(self.objectives)):
+        for i in range(len(self.params.objectives)):
 
-            objective = self.objectives[i]
+            if self.params.objectives[i] == "foraging":
+                continue
+
+            objective = self.params.objectives[i]
             subbehaviour = self.subbehaviours[i]
 
             for a in range(self.bins):
@@ -250,7 +259,6 @@ class SubBehaviours():
 
                         if ind is not None:
                             trimmed = self.redundancy.removeRedundancy(str(ind))
-                            trimmed = [creator.IndividualGP.from_string(trimmed, self.pset)][0]
 
                             output += subbehaviour+str(index)
                             output += " "+str(trimmed)
@@ -278,17 +286,20 @@ class SubBehaviours():
 
     def getBestFromBin(self, container, index):
 
-        if len(container.solutions[index]) == 0:
+        if self.params.usingNewGrid:
+            if index in container.container:
+                return container.container[index]
             return None
-
-        best = container.solutions[index][0]
-        for ind in container.solutions[index]:
-            ind_fitness = ind.fitness.values[0] * self.deratingFactor(ind)
-            best_fitness = best.fitness.values[0] * self.deratingFactor(best)
-            if ind_fitness > best_fitness:
-                best = ind
-
-        return best
+        else:
+            if len(container.solutions[index]) == 0:
+                return None
+            best = container.solutions[index][0]
+            for ind in container.solutions[index]:
+                ind_fitness = ind.fitness.values[0] * self.deratingFactor(ind)
+                best_fitness = best.fitness.values[0] * self.deratingFactor(best)
+                if ind_fitness > best_fitness:
+                    best = ind
+            return best
 
     def getBestFromSubset(self, container, x, y, z, bins):
 
@@ -308,9 +319,6 @@ class SubBehaviours():
                             best = ind
 
         return best
-
-    def selTournament(self):
-        return []
 
 if __name__ == "__main__":
 

@@ -5,7 +5,9 @@ sys.path.insert(0, '..')
 
 from pathlib import Path
 
-from containers import *
+# from containers import *
+from grid import Grid
+
 from params import eaParams
 from utilities import Utilities
 from redundancy import Redundancy
@@ -30,10 +32,10 @@ class Combine():
         self.save = False
         self.legacy = False
         self.output_type = "final"
+        self.runs = 0
         self.experiments = self.params.experiments
         self.bins = self.params.nb_bins
         self.domain = self.params.features_domain
-        self.objectives = self.params.objectives
         self.destination = self.params.algorithm
 
         self.cancelled = False
@@ -45,7 +47,7 @@ class Combine():
             return
 
         self.utilities = Utilities(self.params)
-        self.utilities.toolbox = self.utilities.setupToolboxGP(self.selTournament)
+        self.utilities.toolbox = self.utilities.setupToolboxGP(None)
         self.redundancy = Redundancy(self.params)
 
         self.objective = self.params.objectives[self.params.indexes[0]]
@@ -128,7 +130,7 @@ class Combine():
         if data[0] == "project": self.params.project = data[1]
         if data[0] == "experiment" and len(data) > 1: self.experiment = data[1]
         if data[0] == "arena" and len(data) > 1: self.params.arena_layout = int(data[1])
-        if data[0] == "runs": self.params.runs = int(data[1])
+        if data[0] == "runs": self.runs = int(data[1])
         if data[0] == "generations": self.params.generations = int(data[1])
         if data[0] == "save": self.save = True if data[1] == "True" else False
         if data[0] == "legacy": self.legacy = True if data[1] == "True" else False
@@ -149,13 +151,15 @@ class Combine():
 
         message = ""
 
-        for experiment in self.experiments:
+        experiments = self.experiments if self.output_type == "final" else [self.experiment]
+
+        for experiment in experiments:
 
             missing = 0
 
             input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.directory
 
-            for seed in range(1, self.params.runs + 1):
+            for seed in range(1, self.runs + 1):
 
                 input_filename = input_path+"/"+str(seed)+"/checkpoint-"+self.description
                 input_filename += "-"+str(seed)+"-"+str(self.params.generations)
@@ -220,13 +224,9 @@ class Combine():
 
             input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.directory
 
-            container = (Grid(shape = self.bins,
-                              max_items_per_bin = 1,
-                              fitness_domain = [(0.,1.0),],
-                              features_domain = self.domain,
-                              storage_type=list))
+            container = self.utilities.createContainer(self.bins, self.domain, 1)
 
-            for seed in range(1, self.params.runs + 1):
+            for seed in range(1, self.runs + 1):
                 input_filename = input_path+"/"+str(seed)+"/checkpoint-"+self.description+"-"+str(seed)+"-"+str(self.params.generations)
                 if not self.legacy:
                     input_filename += "-"+self.objective
@@ -298,9 +298,6 @@ class Combine():
                 print("Output file: "+output_file)
 
         print()
-
-    def selTournament(self):
-        return []
 
     def assignPopulationFitness(self, population, fitnesses):
         for ind, fit in zip(population, fitnesses):

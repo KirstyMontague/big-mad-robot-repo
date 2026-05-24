@@ -49,6 +49,10 @@ class Utilities():
 
     def setupToolboxGP(self, tournament):
 
+        if tournament == None:
+            def tournament():
+                return []
+
         toolbox = base.Toolbox()
 
         self.pset = local.PrimitiveSetExtended("MAIN", 0)
@@ -400,6 +404,19 @@ class Utilities():
 
         self.params.console(output)
 
+    def createContainer(self, bins, domain, max_per_bin):
+
+        if self.params.usingNewGrid:
+            container = Grid(bins, domain)
+        else:
+            container = Grid(shape = bins,
+                             max_items_per_bin = max_per_bin,
+                             fitness_domain = [(0.,numpy.inf),],
+                             features_domain = domain,
+                             storage_type=list)
+
+        return container
+
     def writeContainerToString(self, container):
 
         population = container.values() if self.params.usingNewGrid else container
@@ -411,12 +428,21 @@ class Utilities():
             container_string += str(ind.features)+"\n"
         return container_string
 
-    def updateContainerFromString(self, redundancy, toolbox, container, filename):
+    def updateContainerFromString(self, redundancy, toolbox, container, filename, start = 0, stop = 0):
 
+        count = 0
         individuals = []
 
         with open(filename, "r") as f:
             for line in f:
+
+                count += 1
+
+                if count < start:
+                    continue
+
+                if count > stop and stop != 0:
+                    break
 
                 info = line.split(":")
                 ind = info[0]
@@ -440,7 +466,11 @@ class Utilities():
             population[j] = individuals[j]
 
         self.removeDuplicates(population, container)
-        container.update(population, issue_warning = True)
+
+        if self.params.usingNewGrid:
+            container.update(population)
+        else:
+            container.update(population, issue_warning = True)
 
         return container
 
@@ -571,54 +601,42 @@ class Utilities():
 
         return best
 
-    def getExtrema(self, container, include_trees = False):
+    def getExtremaFromContainer(self, container):
 
         population = container.values() if self.params.usingNewGrid else container
+        return self.getExtremaFromPopulation(population)
 
-        minVals = [1.0,1.0,1.0]
+    def getExtremaFromPopulation(self, population):
+
         maxVals = [-1.0,-1.0,-1.0]
-        minIndividuals = [None, None, None]
         maxIndividuals = [None, None, None]
 
         for axis in range(len(self.params.nb_bins)):
 
             for ind in population:
 
-                if ind.features[axis] < minVals[axis]:
-                    minVals[axis] = ind.features[axis]
-                    minIndividuals[axis] = ind
-                if ind.features[axis] > maxVals[axis]:
+                if ind.features[axis] >= maxVals[axis]:
                     maxVals[axis] = ind.features[axis]
                     maxIndividuals[axis] = ind
 
+        return maxIndividuals
+
+    def printExtrema(self, container, include_trees = False):
+
+        maxIndividuals = self.getExtremaFromContainer(container)
 
         output = "---------\n"
-        for m in minVals:
-            output += str("%.6f" % m)+" "
-        output += "\n"
-        for m in maxVals:
-            output += str("%.6f" % m)+" "
+        for i in range(len(maxIndividuals)):
+            output += str("%.6f" % maxIndividuals[i].features[i])+" "
         output += "\n---------\n"
 
         if include_trees:
-            output += "\nmin trees\n"
-
-            for ind in minIndividuals:
-                output += "---------\n"
-                if len(ind) > 50:
-                    output += "\n"+str(ind)+"\n\n"
-                else:
-                    output += "\n"+self.formatChromosome(ind)+"\n"
-
-            output += "\n---------\n"
-
-            output += "\nmax trees\n"
             for ind in maxIndividuals:
-                output += "---------\n"
-                if len(ind) > 50:
-                    output += "\n"+str(ind)+"\n\n"
+                if True or len(ind) > 50 or self.params.algorithm == "ga":
+                    output += str(ind)+"\n"
                 else:
-                    output += "\n"+self.formatChromosome(ind)+"\n"
+                    output += self.formatChromosome(ind)+"\n"
+                output += "---------\n"
 
         return "\n"+output+"\n"
 
@@ -665,14 +683,10 @@ class Utilities():
 
         if self.params.usingNewGrid:
             population = container.values()
-            grid = Grid(shape, self.params.features_domain)
         else:
             population = container
-            grid = Grid(shape = shape,
-                        max_items_per_bin = 1,
-                        fitness_domain = self.params.fitness_domain,
-                        features_domain = self.params.features_domain,
-                        storage_type=list)
+
+        grid = self.createContainer(shape, self.params.features_domain, 1)
         grid.update(population)
         return grid
 
@@ -903,25 +917,39 @@ class Utilities():
             with open(self.params.path()+"params.txt", 'a') as f:
                 f.write("\n"+params_string+"\n")
 
-    def saveDuration(self, start_time, end_time):
+    def formatDuration(self, duration):
+
+        hours = int(duration / 3600000)
+        minutes = int((duration % 3600000) / 60000)
+        seconds = int((duration % 60000) / 1000)
+
+        duration_str = ""
+        if hours > 0: duration_str += str(hours)+"h "
+        if hours > 0 or minutes > 0: duration_str += str(minutes)+"m "
+        duration_str += str(seconds)+"s"
+
+        return duration_str
+
+    def saveDuration(self, start_time, end_time, to_console = True):
 
         duration = end_time - start_time
-        minutes = (duration / 1000) / 60
-        minutes_str = str("%.2f" % minutes)
-        self.params.console("\nDuration " +minutes_str+" minutes\n")
+        duration_str = self.formatDuration(duration)
+
+        if to_console:
+            self.params.console("\nDuration: " + duration_str + "\n")
 
         if self.params.saveOutput or self.params.saveCheckpoint or self.params.saveCSV:
             with open(self.params.path()+"params.txt", 'a') as f:
                 f.write("-- finish --------------\n\n")
                 f.write("generations: "+str(self.params.generations) + "\n")
-                f.write("duration: "+minutes_str+" minutes ("+str(duration) + " ms)\n")
+                f.write("duration: "+duration_str+" ("+str(duration) + " ms)\n")
                 f.write("\n")
 
     def getCsvIndex(self, objective, algorithm_name):
         if algorithm_name == "mtc":
-            return self.getMtcIndex(objective["index"])
+            return self.getMtcIndex(objective)
         elif algorithm_name == "mti":
-            return self.getMtiIndex(objective["index"])
+            return self.getMtiIndex(objective)
         else:
             return 0
 
@@ -939,15 +967,27 @@ class Utilities():
         if objective in [2, 5]: mti_index = 2
         return mti_index
 
-    def getExperimentDescription(self, objective, algorithm):
+    def getIfoodLegacyDescription(self, objective, algorithm):
+
+        objectives = []
+        for i in range(len(self.params.objectives)):
+            if self.params.objectives[i] == "ifood-perceived-position":
+                objectives.append("ifood")
+            else:
+                objectives.append(self.params.objectives[i])
+        return self.getExperimentDescription(objective, algorithm, objectives)
+
+    def getExperimentDescription(self, objective, algorithm, objectives = None):
+        if objectives == None:
+            objectives = self.params.objectives
         if algorithm == "mtc":
-            if objective in [0, 1, 5]: return self.params.objectives[0]+"-"+self.params.objectives[1]+"-"+self.params.objectives[5]
-            if objective in [2, 3, 4]: return self.params.objectives[2]+"-"+self.params.objectives[3]+"-"+self.params.objectives[4]
+            if objective in [0, 1, 5]: return objectives[0]+"-"+objectives[1]+"-"+objectives[5]
+            if objective in [2, 3, 4]: return objectives[2]+"-"+objectives[3]+"-"+objectives[4]
         elif algorithm == "mti":
-            if objective in [0, 1, 2]: return self.params.objectives[0]+"-"+self.params.objectives[1]+"-"+self.params.objectives[2]
-            if objective in [3, 4, 5]: return self.params.objectives[3]+"-"+self.params.objectives[4]+"-"+self.params.objectives[5]
+            if objective in [0, 1, 2]: return objectives[0]+"-"+objectives[1]+"-"+objectives[2]
+            if objective in [3, 4, 5]: return objectives[3]+"-"+objectives[4]+"-"+objectives[5]
         else:
-            return self.params.objectives[objective]
+            return objectives[objective]
 
     def getExperimentDirectory(self, objective, algorithm):
         if self.params.objectives[objective] == "foraging":
@@ -955,6 +995,47 @@ class Utilities():
             return "foraging/baseline"
         else:
             return self.getExperimentDescription(objective, algorithm)
+
+    def getLegacyCheckpointFilename(self, path, algorithm, seed, objective, generations):
+
+        filename = path+"/"+str(seed)+"/"
+
+        if self.params.project == "legacy" and "qd" in algorithm:
+            filename += "seed"+str(seed)+"-iteration"+str(generations)+".p"
+        elif self.params.project == "legacy":
+            description = self.getIfoodLegacyDescription(objective, algorithm)
+            filename += "checkpoint-"+description+"-"+str(seed)+"-"+str(generations)+".pkl"
+        else:
+            objective_name = self.params.objectives[objective]
+            filename += "checkpoint-"+objective_name+"-"+str(seed)+"-"+str(generations)+"-"+objective_name+".txt"
+
+        return filename
+
+    def getLegacyCheckpointContainer(self, container, algorithm, filename, objective):
+
+        if self.params.project == "legacy":
+            with open(filename, "rb") as checkpoint_file:
+                checkpoint = pickle.load(checkpoint_file)
+            if algorithm == "qdpy":
+                containers = [checkpoint["container"]]
+            else:
+                containers = checkpoint["containers"]
+            population = []
+
+            index = self.getCsvIndex(objective, algorithm)
+            for ind in containers[index]:
+                population.append(ind)
+            container.update(population)
+
+        else:
+            container = self.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, filename)
+
+    def saveContainer(self, container, directory, filename):
+        container_string = self.writeContainerToString(container)
+        Path(directory+"/").mkdir(parents=True, exist_ok=True)
+        with open(filename, "w") as f:
+            f.write(container_string)
+
 
     def evaluate(self, assign_fitness, invalid_ind):
 

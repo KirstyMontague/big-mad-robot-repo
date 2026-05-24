@@ -37,7 +37,9 @@ y = {
         "coverage" : [0.0,0.65],
     },
     "foraging" : {
-        "best" : [0.0,1.0],
+        "best" : [0.0,2.5],
+        "qd-score" : [0.0,0.01],
+        "coverage" : [0.0,0.01],
     },
 }
 
@@ -54,14 +56,14 @@ def drawLineGraph(experiment, objective, algorithm, repertoire, query, generatio
                           max_bins,
                           y[objective][query])
 
-experiment = "qd-tests-arena-1"
+experiment = "heterogeneous"
 algorithm = "qdpy"
 query = "coverage"
 
-objective = "density"
-repertoire = "mtc1"
+objective = "foraging"
+repertoire = "baseline"
 generations = 1000
-max_bins = 8000
+max_bins = 100*100*100
 
 if algorithm in ["gp", "mtc", "mti", "qdpy"]:
     drawLineGraph(experiment, objective, algorithm, repertoire, query, generations, max_bins)

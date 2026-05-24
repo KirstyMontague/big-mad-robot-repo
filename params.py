@@ -153,6 +153,7 @@ class eaParams():
                 if data[0] == "local": self.local_path = data[1][0:-1]
                 if data[0] == "shared": self.shared_path = data[1][0:-1]
                 if data[0] == "input": self.input_path = data[1][0:-1]
+                if data[0] == "output": self.output_path = data[1][0:-1]
                 if data[0] == "subbehaviours": self.subbehaviours_path = data[1][0:-1]
                 if data[0] == "foraging": self.foraging_path = data[1][0:-1]
 
@@ -167,7 +168,14 @@ class eaParams():
         self.cancelled = "repro" in self.shared_path
 
     def basePath(self):
-        path = self.shared_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description
+        path = self.shared_path+"/"+self.algorithm
+        path += self.directoryPath()
+        return path
+
+    def directoryPath(self, description = ""):
+        if description == "":
+            description = self.description
+        path = "/"+self.experiment+"/"+description
         if self.project == "straight_to_foraging" and self.arena_layout == 9:
             path += "/straight_to_foraging/bias"+str(self.arena_bias)
         elif self.description == "foraging":
