@@ -199,10 +199,10 @@ class eaParams():
 
     def makePaths(self):
 
-        self.console("\nPath: "+self.path())
-
         if self.experiment == "":
             self.experiment = "vanilla"
+
+        self.console("\nPath: "+self.path())
 
         self.local_path += "/"+str(self.deapSeed)
         Path(self.local_path+"/").mkdir(parents=False, exist_ok=True)

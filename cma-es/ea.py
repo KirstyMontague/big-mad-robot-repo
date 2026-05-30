@@ -27,7 +27,7 @@ class EA():
             print("\nno seed\n")
             return
 
-        self.configure()
+        self.params.configure()
         print()
 
         if self.params.cancelled:
@@ -37,8 +37,7 @@ class EA():
         if self.params.stop:
             return
 
-        self.params.local_path += "/"+str(self.params.seed)
-        Path(self.params.local_path+"/").mkdir(parents=False, exist_ok=True)
+        self.params.makePaths()
 
         self.utilities = Utilities(self.params)
 
@@ -49,17 +48,7 @@ class EA():
         self.utilities.setSeed()
         self.best = None
 
-        experiment_length = 500 if self.params.objective == "foraging" else 100
-        with open(self.params.local_path+'/configuration.txt', 'w') as f:
-            f.write("numInputs:"+str(self.params.num_inputs))
-            f.write("\n")
-            f.write("numHidden:"+str(self.params.num_hidden))
-            f.write("\n")
-            f.write("numOutputs:"+str(self.params.num_outputs))
-            f.write("\n")
-            f.write("experimentLength:"+str(experiment_length))
-            f.write("\n")
-            f.write("sqrtRobots:"+str(self.params.sqrt_robots))
+        self.utilities.saveConfigurationFile()
 
         population = self.eaLoop()
 
@@ -69,19 +58,12 @@ class EA():
 
         end_time = round(time.time() * 1000)
 
-        if os.path.exists(self.params.local_path+"/runtime.txt"):
-            os.remove(self.params.local_path+"/runtime.txt")
-        if os.path.exists(self.params.local_path+"/current.txt"):
-            os.remove(self.params.local_path+"/current.txt")
-        os.remove(self.params.local_path+"/configuration.txt")
-        if len(os.listdir(self.params.local_path)) == 0:
-            os.rmdir(self.params.local_path)
-
         if self.params.saveOutput or self.params.saveCSV or self.params.saveBest:
-            output_path = self.params.shared_path+"/cma-es/"+self.params.experiment+"/"+self.params.objective+"/"
-            Path(output_path).mkdir(parents=True, exist_ok=True)
+            Path(self.params.path()).mkdir(parents=True, exist_ok=True)
             self.utilities.saveParams()
-            self.utilities.saveDuration(start_time, end_time)
+        self.utilities.saveDuration(start_time, end_time)
+
+        self.params.deleteTempFiles()
 
         if self.params.saveBest:
             with open(self.params.bestFilename(), "w") as f:
@@ -133,7 +115,7 @@ class EA():
                 with open(self.params.local_path+'/runtime.txt', 'a') as f:
                     f.write("stop\n")
 
-            self.runtime()
+            self.params.runtime()
             generation += 1
 
         return population
@@ -196,60 +178,3 @@ class EA():
         args = parser.parse_args()
         if args.seed != None:
             return args.seed
-
-    def configure(self):
-        with open(self.params.shared_path+"/config.txt", 'r') as f:
-            for line in f:
-                data = line.split()
-                if len(data) > 0:
-                    self.update(data)
-                    self.params.console(line[0:-1])
-        self.runtime()
-
-    def runtime(self):
-        restricted = ["objective", "num_threads", "num_hidden", "useArchive"]
-        with open(self.params.shared_path+"/runtime.txt", 'r') as f:
-            for line in f:
-                data = line.split()
-                if len(data) > 0:
-                    if data[0] not in restricted:
-                        self.update(data)
-                        self.params.console(line[0:-1])
-                    else:
-                        self.params.console(data[0] +" not supported at runtime")
-        if os.path.exists(self.params.local_path+"/runtime.txt"):
-            with open(self.params.local_path+"/runtime.txt", 'r') as f:
-                for line in f:
-                    data = line.split()
-                    if len(data) > 0:
-                        if data[0] not in restricted:
-                            self.update(data)
-                            self.params.console(line[0:-1])
-
-    def update(self, data):
-        if data[0] == "experiment" and len(data) > 1:
-            self.params.experiment = data[1]
-        if data[0] == "objective":
-            self.params.objective_index = int(data[1])
-            self.params.objective = self.params.objectives[self.params.objective_index]
-        if data[0] == "generations": self.params.generations = int(data[1])
-        if data[0] == "useArchive": self.params.useArchive = True if data[1] == "True" else False
-        if data[0] == "saveOutput": self.params.saveOutput = False if data[1] == "False" else True
-        if data[0] == "saveCSV": self.params.saveCSV = False if data[1] == "False" else True
-        if data[0] == "saveBest": self.params.saveBest = False if data[1] == "False" else True
-        if data[0] == "num_threads": self.params.num_threads = int(data[1])
-        if data[0] == "output_to_file": self.params.output_to_file = False if data[1] == "False" else True
-        if data[0] == "output_interval": self.params.output_interval = int(data[1])
-        if data[0] == "num_hidden":
-            self.params.num_hidden = int(data[1])
-            self.params.individualSize()
-        if data[0] == "stop":
-            self.params.saveCSV = False
-            self.params.generations = 0
-            self.params.stop = True
-        if data[0] == "cancel":
-            self.params.saveOutput = False
-            self.params.saveCSV = False
-            self.params.saveBest = False
-            self.params.generations = 0
-            self.params.stop = True

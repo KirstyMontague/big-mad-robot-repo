@@ -149,6 +149,19 @@ class Utilities():
         fitnesses += "\n"
         self.params.console(fitnesses)
 
+    def saveConfigurationFile(self):
+        experiment_length = 500 if self.params.objective == "foraging" else 100
+        with open(self.params.local_path+'/configuration.txt', 'w') as f:
+            f.write("numInputs:"+str(self.params.num_inputs))
+            f.write("\n")
+            f.write("numHidden:"+str(self.params.num_hidden))
+            f.write("\n")
+            f.write("numOutputs:"+str(self.params.num_outputs))
+            f.write("\n")
+            f.write("experimentLength:"+str(experiment_length))
+            f.write("\n")
+            f.write("sqrtRobots:"+str(self.params.sqrt_robots))
+
     def saveParams(self):
 
         if self.params.saveOutput or self.params.saveCSV or self.params.saveBest:
@@ -170,18 +183,30 @@ class Utilities():
             with open(self.params.paramsFilename(), 'a') as f:
                 f.write("\n"+params_string+"\n")
 
+    def formatDuration(self, duration):
+
+        hours = int(duration / 3600000)
+        minutes = int((duration % 3600000) / 60000)
+        seconds = int((duration % 60000) / 1000)
+
+        duration_str = ""
+        if hours > 0: duration_str += str(hours)+"h "
+        if hours > 0 or minutes > 0: duration_str += str(minutes)+"m "
+        duration_str += str(seconds)+"s"
+
+        return duration_str
+
     def saveDuration(self, start_time, end_time):
 
         duration = end_time - start_time
-        minutes = (duration / 1000) / 60
-        minutes_str = str("%.2f" % minutes)
-        self.params.console("\nDuration " +minutes_str+" minutes\n")
+        duration_str = self.formatDuration(duration)
+        self.params.console("\nDuration: " + duration_str + "\n")
 
         if self.params.saveOutput or self.params.saveCSV or self.params.saveBest:
             with open(self.params.paramsFilename(), 'a') as f:
-                f.write("---\n\n")
+                f.write("-- finish --------------\n\n")
                 f.write("generations: "+str(self.params.generations) + "\n")
-                f.write("duration: "+minutes_str+" minutes ("+str(duration) + " ms)\n")
+                f.write("duration: "+duration_str+" ("+str(duration) + " ms)\n")
                 f.write("\n")
 
     def trimPopulationPrecision(self, population):

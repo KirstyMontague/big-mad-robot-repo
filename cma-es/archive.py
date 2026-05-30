@@ -14,7 +14,7 @@ class Archive():
         self.complete_archive = {}
         self.input_path = self.params.input_path+"/cma-es/"+self.params.experiment
         self.input_directory = self.params.objective
-        self.output_directory = self.params.shared_path+"/cma-es/"+self.params.experiment+"/"+self.params.objective
+        self.output_directory = self.params.path()
 
     def getArchive(self):
         return self.archive
@@ -40,22 +40,21 @@ class Archive():
         cumulative_archive = self.getCumulativeArchive()
         complete_archive = self.getCompleteArchive()
 
-        use_temp_archive = (self.input_path == self.params.shared_path+"/cma-es")
+        use_temp_archive = (self.input_path == self.params.shared_path+"/cma-es/"+self.params.experiment)
 
         output = ""
 
         for i in range(15):
-            archive_path = self.input_path+"/"+self.input_directory+"/"
+            archive_filename = self.input_path+"/"+self.input_directory+"/"+str(i+1)+"/archive.pkl"
             if not use_temp_archive or self.params.seed != i + 1:
-                if os.path.exists(archive_path+"archive"+str(i+1)+".pkl"):
-                    with open(archive_path+"archive"+str(i+1)+".pkl", "rb") as archive_file:
+                if os.path.exists(archive_filename):
+                    with open(archive_filename, "rb") as archive_file:
                         cumulative_archive.update(pickle.load(archive_file))
-            else:
-                output += "disregarding "+str(i + 1)+"\n"
 
         temp_archive = {}
-        if use_temp_archive and os.path.exists(self.output_directory+"/archive"+str(self.params.seed)+".pkl"):
-            with open(self.output_directory+"/archive"+str(self.params.seed)+".pkl", "rb") as archive_file:
+        output_filename = self.output_directory+"/archive.pkl"
+        if use_temp_archive and os.path.exists(output_filename):
+            with open(output_filename, "rb") as archive_file:
                 temp_archive = pickle.load(archive_file)
 
         i = 0
@@ -80,7 +79,7 @@ class Archive():
         for chromosome, scores in archive.items():
             archive_dict.update({chromosome : scores})
 
-        with open(self.output_directory+"/archive"+str(self.params.seed)+".pkl", "wb") as archive_file:
+        with open(self.output_directory+"/archive.pkl", "wb") as archive_file:
              pickle.dump(archive_dict, archive_file)
 
     def addToArchive(self, ind):
