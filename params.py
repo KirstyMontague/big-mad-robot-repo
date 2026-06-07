@@ -92,6 +92,12 @@ class eaParams():
         else:
             self.features_domain = [(-200.0, 200.0), (-200.0, 200.0), (0.0, 1.0)]
 
+        if self.usingNewGrid:
+            for i in range(len(self.features_domain)):
+                self.features_domain[i] = list(self.features_domain[i])
+        self.src_bins = self.nb_bins
+        self.src_domain = self.features_domain
+
         self.printEliteScores = False
         self.printFitnessScores = False
         self.printBestIndividuals = False
@@ -172,17 +178,24 @@ class eaParams():
         path += self.directoryPath()
         return path
 
-    def directoryPath(self, description = ""):
-        if description == "":
-            description = self.description
-        path = "/"+self.experiment+"/"+description
+    def directoryPath(self, experiment = "", description = ""):
+
+        if experiment == "": experiment = self.experiment
+        if description == "": description = self.description
+
+        path = "/"+experiment+"/"+description
+
         if self.project == "straight_to_foraging" and self.arena_layout == 9:
             path += "/straight_to_foraging/bias"+str(self.bias)
-        elif self.description == "foraging":
-            if self.using_repertoire:
+
+        elif description == "foraging":
+            if self.project == "heterogeneous_genetic_algorithm":
+                path += "/bins-"+str(self.src_bins[0])
+            elif self.using_repertoire:
                 path += "/"+self.repertoire_type+str(self.repertoire_size)
             else:
                 path += "/baseline"
+
         return path
 
     def path(self): return self.basePath()+"/"+str(self.deapSeed)+"/"
@@ -320,6 +333,19 @@ class eaParams():
                 else:
                     self.features_domain.append((float(data[i]), float(data[i+1])))
 
+        if data[0] == "src_bins" and len(data) > 1:
+            self.src_bins = []
+            for bins in data[1:]:
+                self.src_bins.append(int(bins))
+
+        if data[0] == "src_domain" and len(data) > 1:
+            self.src_domain = []
+            for i in range(1, len(data), 2):
+                if self.usingNewGrid:
+                    self.src_domain.append([float(data[i]), float(data[i+1])])
+                else:
+                    self.src_domain.append((float(data[i]), float(data[i+1])))
+
         if data[0] == "tournament":
             permitted = ["agnosticTournament", "biasedTournament", "multiFoodMaxTournament",
                          "multiFoodTournament", "multiFoodFloorTournament", "selTournament"]
@@ -448,7 +474,7 @@ class eaParams():
             else:
                 conditions = ["ifGotFood1", "ifOnFood1", "ifInNest"]
 
-        elif self.project == "legacy":
+        elif self.project in ["legacy", "objectives_in_fitness_function"]:
             conditions = ["ifInNest", "ifNestToLeft", "ifNestToRight",
                           "ifGotFood", "ifOnFood", "ifFoodToLeft", "ifFoodToRight",
                           "ifRobotToLeft", "ifRobotToRight"]

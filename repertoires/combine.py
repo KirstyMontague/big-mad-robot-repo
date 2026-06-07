@@ -14,12 +14,21 @@ from redundancy import Redundancy
 
 """
 
-Individuals in the repertoires from each experiment are selected using
-their fitness in the training arena before they're trimmed, evaluated
-and assigned a fitness in the arena to be used going forward.
+To generate final repertoires src_experiments and dst_experiment need
+to be set and config.txt needs to be aligned with the parameters to be
+used going forwards. Individuals in the repertoires from each experiment
+are selected using their fitness in the training arena before they're
+trimmed, evaluated and assigned a fitness in the new arena.
+
+Interim output type saves a combined repertoire to the root directory for
+the given objective for easier access without changing its size and only
+uses src_experiment and src_bins.
+
+Repertoires for heterogeneous swarms need src_experiment and dst_experiment
+set as well as destination. The recycle input type can be used along with
+src_bins to generate incrementally smaller repertoires.
 
 """
-
 
 class Combine():
 
@@ -31,14 +40,19 @@ class Combine():
 
         self.save = False
         self.legacy = False
+        self.input = "separate"
         self.output_type = "final"
         self.runs = 0
-        self.experiments = self.params.experiments
-        self.bins = self.params.nb_bins
+        self.src_experiments = self.params.experiments
+        self.src_experiment = self.params.experiment
+        self.dst_experiment = self.params.experiment
+        self.src_bins = self.params.nb_bins
+        self.dst_bins = self.params.nb_bins
         self.domain = self.params.features_domain
         self.destination = self.params.algorithm
 
         self.cancelled = False
+        self.params.configure()
         self.configure()
         self.cancelled = self.cancelled or "repro" in self.params.shared_path
 
@@ -46,9 +60,16 @@ class Combine():
             print("\nCancelled\n")
             return
 
+        if self.output_type == "final" and len(self.src_experiments) == 0:
+            print("\nSource experiments list cannot be empty for generating final repertoires\n")
+            self.cancelled = True
+            return
+
         self.utilities = Utilities(self.params)
         self.utilities.toolbox = self.utilities.setupToolboxGP(None)
         self.redundancy = Redundancy(self.params)
+
+        self.params.description = self.params.objectives[self.params.indexes[0]]
 
         self.objective = self.params.objectives[self.params.indexes[0]]
         self.description = self.utilities.getExperimentDescription(self.params.indexes[0], self.params.repertoire_type)
@@ -57,8 +78,9 @@ class Combine():
         print()
 
     def configure(self):
-        permitted = ["project", "algorithm", "output_type", "repertoire_type", "destination", "experiment", "experiments",
-                     "arena", "objectives", "objective", "bins", "domain", "runs", "generations", "save", "legacy"]
+        permitted = ["project", "algorithm", "input", "src_experiment", "src_experiments", "src_bins",
+                     "dst_bins", "arena", "objective", "objectives", "domain", "runs", "generations",
+                     "output_type", "repertoire_type", "destination", "dst_experiment", "save", "legacy"]
         with open(self.params.shared_path+"/combine.txt", 'r') as f:
             for line in f:
                 data = line.split()
@@ -88,6 +110,14 @@ class Combine():
                 print("\nDestination algorithm not recognised: "+data[1]+"\n")
                 self.cancelled = True
 
+        if data[0] == "input":
+            types = ["separate", "combined", "recycle"]
+            if data[1] in types:
+                self.input = data[1]
+            else:
+                print("\nInput type not recognised: "+data[1]+"\n")
+                self.cancelled = True
+
         if data[0] == "output_type":
             algorithms = ["interim", "heterogeneous", "final"]
             if data[1] in algorithms:
@@ -108,19 +138,25 @@ class Combine():
             self.params.objectives = []
             for objective in data[1:]:
                 self.params.objectives.append(objective)
+            self.params.max_objectives = len(self.params.objectives)
 
         if data[0] == "objective":
             self.params.indexes = [int(data[1])]
-            self.params.description = self.params.objectives[int(data[1])]
 
-        if data[0] == "experiments" and len(data) > 1:
+        if data[0] == "src_experiments" and len(data) > 1:
+            self.src_experiments = []
             for i in range(1, len(data)):
-                self.experiments.append(data[i])
+                self.src_experiments.append(data[i])
 
-        if data[0] == "bins" and len(data) > 1:
-            self.bins = []
+        if data[0] == "src_bins" and len(data) > 1:
+            self.src_bins = []
             for bins in data[1:]:
-                self.bins.append(int(bins))
+                self.src_bins.append(int(bins))
+
+        if data[0] == "dst_bins" and len(data) > 1:
+            self.dst_bins = []
+            for bins in data[1:]:
+                self.dst_bins.append(int(bins))
 
         if data[0] == "domain" and len(data) > 1:
             self.domain = []
@@ -128,7 +164,8 @@ class Combine():
                 self.domain.append((float(data[i]), float(data[i+1])))
 
         if data[0] == "project": self.params.project = data[1]
-        if data[0] == "experiment" and len(data) > 1: self.experiment = data[1]
+        if data[0] == "src_experiment" and len(data) > 1: self.src_experiment = data[1]
+        if data[0] == "dst_experiment" and len(data) > 1: self.dst_experiment = data[1]
         if data[0] == "arena" and len(data) > 1: self.params.arena_layout = int(data[1])
         if data[0] == "runs": self.runs = int(data[1])
         if data[0] == "generations": self.params.generations = int(data[1])
@@ -142,6 +179,7 @@ class Combine():
 
         containers = []
         self.checkContainerFiles()
+        self.checkOutputFiles()
         self.combineContainers(containers)
         if self.output_type == "final":
             self.evaluateRepertoires(containers)
@@ -151,7 +189,7 @@ class Combine():
 
         message = ""
 
-        experiments = self.experiments if self.output_type == "final" else [self.experiment]
+        experiments = self.src_experiments if self.output_type == "final" else [self.src_experiment]
 
         for experiment in experiments:
 
@@ -159,17 +197,30 @@ class Combine():
 
             input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.directory
 
-            for seed in range(1, self.runs + 1):
+            if self.input == "combined":
 
-                input_filename = input_path+"/"+str(seed)+"/checkpoint-"+self.description
-                input_filename += "-"+str(seed)+"-"+str(self.params.generations)
-                if not self.legacy:
-                    input_filename += "-"+self.objective
-                input_filename += ".txt"
-
-                if not os.path.exists(input_filename):
+                input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.directory
+                input_file = input_path+"/"+self.objective+"-with-all-seeds-small-bins.txt"
+                if not os.path.exists(input_file):
                     missing += 1
-                    print(input_filename)
+                    print(input_file)
+
+            if self.input == "recycle":
+
+                input_path = self.params.shared_path+"/"+self.destination+"/"+self.dst_experiment+"/"+self.description
+                input_file = input_path+"/"+self.objective+"-"+str(self.src_bins[0])+"-bins.txt"
+                if not os.path.exists(input_file):
+                    missing += 1
+                    print(input_file)
+
+            if self.input == "separate":
+
+                suffix = str(self.params.generations)+".txt" if self.legacy else str(self.params.generations)+"-"+self.objective+".txt"
+                for seed in range(1, self.runs + 1):
+                    input_file = input_path+"/"+str(seed)+"/checkpoint-"+self.description+"-"+str(seed)+"-"+suffix
+                    if not os.path.exists(input_file):
+                        missing += 1
+                        print(input_file)
 
             if missing > 0:
                 message += str(missing)+" files missing for "+experiment+"\n"
@@ -184,55 +235,71 @@ class Combine():
         else:
             print()
 
-        if self.save:
+    def checkOutputFiles(self):
 
-            exists = False
+        if self.cancelled or not self.save:
+            return
 
-            if self.output_type == "interim":
-                output_path = self.params.shared_path+"/"+self.params.algorithm+"/"+self.experiment+"/"+self.description
-                output_filename = output_path+"/"+self.objective+".txt"
+        exists = False
+
+        if self.output_type == "interim":
+            output_path = self.params.shared_path+"/"+self.params.algorithm+"/"+self.src_experiment+"/"+self.description
+            output_filename = output_path+"/"+self.objective+".txt"
+            if os.path.exists(output_filename):
+                exists = True
+        if self.output_type == "heterogeneous":
+            output_path = self.params.shared_path+"/"+self.destination+"/"+self.dst_experiment+"/"+self.description
+            output_filename = output_path+"/"+self.objective+"-"+str(self.dst_bins[0])+"-bins.txt"
+            if os.path.exists(output_filename):
+                exists = True
+        else:
+            output_path = self.params.shared_path+"/gp/"+self.dst_experiment+"/repertoires/"+self.params.repertoire_type
+            for experiment in self.src_experiments:
+                output_filename = output_path+"/"+experiment+"/"+self.objective+"-"+str(self.params.generations)+".txt"
                 if os.path.exists(output_filename):
                     exists = True
-            if self.output_type == "heterogeneous":
-                output_path = self.params.shared_path+"/"+self.destination+"/"+self.experiment+"/"+self.description
-                output_filename = output_path+"/"+self.objective+".txt"
-                if os.path.exists(output_filename):
-                    exists = True
+
+        if exists:
+            confirm = input("Output files already exist at "+output_path+"\n\nContinue? (y/N)\n")
+            if confirm == "y":
+                print()
             else:
-                output_path = self.params.shared_path+"/gp/"+self.experiment+"/repertoires/"+self.params.repertoire_type
-                for experiment in self.experiments:
-                    output_filename = output_path+"/"+experiment+"/"+self.objective+"-"+str(self.params.generations)+".txt"
-                    if os.path.exists(output_filename):
-                        exists = True
-
-            if exists:
-                confirm = input("Output files already exist at "+output_path+"\n\nContinue? (y/N)\n")
-                if confirm == "y":
-                    print()
-                else:
-                    self.cancelled = True
-                    print("Cancelled\n")
+                self.cancelled = True
+                print("Cancelled\n")
 
     def combineContainers(self, containers):
 
         if self.cancelled:
-            return []
+            return
 
-        experiments = self.experiments if self.output_type == "final" else [self.experiment]
+        experiments = self.src_experiments if self.output_type == "final" else [self.src_experiment]
 
         for experiment in experiments:
 
-            input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.directory
+            bins = self.src_bins if self.output_type == "interim" else self.dst_bins
+            container = self.utilities.createContainer(bins, self.domain, 1)
 
-            container = self.utilities.createContainer(self.bins, self.domain, 1)
+            if self.input == "combined":
 
-            for seed in range(1, self.runs + 1):
-                input_filename = input_path+"/"+str(seed)+"/checkpoint-"+self.description+"-"+str(seed)+"-"+str(self.params.generations)
-                if not self.legacy:
-                    input_filename += "-"+self.objective
-                input_filename += ".txt"
-                container = self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, input_filename)
+                input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.directory
+                input_filename = input_path+"/"+self.objective+"-with-all-seeds-small-bins.txt"
+                self.readContainer(container, input_filename)
 
+            if self.input == "recycle":
+
+                input_path = self.params.shared_path+"/"+self.destination+"/"+self.dst_experiment+"/"+self.description
+                input_filename = input_path+"/"+self.objective+"-"+str(self.src_bins[0])+"-bins.txt"
+                self.readContainer(container, input_filename)
+
+            if self.input == "separate":
+
+                input_path = self.params.input_path+"/"+self.params.algorithm+"/"+experiment+"/"+self.directory
+                suffix = str(self.params.generations)+".txt" if self.legacy else str(self.params.generations)+"-"+self.objective+".txt"
+                for seed in range(1, self.runs + 1):
+                    input_filename = input_path+"/"+str(seed)+"/checkpoint-"+self.description+"-"+str(seed)+"-"+suffix
+                    self.readContainer(container, input_filename)
+
+            print("\nPopulation: "+str(len(container.items()))+"\n")
             containers.append(container)
 
     def evaluateRepertoires(self, containers):
@@ -245,8 +312,9 @@ class Combine():
         self.utilities.saveConfigurationFile()
 
         for container in containers:
-            print("Evaluating "+str(len(container))+" trees")
-            self.evaluateRepertoire(container)
+            population = list(container.values()) if self.params.usingNewGrid else container
+            print("Evaluating "+str(len(population))+" trees")
+            self.evaluateRepertoire(population)
 
         self.params.deleteTempFiles()
 
@@ -267,14 +335,14 @@ class Combine():
             return
 
         if self.output_type == "final":
-            experiments = self.experiments
-            output_path = self.params.shared_path+"/gp/"+self.experiment+"/repertoires/"+self.params.repertoire_type
+            experiments = self.src_experiments
+            output_path = self.params.shared_path+"/gp/"+self.dst_experiment+"/repertoires/"+self.params.repertoire_type
         elif self.output_type == "heterogeneous":
-            experiments = [self.experiment]
-            output_path = self.params.shared_path+"/"+self.destination+"/"+self.experiment+"/"+self.description
+            experiments = [self.dst_experiment]
+            output_path = self.params.shared_path+"/"+self.destination+"/"+self.dst_experiment+"/"+self.description
         else:
-            experiments = [self.experiment]
-            output_path = self.params.shared_path+"/"+self.params.algorithm+"/"+self.experiment+"/"+self.description
+            experiments = [self.src_experiment]
+            output_path = self.params.shared_path+"/"+self.params.algorithm+"/"+self.src_experiment+"/"+self.description
 
         print()
 
@@ -282,22 +350,48 @@ class Combine():
 
             if self.output_type == "final":
                 output_file = output_path+"/"+experiments[i]+"/"+self.objective+"-"+str(self.params.generations)+".txt"
+            elif self.output_type == "heterogeneous":
+                output_file = output_path+"/"+self.objective+"-"+str(self.dst_bins[0])+"-bins.txt"
             else:
                 output_file = output_path+"/"+self.objective+".txt"
 
             if self.save:
+
                 print("Writing to "+output_file)
                 if self.output_type == "heterogeneous":
                     Path(output_path).mkdir(parents=True, exist_ok=True)
                 if self.output_type == "final":
                     Path(output_path+"/"+experiments[i]).mkdir(parents=True, exist_ok=True)
                 container_string = self.utilities.writeContainerToString(containers[i])
+
+                path = ""
+                path += "local:"+self.params.local_path+"\n"
+                path += "shared:"+self.params.shared_path+"\n"
+                path += "input:"+self.params.input_path+"\n"
+
+                params = ""
+                with open(self.params.shared_path+"/combine.txt", 'r') as f:
+                    for line in f:
+                        params += line
+
                 with open(output_file, "w") as f:
                     f.write(container_string)
+                    f.write("\n=====\n\n")
+                    f.write(path+"\n")
+                    f.write(params+"\n")
             else:
                 print("Output file: "+output_file)
 
         print()
+
+    def readContainer(self, container, input_filename):
+
+        print("Reading from "+input_filename)
+        container = self.utilities.updateContainerFromString(self.redundancy,
+                                                             self.utilities.toolbox,
+                                                             container,
+                                                             input_filename,
+                                                             0, 0, 0)
 
     def assignPopulationFitness(self, population, fitnesses):
         for ind, fit in zip(population, fitnesses):

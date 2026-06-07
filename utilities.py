@@ -440,7 +440,7 @@ class Utilities():
             container_string += str(ind.features)+"\n"
         return container_string
 
-    def updateContainerFromString(self, redundancy, toolbox, container, filename, start = 0, stop = 0):
+    def updateContainerFromString(self, redundancy, toolbox, container, filename, interval = 0, start = 0, stop = 0):
 
         count = 0
         individuals = []
@@ -455,6 +455,14 @@ class Utilities():
 
                 if count > stop and stop != 0:
                     break
+
+                if len(line) < 2:
+                    break
+
+                if interval != 0 and count % interval == 0:
+                    sleep = 5.0
+                    print("count = "+str(count)+", sleeping for "+str(sleep))
+                    time.sleep(sleep)
 
                 info = line.split(":")
                 ind = info[0]

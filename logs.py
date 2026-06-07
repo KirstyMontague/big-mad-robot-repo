@@ -58,8 +58,11 @@ class Logs():
     def getChromosomes(self, population):
 
         all_best = []
-        for i in range(self.params.features):
-            all_best.append(self.utilities.getBestFromPopulation(population, i))
+        if self.params.project == "heterogeneous_genetic_algorithm":
+            all_best.append(self.utilities.getBestSwarmFromPopulation(population))
+        else:
+            for i in range(self.params.features):
+                all_best.append(self.utilities.getBestFromPopulation(population, i))
 
         chromosomes = ",\""
         for best in all_best:

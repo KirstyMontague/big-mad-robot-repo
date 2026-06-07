@@ -16,8 +16,9 @@ from grid import Grid
 from deap import tools
 
 from archive import Archive
-from params import eaParams
 from behaviours import Behaviours
+from logs import Logs
+from params import eaParams
 from redundancy import Redundancy
 from utilities import Utilities
 
@@ -46,10 +47,16 @@ class EA():
 
         self.params.makePaths()
 
-        # need nb_bins and features_domain from when the repertoire was generated
-        self.repertoire = self.utilities.createContainer(self.params.nb_bins, self.params.features_domain, self.params.max_items_per_bin)
-        repertoire_path = self.params.shared_path+"/ga/"+self.params.experiment+"/foraging/foraging.txt"
-        self.utilities.updateContainerFromString(self.redundancy, self.gp_toolbox, self.repertoire, repertoire_path, 0, 10)
+        repertoire_path = self.params.shared_path+"/ga/"+self.params.experiment+"/foraging"
+        repertoire_file = repertoire_path+"/foraging-"+str(self.params.src_bins[0])+"-bins.txt"
+        print("\nReading from "+repertoire_file)
+
+        self.repertoire = self.utilities.createContainer(self.params.src_bins,
+                                                         self.params.src_domain,
+                                                         self.params.max_items_per_bin)
+        self.utilities.updateContainerFromString(self.redundancy, self.gp_toolbox,
+                                                 self.repertoire, repertoire_file,
+                                                 0, 0, 0)
 
         print()
         flat_indexes = []
@@ -66,6 +73,8 @@ class EA():
             print("repertoire size "+str(len(self.repertoire))+"\n")
 
         self.utilities.toolbox = self.utilities.setupToolboxGA(self.repertoire, self.mutateOneIndividual, flat_indexes, grid_indexes)
+
+        self.logs = Logs(self.params, self.utilities)
 
         self.utilities.saveConfigurationFile()
         self.toolbox = self.utilities.toolbox
@@ -145,6 +154,7 @@ class EA():
             max_gen = self.params.generations
 
             self.archive.saveArchive(None, self.params.generations)
+            self.logs.saveCSV(generation, population)
 
     def evaluateNewPopulation(self, generation, offspring, mode):
 
@@ -189,6 +199,11 @@ class EA():
             qd_score_and_coverage += "Coverage: "+str("%.9f" % self.utilities.getCoverage(self.container))+"\n"
             self.params.console(qd_score_and_coverage)
             self.params.console(self.utilities.printRepertoireQdScores(self.container))
+
+        if self.params.saveCSV:
+            self.logs.logFitness(generation, [self.utilities.getBestSwarmFromContainer(self.container)])
+            self.logs.logQdScore(generation, [self.utilities.getQDScore(self.container)])
+            self.logs.logCoverage(generation, self.utilities.getCoverage(self.container))
 
         if generation != 0 and generation % 100 == 0 and invalid_new == 0:
             time.sleep(10.0)
