@@ -91,7 +91,11 @@ class Utilities():
 
         return toolbox
 
-    def setupToolboxGA(self, repertoire, mutation_operator, flat_indexes, grid_indexes):
+    def setupToolboxGA(self, repertoire, mutation_operator, tournament, flat_indexes, grid_indexes):
+
+        if tournament == None:
+            def tournament():
+                return []
 
         self.repertoire = repertoire
 
@@ -105,7 +109,7 @@ class Utilities():
         toolbox.register("individual", tools.initRepeat, creator.IndividualGA, toolbox.attr_index, 9)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-        toolbox.register("select", tools.selTournament, tournsize=3)
+        toolbox.register("select", tournament, tournsize=self.params.tournamentSize)
         toolbox.register("mate", tools.cxTwoPoint)
         toolbox.register("mutate", mutation_operator, flat_indexes=flat_indexes, grid_indexes=grid_indexes, indpb=0.05)
         toolbox.register("evaluate", self.evaluateSwarm, thread_index=1)
@@ -299,6 +303,13 @@ class Utilities():
             fitness.append(self.getAvgAndDerate(totals[i], swarm, deratingFactor))
         for i in range(self.params.characteristics):
             features.append(self.getAvgAndDerate(totals[i + self.params.features], swarm, deratingFactor))
+
+        if self.params.bias != -1:
+            for i in range(self.params.features):
+                adjusted_fitness = 0.0
+                for axis in range(len(self.params.nb_bins)):
+                    adjusted_fitness += features[axis] if axis == self.params.bias else features[axis] * self.params.penalty
+                fitness[i] = adjusted_fitness
 
         try:
             os.remove(self.params.local_path+"/seed"+str(thread_index)+".txt")
@@ -572,30 +583,42 @@ class Utilities():
 
         return best
 
-    def getBestSwarmFromContainer(self, container):
+    def getBestSwarmFromContainer(self, container, bias = -1):
 
         population = container.values() if self.params.usingNewGrid else container
-        return self.getBestSwarmFromPopulation(population)
+        return self.getBestSwarmFromPopulation(population, bias)
 
-    def getBestSwarmFromPopulation(self, population):
+    def getBestSwarmFromPopulation(self, population, bias = -1):
+
+        best = None
+        best_fitness = 0.0
 
         for individual in population:
 
-            thisFitness = individual.fitness
+            fitness = 0.0
+            for axis in range(len(self.params.nb_bins)):
+                if bias == -1 or axis == bias:
+                    fitness += individual.features[axis]
+                else:
+                    fitness += individual.features[axis] * self.params.penalty
 
-            currentBest = False
-
-            if ('best' not in locals()):
-                currentBest = True
-
-            elif (thisFitness > bestFitness):
-                currentBest = True
-
-            if (currentBest):
+            if best is None or fitness > best_fitness:
                 best = individual
-                bestFitness = thisFitness
+                best_fitness = fitness
 
         return best
+
+    def getAdjustedSwarmFitness(self, individual, bias = -1):
+
+        fitness = 0.0
+
+        for axis in range(len(self.params.nb_bins)):
+            if bias == -1 or axis == bias:
+                fitness += individual.features[axis]
+            else:
+                individual.features[axis] * self.params.penalty
+
+        return fitness
 
     def getBestAll(self, population, derate = True):
 

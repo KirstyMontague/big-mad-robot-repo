@@ -72,7 +72,7 @@ class EA():
             grid_indexes = [self.repertoire.index_grid(inds[0].features) for index, inds in container if len(inds) > 0]
             print("repertoire size "+str(len(self.repertoire))+"\n")
 
-        self.utilities.toolbox = self.utilities.setupToolboxGA(self.repertoire, self.mutateOneIndividual, flat_indexes, grid_indexes)
+        self.utilities.toolbox = self.utilities.setupToolboxGA(self.repertoire, self.mutateOneIndividual, self.selTournament, flat_indexes, grid_indexes)
 
         self.logs = Logs(self.params, self.utilities)
 
@@ -193,7 +193,7 @@ class EA():
                     f.write(self.utilities.printExtrema(self.container, True))
 
         if self.params.printBestIndividuals and generation == self.params.generations:
-            best = self.utilities.getBestSwarmFromContainer(self.container)
+            best = self.utilities.getBestSwarmFromContainer(self.container, self.params.bias)
             self.utilities.printHeterogeneousSwarm(self.repertoire, best)
             qd_score_and_coverage = "QD Score: "+str("%.9f" % self.utilities.getAdjustedQDScore(self.container))+"\n"
             qd_score_and_coverage += "Coverage: "+str("%.9f" % self.utilities.getCoverage(self.container))+"\n"
@@ -201,7 +201,7 @@ class EA():
             self.params.console(self.utilities.printRepertoireQdScores(self.container))
 
         if self.params.saveCSV:
-            self.logs.logFitness(generation, [self.utilities.getBestSwarmFromContainer(self.container)])
+            self.logs.logFitness(generation, [self.utilities.getBestSwarmFromContainer(self.container, self.params.bias)])
             self.logs.logQdScore(generation, [self.utilities.getQDScore(self.container)])
             self.logs.logCoverage(generation, self.utilities.getCoverage(self.container))
 
@@ -213,10 +213,11 @@ class EA():
 
     def printOutput(self, generation, invalid_new, invalid_orig, matched):
 
-        best = self.utilities.getBestSwarmFromContainer(self.container)
-        fitness = str("%.6f" % best.fitness.values[0])
+        best = self.utilities.getBestSwarmFromContainer(self.container, self.params.bias)
+        adjusted_fitness = str("%.6f" % self.utilities.getAdjustedSwarmFitness(best, self.params.bias))
+        raw_fitness = str("%.6f" % self.utilities.getAdjustedSwarmFitness(best, -1))
 
-        coverage = str("%.4f" % self.utilities.getCoverage(self.container))
+        coverage = str("%.6f" % self.utilities.getCoverage(self.container))
         filled = str(int(self.utilities.getFilledBins(self.container)))
         total = str(self.params.nb_bins[0] * self.params.nb_bins[1] * self.params.nb_bins[2])
 
@@ -225,8 +226,8 @@ class EA():
         description = self.params.description
 
         output_string = "\t"+description+" - "+str(self.params.deapSeed)+" - "+str(generation)+"\t | "
-        output_string += fitness+" | "
-        output_string += filled+" / "+total+" | "
+        output_string += adjusted_fitness+" ("+raw_fitness+") | "
+        output_string += filled+" / "+total+" = "+coverage+" | "
         output_string += qd_score
         output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
         output_string += " (matched "+str(matched[0])+" & "+str(matched[1])+")"
@@ -281,6 +282,6 @@ class EA():
         chosen = []
         for i in range(k):
             aspirants = tools.selRandom(individuals, tournsize)
-            best = self.utilities.getBestHDRandom(aspirants, 0)
+            best = self.utilities.getBestSwarmFromPopulation(aspirants, self.params.bias)
             chosen.append(best)
         return chosen

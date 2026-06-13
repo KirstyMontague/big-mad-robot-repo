@@ -22,6 +22,7 @@ class eaParams():
         self.deapSeed = 0
         self.indexes = [0]
         self.bias = -1
+        self.penalty = 1.0
         self.populationSize = 25
         self.tournament = "selTournament"
 
@@ -368,6 +369,7 @@ class eaParams():
                 self.arena_params.append(float(param))
 
         if data[0] == "bias": self.bias = int(data[1])
+        if data[0] == "penalty": self.penalty = float(data[1])
         if data[0] == "sqrt_robots": self.sqrt_robots = int(data[1])
         if data[0] == "formation": self.formation = data[1]
         if data[0] == "arena_layout": self.arena_layout = int(data[1])
