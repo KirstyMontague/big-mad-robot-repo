@@ -17,6 +17,7 @@ from deap import tools
 
 from archive import Archive
 from behaviours import Behaviours
+from checkpoint import Checkpoint
 from logs import Logs
 from params import eaParams
 from redundancy import Redundancy
@@ -39,6 +40,7 @@ class EA():
 
         self.utilities = Utilities(self.params, self.behaviours)
         self.redundancy = Redundancy(self.params)
+        self.checkpoint = Checkpoint(self.params)
 
         self.gp_toolbox = self.utilities.setupToolboxGP(None)
 
@@ -154,7 +156,8 @@ class EA():
             max_gen = self.params.generations
 
             self.archive.saveArchive(None, self.params.generations)
-            self.logs.saveCSV(generation, population)
+            self.logs.saveCSV(generation, self.container.values() if self.params.usingNewGrid else self.container)
+            self.checkpoint.save(generation, offspring, [self.container], self.logs)
 
     def evaluateNewPopulation(self, generation, offspring, mode):
 
