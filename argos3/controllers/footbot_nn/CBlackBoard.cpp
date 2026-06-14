@@ -3,9 +3,12 @@
 
 void CBlackBoard::reset()
 {
+    m_distNestVector.clear();
+
     for (uint i = 0; i < 1; ++i)
     {
         m_food[i] = 0;
+        m_distFoodVectors[i].clear();
         m_carryingFood[i] = false;
     }
 }
@@ -219,6 +222,7 @@ void CBlackBoard::setFinalDensity(bool tracking)
     }
     density /= m_densityVector.size();
     m_finalDensity = density;
+    m_densityVector.clear();
 
     //if (tracking) std::cout << "m_finalDensity: " << density << std::endl;
 }
