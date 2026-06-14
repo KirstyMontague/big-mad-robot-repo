@@ -58,7 +58,13 @@
   </media>
 
   <visualization>
-    <qt-opengl />
+    <qt-opengl>
+      <camera>
+        <placements>
+          <placement index="0" position="-5,0,10" look_at="0,0,0" up="1,0,0" lens_focal_length="65" />
+        </placements>
+      </camera>
+    </qt-opengl>
   </visualization>
 
 </argos-configuration>

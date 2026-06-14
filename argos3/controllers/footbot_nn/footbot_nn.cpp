@@ -2,34 +2,29 @@
 
 #include <algorithm>
 
-/****************************************/
-/****************************************/
-
-static CRange<Real> NN_OUTPUT_RANGE(0.0f, 1.0f);
-static CRange<Real> LEFT_WHEEL_ACTUATION_RANGE(-5.0f, 5.0f);
-static CRange<Real> RIGHT_WHEEL_ACTUATION_RANGE(-5.0f, 5.0f);
-
-/****************************************/
-/****************************************/
-
 CFootBotNNController::CFootBotNNController() :
+    m_pcWheels(NULL),
     m_pcLEDs(NULL),
     m_pcPosition(NULL),
+    m_pcRABA(NULL),
+    m_pcRABS(NULL),
     m_rWheelVelocity(5.0f),
     m_lWheelVelocity(5.0f),
-    m_count(0),
-    m_params(0.0),
+    m_verbose(false),
+    m_nestRadius(0.5),
+    m_foodRadius(0.5),
+    m_commsRange(100.0),
+    m_distNest(0.0),
+    m_gap(0.0),
     m_trialLength(0),
-    m_carryingFood(false),
-    m_food(0)
+    m_count(0)
 {}
 
 CFootBotNNController::~CFootBotNNController()
 {
     std::cout << "result " << GetId();
 
-    std::vector<int> x{0,1,2,3,4,5,6,7,8,9};
-    for (int i : x)
+    for (uint i = 0; i < 10; ++i)
     {
         for (float s : m_scores[i])
         {
@@ -40,39 +35,24 @@ CFootBotNNController::~CFootBotNNController()
     std::cout << "\n";
 }
 
-/****************************************/
-/****************************************/
-
 void CFootBotNNController::Init(TConfigurationNode& t_node)
 {
-   /*
-    * Get sensor/actuator handles
-    */
     m_node = t_node;
-    try
-    {
-        m_pcWheels    = GetActuator<CCI_DifferentialSteeringActuator>("differential_steering");
-        m_pcRABA      = GetActuator<CCI_RangeAndBearingActuator>("range_and_bearing");
-        m_pcLEDs      = GetActuator<CCI_LEDsActuator>("leds");
 
-        m_pcProximity = GetSensor<CCI_FootBotProximitySensor>("footbot_proximity");
-        m_pcLight     = GetSensor<CCI_FootBotLightSensor>("footbot_light");
-        m_pcPosition  = GetSensor<CCI_PositioningSensor>("positioning");
-        m_pcRABS      = GetSensor<CCI_RangeAndBearingSensor>("range_and_bearing");
-    }
-    catch(CARGoSException& ex)
-    {
-        THROW_ARGOSEXCEPTION_NESTED("Error initializing sensors/actuators", ex);
-    }
+    m_pcWheels    = GetActuator<CCI_DifferentialSteeringActuator>("differential_steering");
+    m_pcRABA      = GetActuator<CCI_RangeAndBearingActuator     >("range_and_bearing"    );
+    m_pcLEDs      = GetActuator<CCI_LEDsActuator                >("leds"                 );
+
+    m_pcPosition  = GetSensor  <CCI_PositioningSensor           >("positioning"          );
+    m_pcRABS      = GetSensor  <CCI_RangeAndBearingSensor       >("range_and_bearing"    );
+
+    int trackingID;
+    GetNodeAttributeOrDefault(t_node, "trackingID", trackingID, trackingID);
+    m_trackingIDs.push_back(trackingID);
 
     Real wheelVelocity;
     GetNodeAttributeOrDefault(t_node, "velocity", wheelVelocity, wheelVelocity);
     
-    GetNodeAttributeOrDefault(t_node, "trackingID", m_trackingID, m_trackingID);
-    m_trackingIDs.push_back(m_trackingID);
-
-    setDefaultLEDs(inTrackingIDs());
-
     Real noise;
     noise = (std::rand() % 20);
     noise = (noise + 90) / 100;
@@ -84,26 +64,22 @@ void CFootBotNNController::Init(TConfigurationNode& t_node)
     Real leftWheelVelocity = wheelVelocity * noise;
     m_lWheelVelocity = wheelVelocity * noise;
     
-    LEFT_WHEEL_ACTUATION_RANGE.SetMin(leftWheelVelocity * -1);
-    LEFT_WHEEL_ACTUATION_RANGE.SetMax(leftWheelVelocity);
-    RIGHT_WHEEL_ACTUATION_RANGE.SetMin(rightWheelVelocity * -1);
-    RIGHT_WHEEL_ACTUATION_RANGE.SetMax(rightWheelVelocity);
-    
-    m_scores.push_back(std::vector<float>());
-    m_scores.push_back(std::vector<float>());
-    m_scores.push_back(std::vector<float>());
-    m_scores.push_back(std::vector<float>());
-    m_scores.push_back(std::vector<float>());
-    m_scores.push_back(std::vector<float>());
-    m_scores.push_back(std::vector<float>());
-    m_scores.push_back(std::vector<float>());
-    m_scores.push_back(std::vector<float>());
-    m_scores.push_back(std::vector<float>());
+    for (uint i = 0; i < 10; ++i)
+    {
+        m_scores.push_back(std::vector<float>());
+    }
+
+    uint foodRegions = numFoodRegions();
+    for (uint i = 0; i < foodRegions; ++i)
+    {
+        m_distFood.push_back(0.0);
+    }
+
+    m_blackBoard = new CBlackBoard(std::stoi(GetId()));
 }
 
 void CFootBotNNController::InitNN(const Real* chromosome, UInt32 numInputs, UInt32 numHidden, UInt32 numOutputs)
 {
-    /* Initialize the perceptron */
     try
     {
         m_cPerceptron.Init(m_node, numInputs, numHidden, numOutputs);
@@ -116,141 +92,236 @@ void CFootBotNNController::InitNN(const Real* chromosome, UInt32 numInputs, UInt
     m_cPerceptron.Load(chromosome, inTrackingIDs());
 }
 
-void CFootBotNNController::createBlackBoard(int numRobots)
+void CFootBotNNController::calculateDistances(double x, double y)
 {
-    m_blackBoard = new CBlackBoard(numRobots);
+   calculateDistancesExp1(x, y);
+}
+
+void CFootBotNNController::calculateDistancesExp1(double x, double y)
+{
+    double distanceFromCentre = sqrt((x * x) + (y * y));
+
+    double distNest = distanceFromCentre - m_nestRadius;
+    double distFood = (m_gap + 0.5) - distanceFromCentre;
+
+    m_distNest = distNest < 0.0 ? 0.0 : distNest;
+    m_distFood[0] = distFood < 0.0 ? 0.0 : distFood;
+}
+
+void CFootBotNNController::setColour() const
+{
+    if (m_blackBoard->getCarryingFood(0))
+    {
+        m_pcLEDs->SetAllColors(inTrackingIDs() ? CColor::YELLOW : CColor::GREEN);
+    }
+    else
+    {
+        m_pcLEDs->SetAllColors(inTrackingIDs() ? CColor::RED : CColor::BLACK);
+    }
 }
 
 void CFootBotNNController::setParams(float gap, int trialLength)
 {
-    m_params = gap;
     m_trialLength = trialLength;
+    m_gap = gap;
 }
 
-/****************************************/
-/****************************************/
-
-void CFootBotNNController::sensing(bool tracking) 
+void CFootBotNNController::createAndSendPayload(std::vector<uint64_t> distances) const
 {
-    double r = position(tracking);
-    rangeAndBearing(r, tracking);
+    short int id = std::stoi(GetId());
+
+    uint64_t distNest  = (distances[0] == 0) ? 0 : distances[0] * 1000000000;
+    uint64_t distFood1 = (distances[1] == 0) ? 0 : distances[1] * 1000000;
+    uint64_t distFood2 = (distances[2] == 0) ? 0 : distances[2] * 1000;
+    uint64_t distFood3 = (distances[3] == 0) ? 0 : distances[3] * 1;
+
+    uint64_t concatenated = 1000000000000;
+
+    concatenated = concatenated + distNest;
+    concatenated = concatenated + distFood1;
+    concatenated = concatenated + distFood2;
+    concatenated = concatenated + distFood3;
+
+    // fill buffer
+    CByteArray cBuf;
+    cBuf << (uint16_t) id;
+    cBuf << (uint64_t) concatenated;
+
+    // send signal
+    m_pcRABA->ClearData();
+    m_pcRABA->SetData(cBuf);
 }
 
-double CFootBotNNController::position(bool tracking) 
+void CFootBotNNController::decomposePayload(uint64_t concatenated, std::vector<uint64_t>& food, uint64_t& nest) const
+{
+    concatenated -= 1000000000000;
+
+    nest = std::floor(concatenated / 1000000000);
+    concatenated = concatenated - (nest*1000000000);
+
+    uint64_t food1 = std::floor(concatenated / 1000000);
+    concatenated = concatenated - (food1*1000000);
+
+    uint64_t food2 = std::floor(concatenated / 1000);
+    concatenated = concatenated - (food2*1000);
+
+    uint64_t food3 = concatenated;
+
+    food.push_back(food1);
+    food.push_back(food2);
+    food.push_back(food3);
+}
+
+void CFootBotNNController::sendInitialSignal() const
+{
+    // send an initial range and bearing signal so the
+    // distances don't get thrown off by empty values
+
+    short int id = std::stoi(GetId());
+    uint64_t distNest  = (m_blackBoard->getInNest())        ? 0 : 500;
+    uint64_t distFood1 = (m_blackBoard->getDetectedFood(0)) ? 0 : 500;
+    uint64_t distFood2 = (m_blackBoard->getDetectedFood(1)) ? 0 : 500;
+    uint64_t distFood3 = (m_blackBoard->getDetectedFood(2)) ? 0 : 500;
+
+    createAndSendPayload(std::vector<uint64_t>{distNest, distFood1, distFood2, distFood3});
+}
+
+void CFootBotNNController::recordInitialPositions(bool tracking)
+{
+    std::pair<Real, Real> location = getLocation(tracking);
+
+    m_blackBoard->setInitialAbsoluteDistanceFromFood(m_distFood[0], tracking);
+}
+
+void CFootBotNNController::recordFinalPositions(bool tracking)
+{
+    std::pair<Real, Real> location = getLocation(tracking);
+
+    m_blackBoard->setFinalAbsoluteDistanceFromFood(m_distFood[0], tracking);
+}
+
+std::pair<Real, Real> CFootBotNNController::getLocation(bool tracking)
 {
     // position data
     const CCI_PositioningSensor::SReading& pos = m_pcPosition->GetReading();
     Real x = pos.Position.GetX();
     Real y = pos.Position.GetY();
-
-    // distance from the centre of the arena
-    double r = sqrt((x * x) + (y * y));
-
-    // update the blackboard to reflect whether the robot is in the food region
-    m_blackBoard->setDetectedFood(m_count, r >= .5 + m_params, (tracking ? std::stoi(GetId()) : -1));
-    m_blackBoard->setCarryingFood(m_blackBoard->getCarryingFood() || r >= .5 + m_params);
-
-    // update the blackboard to reflect whether the robot is in the nest region
-    m_blackBoard->setInNest(m_count, r < 0.5, (tracking ? std::stoi(GetId()) : -1));
-
-    if (r < .5 && m_blackBoard->getCarryingFood())
-    {
-        m_food++;
-        m_blackBoard->setCarryingFood(false);
-        setDefaultLEDs(tracking);
-    }
-
-    if (r >= .5 + m_params)
-    {
-        setFoodLEDs(tracking);
-    }
-
-    if (m_count == 1)
-    {
-        // record absolute position
-        m_blackBoard->setInitialAbsoluteDistanceFromFood(r, 0.5 + m_params, tracking ? std::stoi(GetId()) : -1);
-    }
-    
-
-    return r;
+    return std::make_pair(x, y);
 }
 
-void CFootBotNNController::rangeAndBearing(double r, bool tracking) 
+void CFootBotNNController::position(bool tracking)
 {
+    uint foodRegions = numFoodRegions();
+
+    // position data
+    std::pair<Real, Real> location = getLocation(tracking);
+    calculateDistances(location.first, location.second);
+
+    // update the blackboard to reflect whether the robot is in the food region
+    for (uint i = 0; i < foodRegions; i++)
+    {
+        m_blackBoard->setDetectedFood(i, m_distFood[i] <= 0.0, tracking);
+        m_blackBoard->setCarryingFood(i, m_blackBoard->getCarryingFood(i) || m_blackBoard->getDetectedFood(i));
+    }
+
+    // update the blackboard to reflect whether the robot is in the nest region
+    m_blackBoard->setInNest(m_distNest <= 0.0);
+
+    // if this robot has arrived in the nest with food increment scores and update blackboard
+    for (uint i = 0; i < foodRegions; i++)
+    {
+        if (m_blackBoard->getInNest() && m_blackBoard->getCarryingFood(i))
+        {
+            m_blackBoard->incrementFood(i, tracking);
+            m_blackBoard->setCarryingFood(i, false);
+        }
+    }
+}
+
+void CFootBotNNController::recordRangeAndBearingData(const Real distance, const CRadians bearing, float& shortestDistance, CRadians& shortestDirection) const
+{
+    if (distance < shortestDistance)
+    {
+        shortestDistance = distance;
+        shortestDirection = bearing;
+    }
+}
+
+void CFootBotNNController::rangeAndBearing(bool tracking)
+{
+    uint foodRegions = numFoodRegions();
+    float maxDistance = 500;
+
     // range and bearing data
     const CCI_RangeAndBearingSensor::TReadings& tPackets = m_pcRABS->GetReadings();
 
-    // map for density of robots and defaults for distance to food or nest
+    // map for density of robots
     std::map<int, double> IDs;
-    float nestRange = (r < .5) ? 0 : 500;
-    float foodRange = (r < .5 + m_params) ? 500 : 0;
-    CRadians closestNestDirection;
-    CRadians closestFoodDirection;
+
+    float closestNeighbourDistance = 700.0;
     CRadians closestNeighbourDirection;
-    float closestNeighbourDistance = 0.0;
+
+    float distanceToNest = m_blackBoard->getInNest() ? 0 : maxDistance;
+    CRadians closestNestDirection;
+
+    std::vector<float> distanceToFood;
+    std::vector<CRadians> closestFoodDirection;
+    for (uint i = 0; i < foodRegions; ++i)
+    {
+        distanceToFood.push_back(m_blackBoard->getDetectedFood(i) ? 0 : maxDistance);
+        closestFoodDirection.push_back(CRadians::ZERO);
+    }
 
     // for each range and bearing signal received 
     for(size_t i = 0; i < tPackets.size(); ++i)
     {
-        if (std::rand() % 20 == 0)
+        if (std::rand() % 20 == 0 || tPackets[i].Range > m_commsRange)
         {
             continue;
         }
 
-        if (tPackets[i].Range > 100)
-        {
-            continue;
-        }
-        
         auto data = tPackets[i].Data;
         auto bearing = tPackets[i].HorizontalBearing;
-        
-        int id;
-        short int nest;
-        short int food;
-        short int signal;
+
+        uint16_t id;
+        uint64_t concatenated;
         data >> id;
-        data >> nest;
-        data >> food;
-        data >> signal;
-        
-        //if (tracking && id == 0) std::cout << id << " - " << nest << " - " << food << " - " << tPackets[i].Range << std::endl;
-        
+        data >> concatenated;
+
+        uint64_t nest = 500;
+        std::vector<uint64_t> food;
+        decomposePayload(concatenated, food, nest);
+
         // if we haven't already received a signal from this robot in the current timestep
         if (IDs.find(id) == IDs.end())
         {
-            if (closestNeighbourDistance == 0.0 || tPackets[i].Range < closestNeighbourDistance)
+            recordRangeAndBearingData(tPackets[i].Range, bearing, closestNeighbourDistance, closestNeighbourDirection);
+            recordRangeAndBearingData(nest + tPackets[i].Range, bearing, distanceToNest, closestNestDirection);
+            for (uint j = 0; j < foodRegions; ++j)
             {
-                closestNeighbourDistance = tPackets[i].Range;
-                closestNeighbourDirection = bearing;
+                recordRangeAndBearingData(food[j] + tPackets[i].Range, bearing, distanceToFood[j], closestFoodDirection[j]);
             }
-            if (nest + tPackets[i].Range < nestRange)
-            {
-                nestRange = nest + tPackets[i].Range;
-                closestNestDirection = bearing;
-            }
-            if (food + tPackets[i].Range < foodRange)
-            {
-                foodRange = food + tPackets[i].Range;
-                closestFoodDirection = bearing;
-            }
+
             // store density value for the robot sending this signal
             Real density = 1 / (ARGOS_PI * ((tPackets[i].Range / 1000) * (tPackets[i].Range / 1000))); // max = 1107
             IDs.insert(std::pair<int, double>(id, density));
         }
     }
 
-    // calculate density and change in density
+    // density
+
     float density = 0;
     for (auto it = IDs.begin(); it != IDs.end(); ++it)
     {
         density += it->second;
     }
-    m_blackBoard->updateDensityVector(density, (tracking ? std::stoi(GetId()) : -1));
+    m_blackBoard->updateDensityVector(density, tracking);
     if (m_count == 2 || m_count % 4 == 0)
     {
-        m_blackBoard->setDensity((m_count == 2), (tracking ? std::stoi(GetId()) : -1));
+        m_blackBoard->setDensity(tracking);
     }
+
+    // neighbours
 
     bool closestNeighbourToLeft = false;
     bool closestNeighbourToRight = false;
@@ -267,58 +338,64 @@ void CFootBotNNController::rangeAndBearing(double r, bool tracking)
     m_blackBoard->setNearestNeighbourToLeft(closestNeighbourToLeft);
     m_blackBoard->setNearestNeighbourToRight(closestNeighbourToRight);
 
-    // save distance to nest and change in distance
-    m_blackBoard->updateDistNestVector(nestRange, tracking ? std::stoi(GetId()) : -1);
+    // nest
+
+    m_blackBoard->updateDistNestVector(distanceToNest, tracking);
     if (m_count == 2 || m_count % 4 == 0)
     {
-        m_blackBoard->setDistNest((m_count == 2), (tracking ? std::stoi(GetId()) : -1));
+        m_blackBoard->setDistNest(tracking);
     }
 
-    // save distance to food and change in distance
-    m_blackBoard->updateDistFoodVector(foodRange, (tracking ? std::stoi(GetId()) : -1));
-    if (m_count == 2 || m_count % 4 == 0)
-    {
-        m_blackBoard->setDistFood((m_count == 2), (tracking ? std::stoi(GetId()) : -1));
-    }
-
-    // navigation
     Real nestDirectionDegrees = closestNestDirection.GetValue() * CRadians::RADIANS_TO_DEGREES;
-    Real foodDirectionDegrees = closestFoodDirection.GetValue() * CRadians::RADIANS_TO_DEGREES;
-    m_blackBoard->setNestToRight(nestRange < 500 && nestRange > 0 && nestDirectionDegrees < 0.0);
-    m_blackBoard->setNestToLeft(nestRange < 500 && nestRange > 0 && nestDirectionDegrees > 0.0);
-    m_blackBoard->setFoodToRight(foodRange < 500 && foodRange > 0 && foodDirectionDegrees < 0.0);
-    m_blackBoard->setFoodToLeft(foodRange < 500 && foodRange > 0 && foodDirectionDegrees > 0.0);
+    m_blackBoard->setNestToRight(distanceToNest < maxDistance && distanceToNest > 0 && nestDirectionDegrees < 0.0);
+    m_blackBoard->setNestToLeft(distanceToNest < maxDistance && distanceToNest > 0 && nestDirectionDegrees > 0.0);
+
+    // food
+
+    for (uint i = 0; i < foodRegions; ++i)
+    {
+        m_blackBoard->updateDistFoodVector(i, distanceToFood[i], tracking);
+        if (m_count == 2 || m_count % 4 == 0)
+        {
+            m_blackBoard->setDistFood(i, tracking);
+        }
+
+        Real foodDirectionDegrees = closestFoodDirection[i].GetValue() * CRadians::RADIANS_TO_DEGREES;
+        m_blackBoard->setFoodToRight(i, distanceToFood[i] < maxDistance && distanceToFood[i] > 0 && foodDirectionDegrees < 0.0);
+        m_blackBoard->setFoodToLeft (i, distanceToFood[i] < maxDistance && distanceToFood[i] > 0 && foodDirectionDegrees > 0.0);
+    }
 }
 
-void CFootBotNNController::actuation(bool tracking)
+void CFootBotNNController::sensing()
+{
+    bool tracking = inTrackingIDs() && m_verbose;
+
+    position(tracking);
+    rangeAndBearing(tracking);
+}
+
+void CFootBotNNController::actuation()
 {
     short int id = std::stoi(GetId());
-    short int distNest = m_blackBoard->getDistNest() * 500;
-    short int distFood = m_blackBoard->getDistFood() * 500;
-    short int sendSignal = 0;
 
-    // write robot ID, distance to nest, distance to food and signal to buffer
-    CByteArray cBuf;
-    cBuf << std::stoi(GetId());
-    cBuf << distNest;
-    cBuf << distFood;
-    cBuf << sendSignal;
+    uint64_t distNest = m_blackBoard->getDistNest()   * 500;
+    uint64_t distFood1 = m_blackBoard->getDistFood(0) * 500;
+    uint64_t distFood2 = m_blackBoard->getDistFood(1) * 500;
+    uint64_t distFood3 = m_blackBoard->getDistFood(2) * 500;
 
-    // send range and bearing signal
-    m_pcRABA->ClearData();
-    m_pcRABA->SetData(cBuf);
+    createAndSendPayload(std::vector<uint64_t>{distNest, distFood1, distFood2, distFood3});
 
     // should probably be in control step instead of here
     m_cPerceptron.SetInput(0, static_cast<float>(m_blackBoard->getInNest()));
-    m_cPerceptron.SetInput(1, static_cast<float>(m_blackBoard->getDetectedFood()));
-    m_cPerceptron.SetInput(2, static_cast<float>(m_blackBoard->getCarryingFood()));
+    m_cPerceptron.SetInput(1, static_cast<float>(m_blackBoard->getDetectedFood(0)));
+    m_cPerceptron.SetInput(2, static_cast<float>(m_blackBoard->getCarryingFood(0)));
     m_cPerceptron.SetInput(3, static_cast<float>(m_blackBoard->getNestToLeft()));
     m_cPerceptron.SetInput(4, static_cast<float>(m_blackBoard->getNestToRight()));
-    m_cPerceptron.SetInput(5, static_cast<float>(m_blackBoard->getFoodToLeft()));
-    m_cPerceptron.SetInput(6, static_cast<float>(m_blackBoard->getFoodToRight()));
+    m_cPerceptron.SetInput(5, static_cast<float>(m_blackBoard->getFoodToLeft(0)));
+    m_cPerceptron.SetInput(6, static_cast<float>(m_blackBoard->getFoodToRight(0)));
     m_cPerceptron.SetInput(7, static_cast<float>(m_blackBoard->getNearestNeighbourToLeft()));
     m_cPerceptron.SetInput(8, static_cast<float>(m_blackBoard->getNearestNeighbourToRight()));
-        
+
     // send motor commands
     int motors = m_blackBoard->getMotors();
     (motors == 1) ? forward() 
@@ -330,80 +407,21 @@ void CFootBotNNController::actuation(bool tracking)
     : stop();
 }
 
-void CFootBotNNController::sendInitialSignal() 
-{
-    // position data
-    const CCI_PositioningSensor::SReading& pos = m_pcPosition->GetReading();
-    Real x = pos.Position.GetX();
-    Real y = pos.Position.GetY();
-
-    // distance from the centre of the arena
-    double r = sqrt((x * x) + (y * y));
-
-    // update the blackboard to reflect whether the robot is in the food / nest region
-    m_blackBoard->setDetectedFood(m_count, r >= .5 + m_params);
-    m_blackBoard->setInNest(m_count, r < 0.5);
-
-    // send an initial range and bearing signal so the
-    // distances don't get thrown off by empty values
-
-    short int id = std::stoi(GetId());
-    int distNest = (m_blackBoard->getInNest()) ? 0 : 500;
-    int distFood = (m_blackBoard->getDetectedFood()) ? 0 : 500;
-
-    // fill buffer
-    CByteArray cBuf;
-    cBuf << std::stoi(GetId());
-    cBuf << (short int) distNest;
-    cBuf << (short int) distFood;
-    cBuf << (short int) 0;
-
-    // send signal
-    m_pcRABA->ClearData();
-    m_pcRABA->SetData(cBuf);
-}
-
-void CFootBotNNController::recordInitialPositions(bool tracking) 
-{
-    const CCI_PositioningSensor::SReading& pos = m_pcPosition->GetReading();
-    Real x = pos.Position.GetX();
-    Real y = pos.Position.GetY();
-
-    double radius = sqrt((x * x) + (y * y));
-    double threshold = 0.5 + m_params;
-
-    m_blackBoard->setInitialAbsoluteDistanceFromFood(radius, threshold, tracking ? std::stoi(GetId()) : -1);
-}
-
-void CFootBotNNController::recordFinalPositions(bool tracking) 
-{
-    const CCI_PositioningSensor::SReading& pos = m_pcPosition->GetReading();
-    Real x = pos.Position.GetX();
-    Real y = pos.Position.GetY();
-
-    double radius = sqrt((x * x) + (y * y));
-    double threshold = 0.5 + m_params;
-
-    m_blackBoard->setFinalAbsoluteDistanceFromFood(radius, threshold, tracking ? std::stoi(GetId()) : -1);
-}
-
-/****************************************/
-/****************************************/
-
 void CFootBotNNController::ControlStep()
 {
-    bool tracking = inTrackingIDs();
+    bool tracking = inTrackingIDs() && m_verbose;
 
     m_count++;
 
     if ((m_count % m_trialLength) == 1)
     {
+        position(tracking);
         sendInitialSignal();
         recordInitialPositions(tracking);
     }
     else
     {
-        sensing(tracking);
+        sensing();
     }
 
     if (m_count % 4 == 0)
@@ -411,12 +429,12 @@ void CFootBotNNController::ControlStep()
         // should probably be here instead of in actuation()
         
         // m_cPerceptron.SetInput(0, static_cast<float>(m_blackBoard->getInNest()));
-        // m_cPerceptron.SetInput(1, static_cast<float>(m_blackBoard->getDetectedFood()));
-        // m_cPerceptron.SetInput(2, static_cast<float>(m_blackBoard->getCarryingFood()));
+        // m_cPerceptron.SetInput(1, static_cast<float>(m_blackBoard->getDetectedFood(0)));
+        // m_cPerceptron.SetInput(2, static_cast<float>(m_blackBoard->getCarryingFood(0)));
         // m_cPerceptron.SetInput(3, static_cast<float>(m_blackBoard->getNestToLeft()));
         // m_cPerceptron.SetInput(4, static_cast<float>(m_blackBoard->getNestToRight()));
-        // m_cPerceptron.SetInput(5, static_cast<float>(m_blackBoard->getFoodToLeft()));
-        // m_cPerceptron.SetInput(6, static_cast<float>(m_blackBoard->getFoodToRight()));
+        // m_cPerceptron.SetInput(5, static_cast<float>(m_blackBoard->getFoodToLeft(0)));
+        // m_cPerceptron.SetInput(6, static_cast<float>(m_blackBoard->getFoodToRight(0)));
         // m_cPerceptron.SetInput(7, static_cast<float>(m_blackBoard->getNearestNeighbourToLeft()));
         // m_cPerceptron.SetInput(8, static_cast<float>(m_blackBoard->getNearestNeighbourToRight()));
         
@@ -434,80 +452,64 @@ void CFootBotNNController::ControlStep()
     
     if (m_count > 1)
     {
-        actuation(tracking);
+        actuation();
     }
 
     if (m_blackBoard->getMotors() > 0 && m_count % 4 == 0)
     {
         m_blackBoard->addMovement();
         m_blackBoard->addRotation();
-        // if (tracking) std::cout << m_blackBoard->getMovement() << " " << m_blackBoard->getRotations() << std::endl;
     }
 
-    if ((m_count - 16) % m_trialLength == 0)
+    if (m_count % m_trialLength == 16)
     {
-        m_blackBoard->setInitialDensity(tracking ? std::stoi(GetId()) : -1);
-        m_blackBoard->setInitialDistanceFromNest(tracking ? std::stoi(GetId()) : -1);
-        m_blackBoard->setInitialDistanceFromFood(tracking ? std::stoi(GetId()) : -1);
+        m_blackBoard->setInitialDensity(tracking);
+        m_blackBoard->setInitialDistanceFromNest(tracking);
+        m_blackBoard->setInitialDistanceFromFood(tracking);
     }
 
     if (m_count % m_trialLength == 0)
     {
         recordFinalPositions(tracking);
 
-        m_blackBoard->setFinalDensity(tracking ? std::stoi(GetId()) : -1);
-        m_blackBoard->setFinalDistanceFromNest(tracking ? std::stoi(GetId()) : -1);
-        m_blackBoard->setFinalDistanceFromFood(tracking ? std::stoi(GetId()) : -1);
-        
-        // sub-behaviours
+        m_blackBoard->setFinalDensity(tracking);
+        m_blackBoard->setFinalDistanceFromNest(tracking);
+        m_blackBoard->setFinalDistanceFromFood(tracking);
+
         m_scores[0].push_back(m_blackBoard->getDifferenceInDensity());
         m_scores[1].push_back(m_blackBoard->getDifferenceInDistanceFromNest());
         m_scores[2].push_back(m_blackBoard->getDifferenceInDistanceFromFood());
         m_scores[3].push_back(m_blackBoard->getDifferenceInDensityInverse());
         m_scores[4].push_back(m_blackBoard->getDifferenceInDistanceFromNestInverse());
-        m_scores[5].push_back(m_blackBoard->getDifferenceInDistanceFromFoodInverse(tracking ? std::stoi(GetId()) : -1));
-        //m_scores[5].push_back(m_blackBoard->getAbsoluteDifferenceInDistanceFromFoodInverse(0.5 + m_params, tracking ? std::stoi(GetId()) : -1));
-        
-        // foraging
-        m_scores[6].push_back(static_cast<float>(m_food));
-        
-        // qdpy 
+        m_scores[5].push_back(m_blackBoard->getDifferenceInDistanceFromFoodInverse(tracking));
+        //m_scores[5].push_back(m_blackBoard->getAbsoluteDifferenceInDistanceFromFoodInverse(tracking));
+
+        m_scores[6].push_back(static_cast<float>(m_blackBoard->getFoodOfType(0)));
+
         m_scores[7].push_back(static_cast<float>(m_blackBoard->getMovement()));
         m_scores[8].push_back(static_cast<float>(m_blackBoard->getRotations()));
         m_scores[9].push_back(static_cast<float>(m_blackBoard->getConditionality()));
-        
+
         m_blackBoard->setMovement(0);
         m_blackBoard->setRotations(0);
         m_blackBoard->setConditions(0);
         m_blackBoard->setActions(0);
         
-        // reset
-        m_blackBoard->setCarryingFood(false);
-        m_food = 0;
-        setDefaultLEDs(tracking);
+        m_blackBoard->reset();
     }
+
+    setColour();
 }
 
-/****************************************/
-/****************************************/
-
-bool CFootBotNNController::inTrackingIDs()
+bool CFootBotNNController::inTrackingIDs() const
 {
     return (std::find(m_trackingIDs.begin(), m_trackingIDs.end(), std::stoi(GetId())) != m_trackingIDs.end());
 }
 
-void CFootBotNNController::setDefaultLEDs(bool tracking)
+uint CFootBotNNController::numFoodRegions() const
 {
-    m_pcLEDs->SetAllColors(inTrackingIDs() ? CColor::YELLOW : CColor::BLUE);
+    return 1;
 }
-
-void CFootBotNNController::setFoodLEDs(bool tracking)
-{
-    m_pcLEDs->SetAllColors(inTrackingIDs() ? CColor::RED : CColor::GREEN);
-}
-
-/****************************************/
-/****************************************/
 
 void CFootBotNNController::Reset()
 {
@@ -518,8 +520,5 @@ void CFootBotNNController::Destroy()
 {
    m_cPerceptron.Destroy();
 }
-
-/****************************************/
-/****************************************/
 
 REGISTER_CONTROLLER(CFootBotNNController, "footbot_nn")

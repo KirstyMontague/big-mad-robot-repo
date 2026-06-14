@@ -4,11 +4,10 @@
 #include <argos3/core/control_interface/ci_controller.h>
 #include <argos3/plugins/robots/generic/control_interface/ci_differential_steering_actuator.h>
 #include <argos3/plugins/robots/foot-bot/control_interface/ci_footbot_proximity_sensor.h>
-#include <argos3/plugins/robots/foot-bot/control_interface/ci_footbot_light_sensor.h>
 
-#include <argos3/plugins/robots/generic/control_interface/ci_leds_actuator.h>
 #include <argos3/plugins/robots/generic/control_interface/ci_range_and_bearing_actuator.h>
 #include <argos3/plugins/robots/generic/control_interface/ci_range_and_bearing_sensor.h>
+#include <argos3/plugins/robots/generic/control_interface/ci_leds_actuator.h>
 #include <argos3/plugins/robots/generic/control_interface/ci_positioning_sensor.h>
 
 #include "nn/perceptron_multi.h"
@@ -24,6 +23,7 @@ using namespace argos;
  * Ahmed Fawzy Gad and Fatima Ezzahra Jarmouni chapters 2 & 5
  * 
  */
+
 class CFootBotNNController : public CCI_Controller {
 
 public:
@@ -31,16 +31,20 @@ public:
     CFootBotNNController();
     virtual ~CFootBotNNController();
 
-    void Init(TConfigurationNode& t_node);
-    void ControlStep();
-    void Reset();
-    void Destroy();
+    void Init(TConfigurationNode& t_node) override;
+    void ControlStep() override;
+    void Reset() override;
+    void Destroy() override;
 
     void InitNN(const Real* chromosome, UInt32 numInputs, UInt32 numHidden, UInt32 numOutputs);
-    void createBlackBoard(int numRobots);
     void setParams(float gap, int trialLength);
 
+    void calculateDistances(double x, double y);
+    void calculateDistancesExp1(double x, double y);
+
 private:
+
+    void setColour() const;
 
     void stop() {m_pcWheels->SetLinearVelocity(0.0f, 0.0f);}
     void forward() {m_pcWheels->SetLinearVelocity(m_lWheelVelocity, m_rWheelVelocity);}
@@ -50,47 +54,55 @@ private:
     void reverseLeft() {m_pcWheels->SetLinearVelocity(0.0f, -m_rWheelVelocity);}
     void reverseRight() {m_pcWheels->SetLinearVelocity(-m_lWheelVelocity, 0.0f);}
 
-    void sensing(bool tracking);
-    void actuation(bool tracking);
-    double position(bool tracking);
-    void rangeAndBearing(double r, bool tracking);
-    void setDefaultLEDs(bool tracking);
-    void setFoodLEDs(bool tracking);
-
-    void sendInitialSignal();
+    void sendInitialSignal() const;
     void recordInitialPositions(bool tracking);
     void recordFinalPositions(bool tracking);
+    std::pair<Real, Real> getLocation(bool tracking);
 
-    bool inTrackingIDs();
+    void sensing();
+    void actuation();
+    void position(bool tracking);
+    void rangeAndBearing(bool tracking);
 
-    CCI_FootBotLightSensor* m_pcLight;
-    CCI_PositioningSensor* m_pcPosition;
-    CCI_FootBotProximitySensor* m_pcProximity;
-    CCI_RangeAndBearingSensor* m_pcRABS;
+    void createAndSendPayload(const std::vector<uint64_t> distances) const;
+    void decomposePayload(uint64_t concatenated, std::vector<uint64_t>& food, uint64_t& nest) const;
+    void recordRangeAndBearingData(const Real distance, const CRadians bearing, float& shortestDistance, CRadians& shortestDirection) const;
 
-    CCI_LEDsActuator* m_pcLEDs;
-    CCI_RangeAndBearingActuator* m_pcRABA;
-    CCI_DifferentialSteeringActuator* m_pcWheels;
+    bool inTrackingIDs() const;
+    uint numFoodRegions() const;
 
-    Real m_lWheelVelocity;
-    Real m_rWheelVelocity;
-
-    int m_count = 0;
+private:
 
     CPerceptronMulti m_cPerceptron;
     TConfigurationNode m_node;
 
     CBlackBoard* m_blackBoard;
 
-    float m_params;
+    std::vector<int> m_trackingIDs;
+    bool m_verbose;
+    int m_count;
+
+    float m_gap;
+    int m_commsRange;
     int m_trialLength;
 
-    std::vector<std::vector<float>> m_scores;
-    bool m_carryingFood = false;
-    int m_food = 0;
+    float m_nestRadius;
+    float m_foodRadius;
+    std::vector<float> m_distFood;
+    float m_distNest;
 
-    int m_trackingID;
-    std::vector<int> m_trackingIDs;
+    std::vector<std::vector<float>> m_scores;
+
+    Real m_rWheelVelocity;
+    Real m_lWheelVelocity;
+
+    // sensors / actuators
+
+    CCI_DifferentialSteeringActuator* m_pcWheels;  /* Pointer to the differential steering actuator */
+    CCI_PositioningSensor* m_pcPosition;           /* Pointer to the foot-bot position sensor */
+    CCI_RangeAndBearingActuator* m_pcRABA;         /* Pointer to the range and bearing actuator */
+    CCI_RangeAndBearingSensor* m_pcRABS;           /* Pointer to the range and bearing sensor */
+    CCI_LEDsActuator* m_pcLEDs;                    /* Pointer to the leds actuator */
 };
 
 #endif

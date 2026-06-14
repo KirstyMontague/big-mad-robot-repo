@@ -181,7 +181,6 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
             // create robot
             CFootBotNNController& controller = dynamic_cast<CFootBotNNController&>(pcFB->GetControllableEntity().GetController());
             controller.InitNN(chromosome, numInputs, numHidden, numOutputs);
-            controller.createBlackBoard(sqrtRobots * sqrtRobots);
             controller.setParams(m_gap, trialLength);
         }
     }
