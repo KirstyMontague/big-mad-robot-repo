@@ -49,7 +49,7 @@ class EA():
 
         repertoire_path = self.params.shared_path+"/ga/"+self.params.experiment+"/foraging"
         repertoire_file = repertoire_path+"/foraging-"+str(self.params.src_bins[0])+"-bins.txt"
-        print("\nReading from "+repertoire_file)
+        self.params.console("\nReading from "+repertoire_file)
 
         self.repertoire = self.utilities.createContainer(self.params.src_bins,
                                                          self.params.src_domain,
@@ -58,19 +58,19 @@ class EA():
                                                  self.repertoire, repertoire_file,
                                                  0, 0, 0)
 
-        print()
+        self.params.console("")
         flat_indexes = []
         grid_indexes = []
 
         if self.params.usingNewGrid:
             flat_indexes.extend(range(len(self.repertoire.items())))
             grid_indexes = [key for key, value in self.repertoire.items()]
-            print("repertoire size "+str(len(self.repertoire.values()))+"\n")
+            self.params.console("repertoire size "+str(len(self.repertoire.values()))+"\n")
         else:
             container = self.repertoire.solutions.items()
             flat_indexes = [self.repertoire.items.index(inds[0]) for index, inds in container if len(inds) > 0]
             grid_indexes = [self.repertoire.index_grid(inds[0].features) for index, inds in container if len(inds) > 0]
-            print("repertoire size "+str(len(self.repertoire))+"\n")
+            self.params.console("repertoire size "+str(len(self.repertoire))+"\n")
 
         self.utilities.toolbox = self.utilities.setupToolboxGA(self.repertoire, self.mutateOneIndividual, self.selTournament, flat_indexes, grid_indexes)
 

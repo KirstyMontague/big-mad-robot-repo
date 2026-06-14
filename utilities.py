@@ -616,7 +616,7 @@ class Utilities():
             if bias == -1 or axis == bias:
                 fitness += individual.features[axis]
             else:
-                individual.features[axis] * self.params.penalty
+                fitness += individual.features[axis] * self.params.penalty
 
         return fitness
 
@@ -862,8 +862,7 @@ class Utilities():
                 ig = tuple(ind)
                 ind = self.repertoire.solutions[ig][0]
             chromosomes += str(ind)+"\n"
-        print()
-        print(chromosomes)
+        self.params.console("\n"+chromosomes)
 
     def getFilledBins(self, container):
 

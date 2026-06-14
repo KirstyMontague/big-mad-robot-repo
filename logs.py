@@ -59,7 +59,7 @@ class Logs():
 
         all_best = []
         if self.params.project == "heterogeneous_genetic_algorithm":
-            all_best.append(self.utilities.getBestSwarmFromPopulation(population))
+            all_best.append(self.utilities.getBestSwarmFromPopulation(population, self.params.bias))
         else:
             for i in range(self.params.features):
                 all_best.append(self.utilities.getBestFromPopulation(population, i))
