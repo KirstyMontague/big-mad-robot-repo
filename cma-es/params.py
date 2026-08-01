@@ -138,11 +138,16 @@ class Params():
                             self.console(line[0:-1])
 
     def update(self, data):
+
         if data[0] == "experiment" and len(data) > 1:
             self.experiment = data[1]
+
         if data[0] == "objective":
             self.objective_index = int(data[1])
             self.objective = self.objectives[self.objective_index]
+            self.num_inputs = 9 if self.objective == "foraging" else 8
+            self.individualSize()
+
         if data[0] == "generations": self.generations = int(data[1])
         if data[0] == "useArchive": self.useArchive = True if data[1] == "True" else False
         if data[0] == "saveOutput": self.saveOutput = True if data[1] == "True" else False

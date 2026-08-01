@@ -17,7 +17,8 @@ CFootBotNNController::CFootBotNNController() :
     m_distNest(0.0),
     m_gap(0.0),
     m_trialLength(0),
-    m_count(0)
+    m_count(0),
+    m_isForaging(false)
 {}
 
 CFootBotNNController::~CFootBotNNController()
@@ -53,6 +54,8 @@ void CFootBotNNController::Init(TConfigurationNode& t_node)
     Real wheelVelocity;
     GetNodeAttributeOrDefault(t_node, "velocity", wheelVelocity, wheelVelocity);
     
+    GetNodeAttributeOrDefault(t_node, "verbose", m_verbose, m_verbose);
+
     Real noise;
     noise = (std::rand() % 20);
     noise = (noise + 90) / 100;
@@ -120,10 +123,11 @@ void CFootBotNNController::setColour() const
     }
 }
 
-void CFootBotNNController::setParams(float gap, int trialLength)
+void CFootBotNNController::setParams(float gap, int trialLength, bool isForaging)
 {
     m_trialLength = trialLength;
     m_gap = gap;
+    m_isForaging = isForaging;
 }
 
 void CFootBotNNController::createAndSendPayload(std::vector<uint64_t> distances) const
@@ -418,16 +422,25 @@ void CFootBotNNController::ControlStep()
 
     if (m_count % 4 == 0)
     {
-        m_cPerceptron.SetInput(0, static_cast<float>(m_blackBoard->getInNest()));
-        m_cPerceptron.SetInput(1, static_cast<float>(m_blackBoard->getDetectedFood(0)));
-        m_cPerceptron.SetInput(2, static_cast<float>(m_blackBoard->getCarryingFood(0)));
-        m_cPerceptron.SetInput(3, static_cast<float>(m_blackBoard->getNestToLeft()));
-        m_cPerceptron.SetInput(4, static_cast<float>(m_blackBoard->getNestToRight()));
-        m_cPerceptron.SetInput(5, static_cast<float>(m_blackBoard->getFoodToLeft(0)));
-        m_cPerceptron.SetInput(6, static_cast<float>(m_blackBoard->getFoodToRight(0)));
-        m_cPerceptron.SetInput(7, static_cast<float>(m_blackBoard->getNearestNeighbourToLeft()));
-        m_cPerceptron.SetInput(8, static_cast<float>(m_blackBoard->getNearestNeighbourToRight()));
-        
+        std::vector<float> inputs;
+        inputs.push_back(static_cast<float>(m_blackBoard->getInNest()));
+        inputs.push_back(static_cast<float>(m_blackBoard->getDetectedFood(0)));
+        if (m_isForaging)
+        {
+            inputs.push_back(static_cast<float>(m_blackBoard->getCarryingFood(0)));
+        }
+        inputs.push_back(static_cast<float>(m_blackBoard->getNestToLeft()));
+        inputs.push_back(static_cast<float>(m_blackBoard->getNestToRight()));
+        inputs.push_back(static_cast<float>(m_blackBoard->getFoodToLeft(0)));
+        inputs.push_back(static_cast<float>(m_blackBoard->getFoodToRight(0)));
+        inputs.push_back(static_cast<float>(m_blackBoard->getNearestNeighbourToLeft()));
+        inputs.push_back(static_cast<float>(m_blackBoard->getNearestNeighbourToRight()));
+
+        for (uint i = 0; i < inputs.size(); ++i)
+        {
+            m_cPerceptron.SetInput(i, inputs[i]);
+        }
+
         m_blackBoard->setMotors(0);
         m_cPerceptron.ComputeOutputs(tracking);
         
@@ -466,15 +479,14 @@ void CFootBotNNController::ControlStep()
         m_blackBoard->setFinalDistanceFromNest(tracking);
         m_blackBoard->setFinalDistanceFromFood(tracking);
 
-        m_scores[0].push_back(m_blackBoard->getDifferenceInDensity());
-        m_scores[1].push_back(m_blackBoard->getDifferenceInDistanceFromNest());
-        m_scores[2].push_back(m_blackBoard->getDifferenceInDistanceFromFood());
-        m_scores[3].push_back(m_blackBoard->getDifferenceInDensityInverse());
-        m_scores[4].push_back(m_blackBoard->getDifferenceInDistanceFromNestInverse());
-        m_scores[5].push_back(m_blackBoard->getDifferenceInDistanceFromFoodInverse(tracking));
-        //m_scores[5].push_back(m_blackBoard->getAbsoluteDifferenceInDistanceFromFoodInverse(tracking));
-
-        m_scores[6].push_back(static_cast<float>(m_blackBoard->getFoodOfType(0)));
+        m_scores[0].push_back(m_isForaging ? 0.0 : m_blackBoard->getDifferenceInDensity());
+        m_scores[1].push_back(m_isForaging ? 0.0 : m_blackBoard->getDifferenceInDistanceFromNest());
+        m_scores[2].push_back(m_isForaging ? 0.0 : m_blackBoard->getDifferenceInDistanceFromFood());
+        m_scores[3].push_back(m_isForaging ? 0.0 : m_blackBoard->getDifferenceInDensityInverse());
+        m_scores[4].push_back(m_isForaging ? 0.0 : m_blackBoard->getDifferenceInDistanceFromNestInverse());
+        m_scores[5].push_back(m_isForaging ? 0.0 : m_blackBoard->getDifferenceInDistanceFromFoodInverse(tracking));
+        //m_scores[5].push_back(m_isForaging ? 0.0 : m_blackBoard->getAbsoluteDifferenceInDistanceFromFoodInverse(tracking));
+        m_scores[6].push_back(m_isForaging ? static_cast<float>(m_blackBoard->getFoodOfType(0)) : 0.0);
 
         m_scores[7].push_back(static_cast<float>(m_blackBoard->getMovement()));
         m_scores[8].push_back(static_cast<float>(m_blackBoard->getRotations()));

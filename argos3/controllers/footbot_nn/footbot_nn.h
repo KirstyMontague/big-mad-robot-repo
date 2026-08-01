@@ -37,7 +37,7 @@ public:
     void Destroy() override;
 
     void InitNN(const Real* chromosome, UInt32 numInputs, UInt32 numHidden, UInt32 numOutputs);
-    void setParams(float gap, int trialLength);
+    void setParams(float gap, int trialLength, bool isForaging);
 
     void calculateDistances(double x, double y);
     void calculateDistancesExp1(double x, double y);
@@ -85,6 +85,7 @@ private:
     float m_gap;
     int m_commsRange;
     int m_trialLength;
+    bool m_isForaging;
 
     float m_nestRadius;
     float m_foodRadius;

@@ -58,6 +58,7 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
     int numOutputs = 0;
     int trialLength = 0;
     int sqrtRobots = 0;
+    std::string objective = "";
     while( getline(configFile, line) )
     {
         int delimiter = line.find(":");
@@ -85,14 +86,19 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
         {
             sqrtRobots = std::stoi(value);
         }
+        else if (key == "objective")
+        {
+            objective = value;
+        }
     }
 
-    if (numInputs == 0 || numOutputs == 0 || m_experimentLength == 0 || sqrtRobots == 0)
+    if (numInputs == 0 || numOutputs == 0 || m_experimentLength == 0 || sqrtRobots == 0 || objective == "")
     {
         std::cout << "numInputs: " << std::to_string(numInputs) << "\n";
         std::cout << "numOutputs: " << std::to_string(numOutputs) << "\n";
         std::cout << "experimentLength: " << std::to_string(m_experimentLength) << "\n";
         std::cout << "sqrtRobots: " << std::to_string(sqrtRobots) << "\n";
+        std::cout << "objective: " << objective << "\n";
         return;
     }
 
@@ -181,7 +187,7 @@ void CNNLoopFunctions::Init(TConfigurationNode& t_tree)
             // create robot
             CFootBotNNController& controller = dynamic_cast<CFootBotNNController&>(pcFB->GetControllableEntity().GetController());
             controller.InitNN(chromosome, numInputs, numHidden, numOutputs);
-            controller.setParams(m_gap, trialLength);
+            controller.setParams(m_gap, trialLength, objective == "foraging");
         }
     }
 }

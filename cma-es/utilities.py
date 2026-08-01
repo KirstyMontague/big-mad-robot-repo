@@ -142,7 +142,7 @@ class Utilities():
         return best
 
     def printPopulationFitness(self, population):
-        
+
         fitnesses = ""
         for i in population:
             fitnesses += str(i.fitness.getValues()[0])+"\n"
@@ -161,6 +161,8 @@ class Utilities():
             f.write("experimentLength:"+str(experiment_length))
             f.write("\n")
             f.write("sqrtRobots:"+str(self.params.sqrt_robots))
+            f.write("\n")
+            f.write("objective:"+self.params.objective)
 
     def saveParams(self):
 
