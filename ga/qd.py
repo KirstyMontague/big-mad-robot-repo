@@ -127,8 +127,12 @@ class EA():
     def eaLoop(self, generation):
 
         max_gen = self.params.generations
+        bias_interval = self.params.bias_interval
 
         while (generation < max_gen):
+
+            if bias_interval > 0 and generation  > 0 and generation % bias_interval == 0:
+                self.changeBias()
 
             generation += 1
 
@@ -198,14 +202,14 @@ class EA():
         if self.params.printBestIndividuals and generation == self.params.generations:
             best = self.utilities.getBestSwarmFromContainer(self.container, self.params.bias)
             self.utilities.printHeterogeneousSwarm(self.repertoire, best)
-            qd_score_and_coverage = "QD Score: "+str("%.9f" % self.utilities.getAdjustedQDScore(self.container))+"\n"
+            qd_score_and_coverage = "QD Score: "+str("%.9f" % self.utilities.getQDScoreWithBias(self.container))+"\n"
             qd_score_and_coverage += "Coverage: "+str("%.9f" % self.utilities.getCoverage(self.container))+"\n"
             self.params.console(qd_score_and_coverage)
             self.params.console(self.utilities.printRepertoireQdScores(self.container))
 
         if self.params.saveCSV:
             self.logs.logFitness(generation, [self.utilities.getBestSwarmFromContainer(self.container, self.params.bias)])
-            self.logs.logQdScore(generation, [self.utilities.getQDScore(self.container)])
+            self.logs.logQdScore(generation, [self.utilities.getQDScoreWithBias(self.container)])
             self.logs.logCoverage(generation, self.utilities.getCoverage(self.container))
 
         if generation != 0 and generation % 100 == 0 and invalid_new == 0:
@@ -224,7 +228,7 @@ class EA():
         filled = str(int(self.utilities.getFilledBins(self.container)))
         total = str(self.params.nb_bins[0] * self.params.nb_bins[1] * self.params.nb_bins[2])
 
-        qd_score = str("%.6f" % self.utilities.getAdjustedQDScore(self.container))
+        qd_score = str("%.6f" % self.utilities.getQDScoreWithBias(self.container))
 
         description = self.params.description
 
@@ -288,3 +292,11 @@ class EA():
             best = self.utilities.getBestSwarmFromPopulation(aspirants, self.params.bias)
             chosen.append(best)
         return chosen
+
+    def changeBias(self):
+
+        bias = self.params.bias + 1
+        if bias > 2:
+            bias = 0
+        self.params.bias = bias
+        print("Changing bias to "+str(bias))

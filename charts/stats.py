@@ -14,7 +14,7 @@ Work in progress for analysing repertoires and generating CSVs retrospectively
 
 """
 
-class Repertoire():
+class Statistics():
 
     def __init__(self):
 
@@ -187,15 +187,15 @@ if __name__ == "__main__":
 
     algorithms = ["qdpy"]
 
-    repertoire = Repertoire()
+    statistics = Statistics()
 
-    repertoire.loadSeparate()
-    repertoire.generateCSV()
+    statistics.loadSeparate()
+    statistics.generateCSV()
 
-    repertoire.loadCombined()
-    if not repertoire.cancelled:
-        repertoire.getBest()
-        repertoire.getCoverage()
-        repertoire.getQdScore()
+    statistics.loadCombined()
+    if not statistics.cancelled:
+        statistics.getBest()
+        statistics.getCoverage()
+        statistics.getQdScore()
 
 

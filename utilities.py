@@ -925,6 +925,22 @@ class Utilities():
 
         return total_fitness
 
+    def getQDScoreWithBias(self, container, shape = None):
+
+        if shape == None:
+            shape = self.params.nb_bins
+
+        grid = self.getGridForQDScore(container, shape)
+
+        population = grid.values() if self.params.usingNewGrid else grid
+
+        total_fitness = 0.0
+        for ind in population:
+            total_fitness += self.getAdjustedSwarmFitness(ind, self.params.bias)
+        total_fitness /= shape[0]*shape[1]*shape[2]
+
+        return total_fitness
+
     def printRepertoireQdScores(self, container):
 
         output = ""
