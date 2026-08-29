@@ -37,14 +37,23 @@ y = {
         "coverage" : [0.0,0.65],
     },
     "foraging" : {
-        "best" : [0.0,2.5],
-        "qd-score" : [0.0,0.01],
-        "coverage" : [0.0,0.01],
+        # heterogeneous GA
+        "best"     : [0.0,4.0],
+        # heterogeneous baseline 2000 gen
+        "best"     : [0.0,3.0],
+        "qd-scores" : [0.0,0.015],
+        "avg-quality" : [0.0,1.5],
+        "coverage" : [0.0,15000],
+        # heterogeneous baseline 1000 gen
+        "best"     : [0.0,2.5],
+        "qd-scores" : [0.0,0.010],
+        "avg-quality" : [0.0,1.2],
+        "coverage" : [0.0,10000],
     },
 }
 
 
-def drawLineGraph(experiment, objective, algorithm, repertoire, query, generations, max_bins):
+def drawLineGraph(experiment, objective, algorithm, repertoire, query, generations, csv, max_bins, runs):
     title = analyse.objectives.info[objective]["description"]+" ("+algorithm.upper()+")"
     analyse.drawLineGraph(title,
                           experiment,
@@ -53,17 +62,24 @@ def drawLineGraph(experiment, objective, algorithm, repertoire, query, generatio
                           repertoire,
                           query,
                           generations,
+                          csv,
                           max_bins,
-                          y[objective][query])
+                          y[objective][query],
+                          runs)
 
 experiment = "heterogeneous"
 algorithm = "qdpy"
-query = "coverage"
+query = "avg-quality"
 
 objective = "foraging"
 repertoire = "baseline"
 generations = 1000
+csv = 1000
 max_bins = 100*100*100
 
-if algorithm in ["gp", "mtc", "mti", "qdpy"]:
-    drawLineGraph(experiment, objective, algorithm, repertoire, query, generations, max_bins)
+runs = 30
+
+if algorithm in ["gp", "mtc", "mti", "qdpy", "ga"]:
+    drawLineGraph(experiment, objective, algorithm, repertoire, query, generations, csv, max_bins, runs)
+else:
+    print("Algorithm not recognised")

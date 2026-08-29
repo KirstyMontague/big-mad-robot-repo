@@ -26,9 +26,14 @@ class Algorithms():
                 "path" : "qdpy",
             },
             "cma-es" : {
-                "name" : "gp",
+                "name" : "cma",
                 "description" : "CMA",
                 "path" : "cma-es",
+            },
+            "ga" : {
+                "name" : "ga",
+                "description" : "GA",
+                "path" : "ga",
             },
             "baseline" : {
                 "name" : "baseline",

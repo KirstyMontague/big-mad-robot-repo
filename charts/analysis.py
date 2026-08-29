@@ -28,88 +28,66 @@ class Analysis():
     def __init__(self):
         self.params = eaParams()
         self.utilities = Utilities(self.params)
-        
+
         self.algorithms = Algorithms()
         self.objectives = Objectives()
         self.queries = Queries()
-
-    def getData(self, query, objective, algorithms, experiments, repertoires, runs, generation):
-
-        result = []
-
-        for algorithm in algorithms:
-            for experiment in experiments:
-                for repertoire in repertoires:
-
-                    generations = self.getGeneration(generation, objective["name"], repertoire)
-                    interval = generations
-                    index = int(generations/interval)
-
-                    description = self.utilities.getExperimentDescription(objective["index"], algorithm)
-                    path = self.algorithms.info[algorithm]["path"]
-
-                    features = 3 if "mt" in algorithm else 1
-                    csv_index = self.utilities.getCsvIndex(objective["index"], algorithm)
-
-                    filename = self.params.input_path+"/"+path+"/"+experiment+"/"+description+"/"
-                    if objective["name"] == "foraging":
-                        filename += repertoire+"/"
-
-                    data = self.getDataFromCSV(query, generations, generations, generations, objective, runs, filename)
-                    data = data[csv_index][index] if "mt" in algorithm and query["name"] != "coverage" else data[0][index]
-                    result.append(data)
-
-        return result
 
     def getDataFromCSV(self, query, file_index, generations, interval, objective, runs, filename):
 
         # returns scores for every seed per generation for each feature converted from
         # [seed][gen][feature] in horizontal_data to [feature][gen][seed] in vertical_data
 
-        filename = filename + query["name"] + str(file_index)+".csv"
+        print("Loading from: "+filename)
 
-        with open(filename, "r") as f:
+        try:
+            with open(filename, "r") as f:
 
-            indexes = []
-            horizontal_data = []
-            first_gen_column = 0
+                indexes = []
+                horizontal_data = []
+                first_gen_column = 0
 
-            for line in f:
-                
-                data = []
-                sections = line.split("\"")
-                columns = sections[0].split(",")
+                for line in f:
 
-                if columns[0] in ["Type", "Objective"]:
-                    for i in range(0, len(columns)):
-                        if columns[i].isdigit():
-                            if first_gen_column == 0:
-                                first_gen_column = i
-                        if columns[i].isdigit() and int(columns[i]) <= generations and int(columns[i]) % interval == 0:
-                            indexes.append(i)
+                    data = []
+                    sections = line.split("\"")
+                    columns = sections[0].split(",")
 
-                elif columns[0] not in ["Type", "Objective"] and len(indexes) > 0 and len(horizontal_data) < runs:
-                    for i in range(generations+1):
-                        index = i + first_gen_column
-                        if index in indexes:
-                            if query["name"] == "coverage":
-                                # coverage is represented by only one value even for MT 
-                                score = columns[index]
-                                if score[0] == "[":
-                                    # adjustment for qdpy output format for coverage
-                                    score = float(score[1:-1])
+                    if columns[0] in ["Type", "Objective", "Time"]:
+                        for i in range(0, len(columns)):
+                            if columns[i].isdigit():
+                                if first_gen_column == 0:
+                                    first_gen_column = i
+                            if columns[i].strip('\t\n\r').isdigit() and int(columns[i]) <= generations and int(columns[i]) % interval == 0:
+                                indexes.append(i)
+
+                    elif columns[0] not in ["Type", "Objective", "Time"] and len(indexes) > 0 and len(horizontal_data) < runs:
+                        for i in range(generations+1):
+                            index = i + first_gen_column
+                            if index in indexes:
+                                if query["name"] == "coverage":
+                                    # coverage is represented by only one value even for MT
+                                    score = columns[index]
+                                    if score[0] == "[":
+                                        # adjustment for qdpy output format for coverage
+                                        score = float(score[1:-1])
+                                    else:
+                                        score = float(score)
+                                    data.append([score])
                                 else:
-                                    score = float(score)
-                                data.append([score])
-                            else:
-                                scores = columns[index]
-                                scoresList = scores.split(" ")
-                                if (scoresList[-1] == ""):
-                                    data.append(scoresList[0:-1])
-                                else:
-                                    data.append(scoresList)
+                                    scores = columns[index]
+                                    scoresList = scores.split(" ")
+                                    if (scoresList[-1] == ""):
+                                        data.append(scoresList[0:-1])
+                                    else:
+                                        data.append(scoresList)
 
-                    horizontal_data.append(data)
+                        horizontal_data.append(data)
+
+        except FileNotFoundError as e:
+            print("\n"+str(e)+"\n")
+            raise ValueError(e)
+            return
 
         # print ("")
         # print(len(horizontal_data))
@@ -139,76 +117,23 @@ class Analysis():
 
         return vertical_data
 
-    def checkHypothesis(self, data1, data2):
-        
-        data1_normal = shapiro(data1)
-        data2_normal = shapiro(data2)
-        
-        both_normal = True if data1_normal.pvalue > 0.05 and data2_normal.pvalue > 0.05 else False
-        
-        if both_normal:
-            ttest = ttest_ind(data1, data2)
-            print ("ttest "+str(ttest.pvalue))
-        else:
-            ttest = mannwhitneyu(data1, data2)
-            print ("mwu "+str(ttest.pvalue))
-
-        return ttest
-
-    def drawOneGeneration(self, filename, query_name, objective_index, algorithms, experiments, repertoires, runs, generation = 0):
-
-        objective = self.objectives.info[self.objectives.index[objective_index]]
-        query = self.queries.info[query_name]
+    def checkHypothesis(self, data):
 
         try:
-            data = self.getData(query, objective, algorithms, experiments, repertoires, runs, generation)
-        except FileNotFoundError as e:
-            print("\n"+str(e)+"\n")
-            return
-
-        try:
-            print()
+            mwu_string = "\n"
             for i in range(len(data) - 1):
-                if len(data) == 2:
-                    ttest = self.checkHypothesis(data[i], data[i + 1])
-                    print()
-                if len(data) > 2:
-                    for j in range(i + 1, len(data)):
-                        self.checkHypothesis(data[i], data[j])
-                        ttest = ttest_ind(data[i], data[j])
-                    print()
+                for j in range(i + 1, len(data)):
+                    mwu = mannwhitneyu(data[i], data[j])
+                    mwu_string += "mwu "+str(mwu.pvalue)+"\n"
+                if i != len(data) - 2:
+                     mwu_string += "\n"
+            return mwu_string
         except ValueError as e:
             print("\nCheck hypothesis failed, not enough data (minimum 3 seeds)")
             print("\n"+str(e)+"\n")
             return
 
-        consistent = True
-        for d in data:
-            if len(d) != len(data[0]):
-                consistent = False
-
-        suptitle = objective["description"]+"\n"
-        if consistent: title = str(len(data[0]))+' runs at '+str(generation)+' generations\n'
-        else: title = query["ylabel"]+' at '+str(generation)+' generations over a mixed number of runs\n'
-        title = objective["description"]+"\n"
-
-        labels = []
-
-        for algorithm in algorithms:
-            for experiment in experiments:
-                for repertoire in repertoires:
-                    if len(algorithms) > 1: label = self.algorithms.info[algorithm]["description"]
-                    elif len(experiments) > 1: label = experiment
-                    elif len(repertoires) > 1: label = repertoire.upper()
-                    else: label = algorithm
-                    if objective["name"] == "foraging" and repertoire == "baseline":
-                        generations = self.getGeneration(generation, objective["name"], repertoire)
-                        label += "\n("+str(generations)+" gen)\n"
-                    labels.append(label)
-
-        self.drawPlotsNoLabels(data, suptitle, title, labels, query_name, objective_index, filename)
-
-    def drawPlotsForaging(self, data, suptitle, title, labels, ylabel, filename):
+    def drawPlotsForaging(self, data, title, labels, ylabel):
 
         plot_width = 8 + len(data)
 
@@ -228,47 +153,70 @@ class Analysis():
         ax.tick_params(axis='x', labelsize=14)
         ax.tick_params(axis='y', labelsize=14)
 
-        # plt.savefig(filename)
-        print(filename)
-        plt.show()
+        return plt
 
-    def drawPlotsBigLabels(self, data, suptitle, title, labels, ylabel, filename):
+    def drawPlotsBigLabels(self, data, title, labels, query_name, query_label, objective_index):
 
-        # plot_width = 4 + len(data) # by nest
-        plot_width = 6 + len(data) # by algorithm
+        plot_width = 8 + len(data)
 
         fig, ax = plt.subplots(figsize=(plot_width, 6))
-        plt.subplots_adjust(wspace=.3, hspace=0.4, bottom=0.1, top=0.85, left=0.15)
+        plt.subplots_adjust(wspace=0.0, hspace=0.0, bottom=0.15, top=0.97, left=0.14, right=0.97)
 
         plots = ax.boxplot(data, medianprops=dict(color='#000000'), patch_artist=True, labels=labels)
 
         if len(data) == 7:
             colors = ['lightgray', 'lightblue', 'lightblue', 'lightblue', 'pink', 'pink', 'pink']
-            # colors = ['lightgray', 'lightblue', 'pink', 'lightblue', 'pink', 'lightblue', 'pink']
             for patch, color in zip(plots['boxes'], colors):
                 patch.set_facecolor(color)
 
         for patch in plots['boxes']:
             patch.set_facecolor('lightblue')
 
-        # fig.suptitle(suptitle,fontsize=15,x=0.53, y=0.97)
         ax.set_title(title,fontsize=18)
         ax.title.set_position([0.5,1.0])
 
-        ax.set_ylabel(ylabel, color='#222222', fontsize=18)
+        ylim = self.queries.info[query_name]["ylim"]
+        ax.set_ylim(ylim[objective_index])
 
-        ax.yaxis.set_label_coords(-0.14,0.5)
+        ax.set_ylabel(query_label, color='#222222', fontsize=24)
+
+        ax.yaxis.set_label_coords(-0.11,0.5)
         ax.xaxis.set_label_coords(0.5,-0.09)
 
-        ax.tick_params(axis='x', labelsize=15) # by algorithm
-        # ax.tick_params(axis='x', labelsize=16) # by nest
-        ax.tick_params(axis='y', labelsize=16)
+        ax.tick_params(axis='x', labelsize=22)
+        ax.tick_params(axis='y', labelsize=19)
 
-        # plt.savefig(filename)
-        print(filename)
-        plt.show()
+        return plt
 
-    def drawPlotsNoLabels(self, data, suptitle, title, labels, query_name, objective_index, filename):
+    def drawPlotsTwoExperiments(self, data, title, labels, query_name, query_label, objective_index):
+
+        plot_width = 6 + len(data)
+
+        fig, ax = plt.subplots(figsize=(plot_width, 6))
+        plt.subplots_adjust(wspace=0.0, hspace=0.0, bottom=0.15, top=0.97, left=0.14, right=0.97)
+
+        plots = ax.boxplot(data, medianprops=dict(color='#000000'), patch_artist=True, labels=labels, widths=0.45)
+
+        for patch in plots['boxes']:
+            patch.set_facecolor('lightblue')
+
+        ax.set_title(title,fontsize=18)
+        ax.title.set_position([0.5,1.0])
+
+        ylim = self.queries.info[query_name]["ylim"]
+        ax.set_ylim(ylim[objective_index])
+
+        ax.set_ylabel(query_label, color='#222222', fontsize=24)
+
+        ax.yaxis.set_label_coords(-0.11,0.5)
+        ax.xaxis.set_label_coords(0.5,-0.09)
+
+        ax.tick_params(axis='x', labelsize=22)
+        ax.tick_params(axis='y', labelsize=19)
+
+        return plt
+
+    def drawPlotsNoLabels(self, data, title, labels, query_name, objective_index):
 
         plot_width = 6 + len(data)
 
@@ -279,43 +227,167 @@ class Analysis():
         ylim = self.queries.info[query_name]["ylim"]
         ax.set_ylim(ylim[objective_index])
 
-        for patch in plots['boxes']:
-            patch.set_facecolor('lightblue')
+        for i in range(len(plots['boxes'])):
+            plots['boxes'][i].set_facecolor('lightblue')
 
         ax.yaxis.set_label_coords(-0.14,0.5)
         ax.xaxis.set_label_coords(0.5,-0.09)
 
-        ax.tick_params(axis='x', labelsize=15)
-        ax.tick_params(axis='y', labelsize=15)
+        ax.tick_params(axis='x', labelsize=20)
+        ax.tick_params(axis='y', labelsize=18)
 
-        # plt.savefig(filename)
-        print(filename)
-        plt.show()
+        return plt
 
-    def drawOneGenerationCombo(self, query, objective_name, deap_algorithms, qdpy_algorithms, generation, runs):
+    def drawOneGenerationCombo(self, path, filename, query_name, objective_index, parameters, runs, generation = 0):
 
-        objective = self.objectives.info[objective_name]
-        data = self.getData(query, deap_algorithms, qdpy_algorithms, objective, generation, runs)
+        objective = self.objectives.info[self.objectives.index[objective_index]]
+        query = self.queries.info[query_name]
 
-        if len(data) > 2:
-            print ("")
-            for i in range(1, len(data)):
-                self.checkHypothesis(data[0], data[i])
-                ttest = ttest_ind(data[0], data[i])
-            print ("")
+        result = []
+        labels = []
+        sources = []
+
+        for param in parameters:
+
+            algorithm = param["algorithm"]
+            experiment = param["experiment"]
+            repertoire = param["repertoire"]
+            if "generation" in param:
+                generation = param["generation"]
+
+            axis = 0
+            if query_name == "extrema":
+                axis = param["axis"]
+
+            subdirectory = ""
+            if "subdirectory" in param:
+                subdirectory = param["subdirectory"]
+
+            generations = self.getGeneration(generation, objective["name"], repertoire)
+            interval = generations
+            index = 0 if algorithm == "cma-es" else int(generations/interval)
+
+            if "file_index" in param:
+                file_index = param["file_index"]
+            else:
+                file_index = generations
+
+            # if objective["name"] == "foraging" and repertoire == "baseline":
+                # generations = self.getGeneration(generation, objective["name"], repertoire)
+                # param["label"] += "\n("+str(generations)+" gen)\n"
+            labels.append(param["label"])
+
+            csv_path = self.getCsvPath(self.algorithms.info[algorithm], experiment, objective, repertoire, subdirectory)
+            csv_filename = csv_path+"/"+self.getCsvFilename(file_index, query_name, axis)
+            csv_index = self.utilities.getCsvIndex(objective["index"], algorithm)
+
+            try:
+                data = self.getDataFromCSV(query, file_index, generations, interval, objective, runs, csv_filename)
+                data = data[csv_index] if "mt" in algorithm and query["name"] != "coverage" else data[0]
+                sources.append(csv_filename)
+            except ValueError as e:
+                return
+
+            if query["name"] == "coverage":
+                for i in range(len(data)):
+                    for j in range(len(data[i])):
+                        data[i][j] = data[i][j] * 1000000
+
+            if query["name"] == "avg-quality":
+                try:
+                    coverage_filename = csv_path+"/coverage"+str(file_index)+".csv"
+                    coverage = self.getDataFromCSV(self.queries.info["coverage"], generations, generations, generations, objective, runs, coverage_filename)
+                    coverage = coverage[0]
+                    sources.append(coverage_filename)
+                except ValueError as e:
+                    return
+                data = self.calculateAvgQuality(coverage, data, 1000000)
+
+            result.append(data)
+
+        data = [r[-1] for r in result]
+
+        mwu_string = self.checkHypothesis(data)
 
         consistent = True
         for d in data:
             if len(d) != len(data[0]):
                 consistent = False
 
-        filename = "./"+query["name"]+"/no-labels/foraging/temp.png"
+        suptitle = objective["description"]+"\n"
+        if consistent: title = str(len(data[0]))+' runs at '+str(generation)+' generations\n'
+        else: title = query["ylabel"]+' at '+str(generation)+' generations over a mixed number of runs\n'
+        title = objective["description"]+"\n"
+
+        if False:
+            plt = self.drawSubPlots(data, labels)
+        elif len(labels) == 2:
+            plt = self.drawPlotsTwoExperiments(data, title, labels, query_name, query["ylabel"], objective_index)
+        else:
+            plt = self.drawPlotsBigLabels(data, title, labels, query_name, query["ylabel"], objective_index)
+
+        print(mwu_string)
+        print("Output file: "+path+"/"+filename)
+
+        params_string = self.writeParameterString(sources, parameters, mwu_string, path+"/"+filename)
+        self.saveImage(path, filename, params_string)
+
+    def drawOneGenerationKilobots(self, path, filename, query_name, objective_index, parameters, runs, generation = 0):
+
+        objective = self.objectives.info[self.objectives.index[objective_index]]
+        query = self.queries.info[query_name]
+
+        result = []
+        labels = []
+        sources = []
+
+        for param in parameters:
+            algorithm = param["algorithm"]
+            experiment = param["experiment"]
+            labels.append(param["label"])
+
+            generations = generation
+            interval = generations
+            file_index = generations
+            data_index = 1
+
+            description = self.utilities.getExperimentDescription(objective["index"], algorithm)
+            csv_path = self.algorithms.info[algorithm]["path"]
+
+            csv_filename = self.params.input_path+"/"+csv_path+"/"+experiment+"/"+param["filename"]+".csv"
+
+            try:
+                data = self.getDataFromCSV(query, file_index, generations, interval, objective, runs, csv_filename)
+                data = data[0][data_index]
+                sources.append(csv_filename)
+            except ValueError as e:
+                return
+
+            result.append(data)
+
+        data = result
+
+        mwu_string = self.checkHypothesis(data)
+
+        consistent = True
+        for d in data:
+            if len(d) != len(data[0]):
+                consistent = False
 
         suptitle = objective["description"]+"\n"
         if consistent: title = str(len(data[0]))+' runs at '+str(generation)+' generations\n'
         else: title = query["ylabel"]+' at '+str(generation)+' generations over a mixed number of runs\n'
+        title = objective["description"]+"\n"
 
-        labels = ["Baseline  ", "QD1", "QD8", "QD64"]
+        self.drawPlotsBigLabels(data, title, labels, query["name"], query["ylabel"], objective_index)
+
+        print(mwu_string)
+        print("Output file: "+path+"/"+filename)
+
+        params_string = self.writeParameterString(sources, parameters, mwu_string, path+"/"+filename)
+        self.saveImage(path, filename, params_string)
+
+    def drawSubPlots(self, data, labels):
 
         fig, ax = plt.subplots(figsize=(11, 6), sharey=True)
         plt.subplots_adjust(wspace=.25, hspace=0.4, bottom=0.1, top=0.9, left=0.1, right=0.95)
@@ -332,83 +404,9 @@ class Analysis():
         vertical_min = numpy.nanmin(data)
         vertical_max = numpy.nanmax(data) + 0.1
 
-        # max fitness from max-fitness-calculator.py for nests with radius 40cm,
-        # 50cm and 60cm and food boundary at 100cm and 120cm from arena centre
-        self.normaliseFitness(data[0:4], 2.3745)
-        self.normaliseFitness(data[4:8], 2.6032)
-        self.normaliseFitness(data[8:12], 2.8811)
-
-        self.drawSubPlot(data[0:4], 1, "80cm\n", labels, vertical_min, vertical_max)
-        self.drawSubPlot(data[4:8], 2, "100cm\n", labels, vertical_min, vertical_max)
-        self.drawSubPlot(data[8:12], 3, "120cm\n", labels, vertical_min, vertical_max)
-
-        # plt.savefig(filename)
-        print(filename)
-        plt.show()
-
-    def drawOneGenerationCombo2(self, filename, query, objective, something_else, runs, generation = 0):
-
-        objective = self.objectives.info[self.objectives.index[objective]]
-        query = self.queries.info[query]
-
-        result = []
-        labels = []
-
-        for something in something_else:
-            algorithm = something["algorithm"]
-            experiment = something["experiment"]
-            repertoire = something["repertoire"]
-            labels.append(repertoire)
-
-            generations = self.getGeneration(generation, objective["name"], repertoire)
-            interval = generations
-            index = int(generations/interval)
-
-            description = self.utilities.getExperimentDescription(objective["index"], algorithm)
-            path = self.algorithms.info[algorithm]["path"]
-
-            features = 3 if "mt" in algorithm else 1
-            csv_index = self.utilities.getCsvIndex(objective["index"], algorithm)
-
-            csv_filename = self.params.input_path+"/"+path+"/"+experiment+"/"+description+"/"
-            if objective["name"] == "foraging":
-                csv_filename += repertoire+"/"
-
-            data = self.getDataFromCSV(query, generations, generations, generations, objective, runs, csv_filename)
-            data = data[csv_index][index] if "mt" in algorithm and query["name"] != "coverage" else data[0][index]
-            result.append(data)
-
-        data = result
-
-        try:
-            print()
-            for i in range(len(data) - 1):
-                if len(data) == 2:
-                    ttest = self.checkHypothesis(data[i], data[i + 1])
-                    print()
-                if len(data) > 2:
-                    for j in range(i + 1, len(data)):
-                        self.checkHypothesis(data[i], data[j])
-                        ttest = ttest_ind(data[i], data[j])
-                    print()
-        except ValueError as e:
-            print("\nCheck hypothesis failed, not enough data (minimum 3 seeds)")
-            print("\n"+str(e)+"\n")
-            return
-
-        consistent = True
-        for d in data:
-            if len(d) != len(data[0]):
-                consistent = False
-
-        suptitle = objective["description"]+"\n"
-        if consistent: title = str(len(data[0]))+' runs at '+str(generation)+' generations\n'
-        else: title = query["ylabel"]+' at '+str(generation)+' generations over a mixed number of runs\n'
-        title = objective["description"]+"\n"
-
-        ylabel = query["ylabel"]
-
-        self.drawPlotsNoLabels(data, suptitle, title, labels, ylabel, filename)
+        self.drawSubPlot(data[0:3], 1, "Plot 1\n", labels[0:3], vertical_min, vertical_max)
+        self.drawSubPlot(data[3:6], 2, "Plot 2\n", labels[3:6], vertical_min, vertical_max)
+        self.drawSubPlot(data[6:9], 3, "Plot 3\n", labels[6:9], vertical_min, vertical_max)
 
     def drawSubPlot(self, data, index, title, labels, vertical_min, vertical_max):
 
@@ -436,41 +434,38 @@ class Analysis():
         ax.set_title(title,fontsize=18)
         ax.title.set_position([0.5,1.0])
 
-        # ax.set_ylim([0, vertical_max])
-        ax.set_ylim([0, 0.9])
+        ax.set_ylim([0, vertical_max])
 
         ax.tick_params(axis='x', labelsize=13)
         ax.xaxis.set_label_coords(0.5,0.09)
 
-    def drawEvolution(self, experiment, algorithm, query, objective, repertoire, runs, min_gen, max_gen, increment, x_axis_increment):
+    def drawEvolution(self, experiment, algorithm, query, objective, repertoire, file_index, runs, min_gen, max_gen, increment, x_axis_increment):
 
         objective = self.objectives.info[objective]
 
-        path = algorithm["path"]
-        description = self.utilities.getExperimentDescription(objective["index"], algorithm["name"])
-        filename = self.params.input_path+"/"+path+"/"+experiment+"/"+description+"/"
-        if objective["name"] == "foraging":
-            filename += repertoire+"/"
-
-        raw_data = None
-
-        csv_index = self.utilities.getCsvIndex(objective["index"], algorithm["name"])
-        features = 3 if "mt" in algorithm["name"] else 1
+        csv_path = self.getCsvPath(algorithm, experiment, objective, repertoire)
+        filename = csv_path+"/"+self.getCsvFilename(file_index, query["name"])
 
         try:
-            raw_data = self.getDataFromCSV(query, max_gen, max_gen, increment, objective, runs, filename)
-        except FileNotFoundError as e:
-            print("\n"+str(e)+"\n")
+            data = self.getDataFromCSV(query, file_index, max_gen, increment, objective, runs, filename)
+        except ValueError as e:
             return
-        raw_data = raw_data[csv_index]
 
-        data = []
-        for i in range(len(raw_data)):
-            if (i >= min_gen and i <= max_gen):
-                one_generation = []
-                for j in range(len(raw_data[i])):
-                    one_generation.append(raw_data[i][j])
-                data.append(one_generation)
+        data = data[0][int(min_gen/increment):int(max_gen/increment)+1]
+
+        if query["name"] == "coverage":
+            for i in range(len(data)):
+                for j in range(len(data[i])):
+                    data[i][j] *= 1000000
+
+        if query["name"] == "avg-quality":
+            try:
+                coverage_filename = csv_path+"/coverage"+str(file_index)+".csv"
+                coverage = self.getDataFromCSV(self.queries.info["coverage"], file_index, max_gen, increment, objective, runs, coverage_filename)
+                coverage = coverage[0][int(min_gen/increment):int(max_gen/increment)+1]
+            except ValueError as e:
+                return
+            data = self.calculateAvgQuality(coverage, data, 1000000)
 
         labels = []
         for i in range(len(data)):
@@ -481,9 +476,6 @@ class Analysis():
                 labels.append("")
 
         title = objective["description"]+" - "+algorithm["description"]+" algorithm"
-
-        settings = str(min_gen)+"-"+str(max_gen)+"-"+str(increment)
-        filename = "./evolution/"+settings+"/"+objective["name"]+"-"+algorithm["name"]+"-"+settings+".png"
 
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(15, 6))
         plt.subplots_adjust(wspace=.3, hspace=.4, bottom=0.1, top=0.8)
@@ -499,7 +491,8 @@ class Analysis():
                            capprops=dict(color=c),
                            whiskerprops=dict(color=c),
                            flierprops=dict(color=c, markeredgecolor=c),
-                           medianprops=dict(color=c))
+                           medianprops=dict(color=c),
+                           widths=0.8)
 
         for patch in plots['boxes']:
             patch.set_facecolor('lightblue')
@@ -511,17 +504,12 @@ class Analysis():
         ax.yaxis.set_label_coords(-0.09,0.5)
         ax.xaxis.set_label_coords(0.5, -0.1)
 
-        print("Output file: "+filename)
-        # plt.savefig(filename)
-        plt.show()
+        settings = str(min_gen)+"-"+str(max_gen)+"-"+str(increment)
+        path = "./evolution-box-plots/straight-to-foraging/"+repertoire
+        filename = query["name"]+"-"+settings+".png"
+        print("Output file: "+path+"/"+filename)
 
-    def rotateData2D(self, csv_data):
-        data = []
-        for i in range(len(csv_data[0])):
-            data.append([])
-            for j in range(len(csv_data)):
-                data[i].append(float(csv_data[j][i]))
-        return data
+        self.saveImage(path, filename)
 
     def getMinMaxMed(self, data):
         vals = [[],[],[]]
@@ -531,67 +519,39 @@ class Analysis():
             vals[2].append(max(d))
         return vals
 
-    def drawLineGraph(self, title, experiment, objective, algorithm, repertoire, query, generations, max_bins, ylim):
+    def drawLineGraph(self, title, experiment, objective, algorithm, repertoire, query, generations, file_index, max_bins, ylim, runs):
 
         query = self.queries.info[query]
         objective = self.objectives.info[objective]
         algorithm = self.algorithms.info[algorithm]
         generations = self.getGeneration(generations, objective["name"], repertoire)
 
-        csv_data = []
-        csv_index = self.utilities.getCsvIndex(objective["index"], algorithm)
-
-        input_path = self.params.input_path+"/"+algorithm["path"]+"/"+experiment
-        if objective["name"] == "foraging":
-            input_path += "/"+self.params.foraging_path+"/"+repertoire
-        else:
-            if self.params.subbehaviours_path != "":
-                input_path += "/"+self.params.subbehaviours_path
-            input_path += "/"+self.utilities.getExperimentDescription(objective["index"], algorithm["name"])
-
-        input_file = input_path+"/"+query["name"]+str(generations)+".csv"
-        print("input file "+input_file)
+        csv_path = self.getCsvPath(algorithm, experiment, objective, repertoire)
+        input_file = csv_path+"/"+self.getCsvFilename(file_index, query["name"])
 
         try:
-            with open(input_file, "r") as f:
-                for line in f:
-                    columns = line.split(",")
-                    if algorithm["name"] in ["mtc", "mti"]:
-                        if columns[0] == self.utilities.getExperimentDescription(objective["index"], algorithm["name"]):
-                            data = []
-                            for scores in columns[9:generations+10]:
-                                score = scores.split(" ")
-                                data.append(float(score[csv_index]))
-                            csv_data.append(data)
-                    else:
-                        if columns[0] == objective["name"]:
-                            csv_data.append(columns[9:generations+10])
-        except FileNotFoundError as e:
-            print("\n"+str(e)+"\n")
+            data = self.getDataFromCSV(query, file_index, generations, 1, objective, runs, input_file)
+            data = data[0]
+        except ValueError as e:
             return
 
-        for i in range(len(csv_data)):
-            for j in range(len(csv_data[i])):
-                csv_data[i][j] = float(csv_data[i][j])
-                # uncomment for number of bins filled
-                # if query["name"] == "coverage":
-                    # csv_data[i][j] *= max_bins
+        if query["name"] == "coverage":
+            for i in range(len(data)):
+                for j in range(len(data[i])):
+                    data[i][j] *= max_bins
+
+        if query["name"] == "avg-quality":
+            try:
+                coverage_file = csv_path+"/coverage"+str(file_index)+".csv"
+                coverage = self.getDataFromCSV(self.queries.info["coverage"], file_index, generations, 1, objective, runs, coverage_file)
+                coverage = coverage[0]
+            except ValueError as e:
+                return
+            data = self.calculateAvgQuality(coverage, data, max_bins)
 
         xlabel = "Generations"
 
-        data = self.rotateData2D(csv_data)
         vals = self.getMinMaxMed(data)
-
-        if objective["name"] == "foraging":
-            output_file = "./"+query["name"]+"/line-charts/foraging/"
-            if repertoire is not None:
-                output_file += repertoire+".png"
-        else:
-            output_file = "./"+query["name"]+"/line-charts/sub-behaviours/"+objective["name"]+"-"+algorithm["name"]+".png"
-
-        self.drawLineChart(title, vals, objective, query, algorithm, xlabel, ylim, output_file)
-
-    def drawLineChart(self, title, vals, objective, query, algorithm, xlabel, ylim, output_file):
 
         ylabel = query["ylabel"]
 
@@ -601,9 +561,9 @@ class Analysis():
         for i in range(len(vals[0])):
             labels.append(i)
 
-        fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(9, 6.5))
+        fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(15, 5))
 
-        plt.subplots_adjust(wspace=.3, hspace=1.4, bottom=0.12, top=0.95, left=0.12)
+        plt.subplots_adjust(wspace=.3, hspace=1.4, bottom=0.17, top=0.95, left=0.1, right=0.98)
 
         ax.plot(labels, vals[1], lw=2)
         ax.fill_between(labels, vals[0], vals[2], alpha=0.3)
@@ -611,24 +571,53 @@ class Analysis():
         # ax.set_title(title,fontsize=13)
         # ax.title.set_position([0.5,0.0])
 
-        ax.set_ylabel(ylabel,color='#222222', fontsize=16)
+        ax.set_ylabel(ylabel,color='#222222', fontsize=18)
         ax.set_xlabel(xlabel,color='#222222', fontsize=16)
 
-        ax.yaxis.set_label_coords(-0.09,0.5)
-        ax.xaxis.set_label_coords(0.5,-0.09)
+        ax.yaxis.set_label_coords(-0.08, 0.5)
+        ax.xaxis.set_label_coords(0.5,-0.14)
 
         ax.tick_params(axis='x', labelsize=14)
         ax.tick_params(axis='y', labelsize=14)
 
         ax.set_ylim(ylim)
 
-        print("output_file "+output_file)
-        # plt.savefig(output_file)
+        path = "./evolution-line-charts/straight-to-foraging/"+repertoire+"-2000gen"
+        filename = query["name"]+".png"
 
-        plt.show()
+        print("Output file: "+path+"/"+filename)
 
+        self.saveImage(path, filename)
 
+    def getCsvPath(self, algorithm, experiment, objective, repertoire, subdirectory = ""):
 
+        path = algorithm["path"]
+
+        if subdirectory != "":
+            description = subdirectory
+        else:
+            if objective["name"] == "foraging":
+                description = self.params.foraging_path
+                if algorithm["name"] != "cma":
+                    description += "/"+repertoire
+            else:
+                description = self.utilities.getExperimentDescription(objective["index"], algorithm["name"])
+
+            if algorithm["name"] == "cma":
+                description = self.utilities.getIfoodCompacted(description)
+
+        return self.params.input_path+"/"+path+"/"+experiment+"/"+description
+
+    def getCsvFilename(self, file_index, query_name, axis = ""):
+
+        query_name = "qd-scores" if query_name == "avg-quality" else query_name
+        filename = query_name+str(file_index)
+
+        if query_name == "extrema":
+            filename += "-"+str(axis)
+
+        filename += ".csv"
+        return filename
 
     def normaliseFitness(self, data, max_fitness):
 
@@ -643,3 +632,49 @@ class Analysis():
             if objective == "foraging" and repertoire == "baseline":
                 generation = 2200
         return generation
+
+    def calculateAvgQuality(self, coverage, qdscore, max_bins):
+
+        for i in range(len(qdscore)):
+            for j in range(len(qdscore[i])):
+                coverage[i][j] *= max_bins
+                avg_quality = qdscore[i][j] * max_bins
+                avg_quality /= float(coverage[i][j])
+                qdscore[i][j] = avg_quality
+
+        return qdscore
+
+    def writeParameterString(self, sources, parameters, mwu_string, filename):
+
+        string = "\n"
+
+        for source in sources:
+            string += "Loading from "+source+"\n"
+        string += "\n"
+
+        for param in parameters:
+            string += "{"
+            for key, value in param.items():
+                if type(value) is str:
+                    string += "\""+key+"\" : \""+value+"\", "
+                else:
+                    string += "\""+key+"\" : \""+str(value)+"\", "
+            string = string[0:-2]+"}\n"
+
+        string += mwu_string+"\n"
+        string += filename+"\n"
+        string += "\n===========================================\n"
+
+        return string
+
+    def saveImage(self, path, filename, string = ""):
+
+        # plt.savefig(path+"/"+filename)
+
+        # if string != "":
+            # print("saving notes")
+            # print(string)
+            # with open(path+"/notes.txt", "a") as f:
+                # f.write(string)
+
+        plt.show()

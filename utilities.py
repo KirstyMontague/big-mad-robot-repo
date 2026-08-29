@@ -1046,6 +1046,11 @@ class Utilities():
         if objective in [2, 5]: mti_index = 2
         return mti_index
 
+    def getIfoodCompacted(self, objective_name):
+        objective_name = objective_name.replace("-absolute-position", "")
+        objective_name = objective_name.replace("-perceived-position", "")
+        return objective_name
+
     def getIfoodLegacyDescription(self, objective, algorithm):
 
         objectives = []
