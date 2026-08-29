@@ -1,10 +1,17 @@
-import sys
-sys.path.insert(0, '..')
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib as mpl
 
+from functools import reduce
+from operator import mul
+
+import numpy as np
+import math
 import re
 
-import warnings
-warnings.filterwarnings("error")
+import sys
+sys.path.insert(0, '..')
 
 # from containers import *
 from grid import Grid
@@ -25,7 +32,12 @@ class Chromosome():
         self.params.using_repertoire = False
 
         self.utilities = Utilities(self.params, None)
-        self.redundancy = Redundancy(self.params)
+
+        if self.params.repertoire_size <= 512:
+            self.redundancy = Redundancy(self.params)
+        else:
+            print("Repertoire too large: "+str(self.params.repertoire_size)+"\n(derived from params.repertoire_size)")
+            return
 
         self.gp_toolbox = self.utilities.setupToolboxGP(None)
 
@@ -36,13 +48,20 @@ class Chromosome():
 
         repertoire_path = self.params.shared_path+"/ga/"+self.params.experiment+"/foraging"
         repertoire_file = repertoire_path+"/foraging-"+str(self.params.src_bins[0])+"-bins.txt"
-        self.params.console("\nReading from "+repertoire_file)
 
         self.repertoire = self.utilities.createContainer(self.params.src_bins,
                                                          self.params.src_domain,
                                                          self.params.max_items_per_bin)
-        self.utilities.updateContainerFromString(self.redundancy, self.gp_toolbox,
-                                                 self.repertoire, repertoire_file, 0, 0)
+
+        try:
+            self.params.console("\nReading from "+repertoire_file)
+            self.utilities.updateContainerFromString(self.redundancy, self.gp_toolbox,
+                                                     self.repertoire, repertoire_file, 2000, 0, 0)
+
+        except FileNotFoundError as e:
+            self.params.cancelled = True
+            print("\n"+str(e)+"\n")
+            return
 
         self.params.console("")
         flat_indexes = []
@@ -63,34 +82,287 @@ class Chromosome():
             for i in range(len(index)):
                 if index[i] > max_per_axis[i]:
                     max_per_axis[i] = index[i]
-        print(max_per_axis)
-        print()
+        print("max per axis "+str(max_per_axis)+"\n")
 
-        with open("../argos3/best.txt", "r") as f:
-            for line in f:
-                swarm = line
+    def getChromomesFromCSV(self, filename):
 
-        numbers = re.sub('\D', ' ', swarm)
-        bits = numbers.split(" ")
+        print("Loading from: "+filename+"\n")
 
-        tokens = []
-        for token in bits:
-            if token != "":
-                tokens.append(int(token))
-        swarm = []
-        for i in range(0, len(tokens), 3):
-            swarm.append((tokens[i], tokens[i+1], tokens[i+2]))
+        try:
+            with open(filename, "r") as f:
+
+                chromosomes = []
+
+                for line in f:
+
+                    data = []
+                    sections = line.split("\"")
+                    if len(sections) > 1:
+                        chromosomes.append(sections[1])
+
+        except FileNotFoundError as e:
+            print(str(e)+"\n")
+            return
+
+        return chromosomes
+
+    def getSwarms(self):
+
+        if self.params.bias != -1:
+            experiment = self.params.experiment+"-bias-"+str(self.params.bias)
+        else:
+            experiment = self.params.experiment
+
+        csv_path = self.params.input_path+"/ga/"+experiment+"/foraging"
+        csv_file = csv_path+"/bins-"+str(self.params.src_bins[0])+"/best"+str(self.params.generations)+".csv"
+
+        ga_chromosomes = self.getChromomesFromCSV(csv_file)
+        if ga_chromosomes is None:
+            return []
+
+        swarms = []
+
+        for chromosome in ga_chromosomes:
+
+            numbers = re.sub('\D', ' ', chromosome)
+            bits = numbers.split(" ")
+
+            tokens = []
+            for token in bits:
+                if token != "":
+                    tokens.append(int(token))
+
+            swarm = []
+            for i in range(0, len(tokens), 3):
+                swarm.append((tokens[i], tokens[i+1], tokens[i+2]))
+
+            swarms.append(swarm)
+
+        return swarms
+
+    def printTrees(self):
+
+        swarms = self.getSwarms()
+        if len(swarms) == 0:
+            return
+
+        swarm =swarms[0]
+        print(str(swarm)+"\n")
 
         chromosomes = ""
         for ind in swarm:
             ind = self.repertoire.container[tuple(ind)]
             chromosomes += str(ind)+"\n"
 
-        # with open("../argos3/best.txt", "w") as f:
-            # f.write(str(chromosomes[0:-1]))
         print(chromosomes)
         return
 
+    def heterogeneity(self):
+
+        swarms = self.getSwarms()
+
+        # 270 = maximum possible occurences for 9 individuals and 30 seeds
+        domain = [[0,270],[0,270],[0,270]]
+        container = self.utilities.createContainer(self.params.src_bins, domain, 1)
+
+        for swarm in swarms:
+            for ind in swarm:
+                if tuple(ind) in container.container:
+                    container.container[tuple(ind)] += 1
+                else:
+                    container.container[tuple(ind)] = 1
+
+        print("\nrepertoire size "+str(len(container.items()))+"\n")
+
+        max_total = 0
+        results = np.full((self.params.src_bins[0], self.params.src_bins[1], self.params.src_bins[2]), np.nan)
+        for index, total in container.items():
+            results[index[0]][index[1]][index[2]] = total
+            if total > max_total:
+                max_total = total
+        print("most prolific behaviour "+str(max_total))
+
+        src = np.full((self.params.src_bins[0], self.params.src_bins[1], self.params.src_bins[2]), np.nan)
+        for index, total in self.repertoire.items():
+            try:
+                src[index[0]][index[1]][index[2]] = 1
+            except ValueError as e:
+                print(index)
+                return
+
+        # from heterogeneous chromosomes
+        all_data = [results]
+        for data in all_data:
+            fitness_min = np.nanmin(data)
+            fitness_max = np.nanmax(data)
+
+        # from source repertoire
+        # all_data = [src]
+        # fitness_min = 0.0
+        # fitness_max = 1.8
+        # self.flattenFitnessScores(src)
+
+        bins = self.params.src_bins
+        if bins[0]   <= 4:  bin_size_inches = 0.8
+        elif bins[0] <= 8:  bin_size_inches = 0.4
+        elif bins[0] <= 16: bin_size_inches = 0.2
+        elif bins[0] <= 24: bin_size_inches = 0.133
+        elif bins[0] <= 32: bin_size_inches = 0.1
+        else: bin_size_inches = 0.04
+
+        ticks = 4
+
+        cmap = plt.get_cmap('YlGnBu')
+        colour_map = self.truncate_colours(cmap, 0.35, 0.85)
+
+        features_domain = self.params.src_domain
+        fitness_domain = (fitness_min, fitness_max)
+        self.small_repertoire = False
+
+        for i in range(len(all_data)):
+            all_data[i] = all_data[i].reshape((all_data[i].shape[0], 1) + all_data[i].shape[1:])
+        features_domain = (features_domain[0], (0., 0.)) + tuple(features_domain[1:])
+        bins = all_data[0].shape
+
+        sections = []
+        sections.append({"start" : 0, "end" : 2, "interval" : 1})
+
+        count = 0
+        for section in sections:
+
+            count += 1
+            section_start = section["start"]
+            section_end = section["end"]
+            section_interval = section["interval"]
+            section_size = (section_end - section_start) / section_interval
+            bins = (int(section_size), 1, bins[2], bins[3])
+
+            horizontal_bins = bins[::2]
+            vertical_bins = bins[1::2]
+            horizontal_bins_total = reduce(mul, horizontal_bins, 1)
+            vertical_bins_total = reduce(mul, vertical_bins, 1)
+            vertical_bins_total *= len(all_data)
+
+            if self.params.src_bins[0] == 4:
+                figure_size = [1.5 + horizontal_bins_total * bin_size_inches, 0.5 + vertical_bins_total * bin_size_inches]
+            else:
+                figure_size = [1.5 + horizontal_bins_total * bin_size_inches, 0.8 + vertical_bins_total * bin_size_inches]
+
+            fig, ax = plt.subplots(nrows=len(all_data), ncols=bins[0], figsize=figure_size)
+
+            for x in range(bins[0]):
+                interval = x * section_interval
+                for y in range(len(all_data)):
+                    data = all_data[y]
+                    ax = plt.subplot(len(all_data), bins[0], y * bins[0] + x + 1)
+                    z_index = section_start + interval
+                    show_y_tick_labels = False
+                    if x == 0 and self.small_repertoire:
+                        ax.set_ylabel(self.algorithms[y].upper(), fontsize=15, rotation='horizontal')
+                    if x == 0 or self.small_repertoire:
+                        ax.yaxis.set_label_coords(-0.7,0.4)
+                        show_y_tick_labels = True
+                    cax = self.drawSubplot(ax,
+                                           data_t = data[section_start + interval, 0, 0:bins[2], 0:bins[3]].T,
+                                           colour_map=colour_map,
+                                           features_domain=features_domain[-2:],
+                                           fitness_domain=fitness_domain[-2:],
+                                           z_index=z_index, bins=(bins[2], bins[3]),
+                                           ticks=ticks, show_y_tick_labels=show_y_tick_labels)
+
+            plt.tight_layout()
+            self.drawColourBar(fig, ax, cax, figure_size)
+
+            filename = "./heatmaps/temp.png"
+            print(filename)
+            # plt.savefig(filename)
+
+            plt.show()
+
+    def drawSubplot(self, ax, data_t, colour_map, features_domain, fitness_domain, z_index=0, bins=None, ticks = 4, show_y_tick_labels = False):
+
+        vertical_min = fitness_domain[0]
+        if np.isnan(vertical_min) or np.isinf(vertical_min):
+            vertical_min = np.nanmin(data)
+
+        vertical_max = fitness_domain[1]
+        if np.isnan(vertical_max) or np.isinf(vertical_max):
+            vertical_max = np.nanmax(data)
+
+        cax = ax.imshow(data_t, interpolation="none", cmap=colour_map, vmin=vertical_min, vmax=vertical_max, aspect="equal")
+
+        ax.set_title(self.writeZTitle(z_index, features_domain, bins),fontsize=20)
+
+        ax.xaxis.set_tick_params(which='major', left=True, bottom=True, top=False, right=False)
+        ax.yaxis.set_tick_params(which='major', left=True, bottom=True, top=False, right=False)
+
+        ax.xaxis.set_tick_params(which='minor', direction="in", left=False, bottom=False, top=False, right=False)
+        ax.yaxis.set_tick_params(which='minor', direction="in", left=False, bottom=False, top=False, right=False)
+
+        xticks = list(np.arange(0, len(data_t) + 1, len(data_t) / ticks))
+
+        if not show_y_tick_labels or bins[1] == 1:
+            yticks = []
+        else:
+            yticks = list(np.arange(0, len(data_t[0]) + 1, len(data_t[0]) / ticks))
+
+        ax.set_xticks(xticks)
+        ax.set_yticks(yticks)
+
+        delta_x = features_domain[0][1] - features_domain[0][0]
+        delta_y = features_domain[1][1] - features_domain[1][0]
+
+        ax.set_xticklabels([f'{round(float(x / float(len(data_t))    * delta_x + features_domain[0][0]), 2):1.2f}' for x in xticks], fontsize=20)
+        ax.set_yticklabels([f'{round(float(y / float(len(data_t[0])) * delta_y + features_domain[1][0]), 2):1.2f}' for y in yticks], fontsize=20)
+
+        if bins[1] == 1:
+            yticks = []
+
+        plt.xticks(xticks, rotation='vertical')
+        plt.yticks(yticks)
+
+        ax.invert_yaxis()
+        ax.autoscale_view()
+
+        return cax
+
+    def writeZTitle(self, index, domain, bins):
+        domain = self.params.src_domain[0]
+        domain_max = domain[1] - domain[0]
+        start = ((domain_max / bins[0]) * index) + domain[0]
+        end = ((domain_max / bins[0]) * (index + 1)) + domain[0]
+        title = str("%1.2f" % start)+"  -  "+str("%1.2f" % end)
+        return title
+
+    def drawColourBar(self, fig, ax, cax, figure_size):
+
+        if self.params.src_bins[0] < 8:
+            fig.subplots_adjust(right=0.80, wspace=0.20)
+            colour_bar_axes = fig.add_axes([0.86, 0.1, 0.06, 0.8])
+
+        elif self.params.src_bins[0] < 16:
+            fig.subplots_adjust(right=0.88, wspace=0.20)
+            colour_bar_axes = fig.add_axes([0.92, 0.1, 0.03, 0.8])
+
+        else:
+            fig.subplots_adjust(left=0.05, right=0.90, wspace=0.20)
+            colour_bar_axes = fig.add_axes([0.94, 0.1, 0.03, 0.8])
+
+        cbar = fig.colorbar(cax, cax=colour_bar_axes, format="%.0f")
+        cbar.ax.tick_params(labelsize=18)
+
+    def truncate_colours(self, cmap, minval=0.0, maxval=1.0, n=100):
+        new_cmap = colors.LinearSegmentedColormap.from_list(
+            'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),
+            cmap(np.linspace(minval, maxval, n)))
+        return new_cmap
+
+    def flattenFitnessScores(self, data):
+        for x in range(len(data)):
+            for y in range(len(data[0])):
+                for z in range(len(data[0][0])):
+                    if not math.isnan(data[x][y][z]):
+                        data[x][y][z] = 1.0
 
 
 def main():
@@ -98,6 +370,10 @@ def main():
     params = eaParams()
     params.configure()
     chromosome = Chromosome(params)
+
+    if not params.cancelled:
+        # chromosome.printTrees()
+        chromosome.heterogeneity()
 
 if __name__ == "__main__":
     main()
