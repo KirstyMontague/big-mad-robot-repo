@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy
 import pickle
 import random
+import re
 import subprocess
 import threading
 import time
@@ -95,6 +96,10 @@ class Utilities():
 
         if tournament == None:
             def tournament():
+                return []
+
+        if mutation_operator == None:
+            def mutation_operator():
                 return []
 
         self.repertoire = repertoire
@@ -471,7 +476,7 @@ class Utilities():
                     break
 
                 if interval != 0 and count % interval == 0:
-                    sleep = 5.0
+                    sleep = 10.0
                     print("count = "+str(count)+", sleeping for "+str(sleep))
                     time.sleep(sleep)
 
@@ -483,9 +488,27 @@ class Utilities():
                 features[1] = float(features[1])
                 features[2] = float(features[2])
 
-                trimmed = redundancy.removeRedundancy(str(ind))
-                tree = self.primitivetree.from_string(trimmed, self.pset)
-                individual = creator.IndividualGP(tree)
+                if redundancy == None:
+
+                    numbers = re.sub('\D', ' ', ind)
+                    bits = numbers.split(" ")
+
+                    tokens = []
+                    for token in bits:
+                        if token != "":
+                            tokens.append(int(token))
+                    swarm = []
+                    for i in range(0, len(tokens), 3):
+                        swarm.append((tokens[i], tokens[i+1], tokens[i+2]))
+
+                    individual = creator.IndividualGA(swarm)
+
+                else:
+
+                    trimmed = redundancy.removeRedundancy(str(ind))
+                    tree = self.primitivetree.from_string(trimmed, self.pset)
+                    individual = creator.IndividualGP(tree)
+
                 individual.fitness.values = (fitness, )
                 individual.features = features
 
@@ -1066,10 +1089,10 @@ class Utilities():
         if objectives == None:
             objectives = self.params.objectives
 
-        if algorithm == "mtc":
+        if algorithm == "mtc" and objectives[objective] != "foraging":
             if objective in [0, 1, 5]: return objectives[0]+"-"+objectives[1]+"-"+objectives[5]
             if objective in [2, 3, 4]: return objectives[2]+"-"+objectives[3]+"-"+objectives[4]
-        elif algorithm == "mti":
+        elif algorithm == "mti" and objectives[objective] != "foraging":
             if objective in [0, 1, 2]: return objectives[0]+"-"+objectives[1]+"-"+objectives[2]
             if objective in [3, 4, 5]: return objectives[3]+"-"+objectives[4]+"-"+objectives[5]
         else:
@@ -1077,10 +1100,20 @@ class Utilities():
 
     def getExperimentDirectory(self, objective, algorithm):
         if self.params.objectives[objective] == "foraging":
-            # currently only used in combine.py and extrema.py so always default to baseline
-            return "foraging/baseline"
+            return "foraging/"+self.params.baseline
         else:
             return self.getExperimentDescription(objective, algorithm)
+
+    def getExperimentIndexes(self, objective, algorithm):
+
+        if algorithm == "mtc":
+            if objective in [0, 1, 5]: return [0, 1, 5]
+            if objective in [2, 3, 4]: return [2, 3, 4]
+        elif algorithm == "mti":
+            if objective in [0, 1, 2]: return [0, 1, 2]
+            if objective in [3, 4, 5]: return [3, 4, 5]
+        else:
+            return [objective]
 
     def getLegacyCheckpointFilename(self, path, algorithm, seed, objective, generations):
 

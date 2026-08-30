@@ -191,12 +191,13 @@ class eaParams():
             path += "/straight_to_foraging/bias"+str(self.bias)
 
         elif description == "foraging":
-            if self.project == "heterogeneous_genetic_algorithm":
-                path += "/bins-"+str(self.src_bins[0])
+            if self.algorithm == "ga":
+                if self.project == "heterogeneous_genetic_algorithm":
+                    path += "/bins-"+str(self.repertoire_size)
             elif self.using_repertoire:
                 path += "/"+self.repertoire_type+str(self.repertoire_size)
             else:
-                path += "/baseline"
+                path += "/"+self.baseline
 
         return path
 
@@ -369,6 +370,7 @@ class eaParams():
             for param in data[1:]:
                 self.arena_params.append(float(param))
 
+        if data[0] == "baseline": self.params.baseline = data[1]
         if data[0] == "bias": self.bias = int(data[1])
         if data[0] == "bias_interval": self.bias_interval = int(data[1])
         if data[0] == "penalty": self.penalty = float(data[1])

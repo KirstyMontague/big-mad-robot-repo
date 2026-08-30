@@ -49,6 +49,8 @@ class Grid():
             feature_normalised = individual.features[axis] - self.features_domain[axis][0]
             index = math.floor(feature_normalised / self.bin_sizes[axis])
 
+            # adjust the index of individuals at the uppermost extreme of this
+            # axis so they aren't excluded from repertoires with a fixed extent
             if individual.features[axis] == self.features_domain[axis][1]:
                 index -= 1
 

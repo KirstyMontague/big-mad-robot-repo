@@ -8,9 +8,11 @@ import sys
 sys.path.insert(0, '..')
 
 from containers import *
+
 from params import eaParams
-from utilities import Utilities
 from redundancy import Redundancy
+from repertoire import Repertoire
+from utilities import Utilities
 
 from functools import reduce
 from operator import mul
@@ -23,182 +25,63 @@ import matplotlib as mpl
 class Heatmaps():
 
     def __init__(self):
+
         self.params = eaParams()
         self.params.is_qdpy = True
 
-        self.objective = self.params.indexes[0]
-        self.objective = self.params.objectives[self.objective]
-        self.generations = self.params.generations
-        self.input = "separate"
-        self.runs = 0
-        self.seeds = []
-        self.bins = [8,8,8]
-        self.domain = [(-40.0, 40.0), (-40.0, 40.0), (0.0, 1.0)]
-        self.save = self.params.saveOutput
-        self.pause = 20.0
-
-        self.cancelled = False
-        self.configure()
+        self.repertoire = Repertoire(self.params)
+        self.repertoire.configure()
+        self.cancelled = self.repertoire.cancelled
         print()
 
-        self.seeds = self.seedsList()
-
         self.utilities = Utilities(self.params, None)
-        self.utilities.toolbox = self.utilities.setupToolboxGP(None)
 
-        self.redundancy = Redundancy(self.params)
-
-    def configure(self):
-        permitted = ["input", "project", "objective", "experiment", "generations",
-                     "seeds", "runs", "bins", "domain", "save", "save_combined", "pause"]
-        with open(self.params.shared_path+"/heatmaps.txt", 'r') as f:
-            for line in f:
-                data = line.split()
-                if len(data) > 0:
-                    if data[0] in permitted:
-                        print(line.strip('\t\n\r'))
-                        self.update(data)
-                    else:
-                        print("\nconfig entry not recognised: "+data[0]+"\n")
-                        self.cancelled = True
-
-    def update(self, data):
-
-        if data[0] == "input":
-            types = ["separate", "combined", "accumulate"]
-            if data[1] in types:
-                self.input = data[1]
-            else:
-                print("input type not recognised")
-                self.cancelled = True
-
-        if data[0] == "objective":
-            self.objective = int(data[1])
-            self.params.indexes = [self.objective]
-            self.params.description = self.params.objectives[self.objective]
-
-        if data[0] == "bins" and len(data) > 1:
-            self.bins = []
-            for b in data[1:]:
-                self.bins.append(int(b))
-
-        if data[0] == "domain" and len(data) > 1:
-            self.domain = []
-            for i in range(1, len(data), 2):
-                self.domain.append((float(data[i]), float(data[i+1])))
-
-        if data[0] == "seeds" and len(data) > 1:
-            self.seeds = []
-            for seed in data[1:]:
-                self.seeds.append(int(seed))
-
-        if data[0] == "project": self.params.project = data[1]
-        if data[0] == "experiment" and len(data) > 1: self.params.experiment = data[1]
-        if data[0] == "generations": self.generations = int(data[1])
-        if data[0] == "runs": self.runs = int(data[1])
-        if data[0] == "save": self.save = True if data[1] == "True" else False
-        if data[0] == "save_combined": self.save_combined = True if data[1] == "True" else False
-        if data[0] == "pause": self.pause = float(data[1])
-
-    def seedsList(self):
-        seeds = []
-        if self.runs > 0:
-            for i in range(1, self.runs + 1):
-                seeds.append(i)
+        if self.params.project == "heterogeneous_genetic_algorithm":
+            self.utilities.toolbox = self.utilities.setupToolboxGA(None, None, None, None, None)
+            self.redundancy = None
         else:
-            seeds = self.seeds
-        return seeds
+            self.utilities.toolbox = self.utilities.setupToolboxGP(None)
+            self.redundancy = Redundancy(self.params)
 
-    def getData(self, algorithm):
+        self.repertoire.setUp(self.utilities, self.redundancy)
 
-        container = self.utilities.createContainer(self.bins, self.domain, 1)
-        if self.params.usingNewGrid:
-            container.discardOutOfBounds(True)
+        self.objective = self.repertoire.objective
+        self.bins = self.repertoire.dst_bins
+        self.domain = self.repertoire.domain
+        self.small_repertoire = self.repertoire.isSmallRepertoire()
 
-        algorithm_type = "qdpy" if algorithm == "qdpy" else "gp"
-        description = self.utilities.getExperimentDescription(self.objective, algorithm)
+        self.save = self.repertoire.save
+        self.show = self.repertoire.show
 
-        input_dir = self.params.input_path+"/"+algorithm_type+self.params.directoryPath(description)
-        output_dir = self.params.output_path+"/"+algorithm_type+self.params.directoryPath(description)
-        output_file = self.params.description+"-with-all-seeds-small-bins.txt"
+        self.seeds = self.repertoire.seedsList()
+        self.params.algorithm = self.repertoire.algorithms[0]
+        self.experiment = self.repertoire.experiments[0]
 
-        if self.params.project == "legacy":
-            if self.input == "separate":
-                for seed in self.seeds:
-                    filename = self.utilities.getLegacyCheckpointFilename(input_dir, algorithm, seed, self.objective, self.generations)
-                    self.utilities.getLegacyCheckpointContainer(container, algorithm, filename, self.objective)
-                if self.save_combined:
-                    self.utilities.saveContainer(container, output_dir, output_dir+"/"+output_file)
-            elif self.input == "combined":
-                filename = input_dir+"/"+output_file
-                self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, filename)
-            else:
-                print(self.input+" input type not supported")
-                return
+        self.params.indexes = [self.objective]
+        self.params.description = self.params.objectives[self.objective]
 
-        else:
-            if self.input == "accumulate":
-                cumulative_file = output_dir+"/"+output_file
-                print("cumulative "+cumulative_file)
-                self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, cumulative_file, 0, 0)
-                print("pausing for "+str(self.pause)+"s\n")
-                time.sleep(self.pause)
+    def convertToNumpy2D(self, population, rotate = False):
 
-            if self.input == "combined":
-                filename = input_dir+"/"+output_file
-                print("combined "+filename)
-                self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, filename, 0, 0)
-            else:
-                for seed in self.seeds:
-                    filename = input_dir+"/"+str(seed)+"/checkpoint-"
-                    filename += self.params.description+"-"+str(seed)+"-"+str(self.generations)+"-"+self.params.description+".txt"
-                    print("seed file "+filename)
-                    self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, filename, 0, 0)
-                    print("pausing for "+str(self.pause)+"s\n")
-                    time.sleep(self.pause)
-
-            print("output "+output_dir+"/"+output_file)
-            if self.save_combined:
-                self.utilities.saveContainer(container, output_dir, output_dir+"/"+output_file)
-
-        return container
-
-    def rotateGrid2D(self, population):
-
-        for i in range(len(population)):
-            output = ""
-            for j in range(len(population[i])):
-                output += str(population[i][j])+" "
-
-        rotated_population = np.zeros((len(population[0]), len(population)))
-
-        for i in range(len(rotated_population)):
-            output = ""
-            for j in range(len(rotated_population[i])):
-                output += str(rotated_population[i][j])+" "
+        converted_population = np.zeros((len(population[0]), len(population)))
 
         for i in range(len(population)):
             for j in range(len(population[0])):
-                rotated_population[j][i] = population[i][j]
+                if rotate:
+                    converted_population[j][i] = population[i][j]
+                else:
+                    converted_population[i][j] = population[i][j]
 
-        return rotated_population
+        return converted_population
 
-    def getQualityArray(self, container):
-        if self.params.usingNewGrid:
-            return container.quality_array()
-        else:
-            return container.quality_array[..., 0]
-
-    def drawCollapsedDiagram(self, algorithms):
+    def drawCollapsedDiagram(self):
 
         start_time = round(time.time() * 1000)
 
         all_verbose = []
         try:
-            for algorithm in algorithms:
-                container = self.getData(algorithm)
-                all_verbose.append(self.getQualityArray(container))
-                print(self.utilities.printExtrema(container))
+            container = self.repertoire.getData(self.seeds, self.params.algorithm, self.experiment, self.objective)
+            all_verbose.append(self.repertoire.getQualityArray(container))
+            print(self.utilities.printExtrema(container))
         except FileNotFoundError as e:
             print("\n"+str(e)+"\n")
             return
@@ -207,16 +90,25 @@ class Heatmaps():
         duration = end_time - start_time
         print("\nLoading time: " +self.utilities.formatDuration(duration)+"\n")
 
-        if self.params.project == "legacy":
-            bin_size_inches = 0.2
-            x_string = "Rotations"
-            y_string = "Movement"
-            z_string = "Conditionality"
+        bins = self.bins
+
+        if self.small_repertoire:
+            bin_size_inches = 0.35
+            x_string = "Conditionality"
+            y_string = "Rotations"
+            z_string = "Movement"
         else:
-            bin_size_inches = 0.04
-            x_string = "X"
-            y_string = "Y"
-            z_string = "Z"
+            x_string = "Purple"
+            y_string = "Blue"
+            z_string = "Green"
+            if bins[0] == 100:  bin_size_inches = 0.03
+            elif bins[0] == 50: bin_size_inches = 0.06
+            elif bins[0] == 32: bin_size_inches = 0.08
+            elif bins[0] >= 13: bin_size_inches = 0.20
+            elif bins[0] >= 7:  bin_size_inches = 0.37
+            elif bins[0] >= 4:  bin_size_inches = 0.64
+            elif bins[0] >= 2:  bin_size_inches = 1.28
+            else: bin_size_inches = 0.04
 
         verbose = all_verbose[0]
 
@@ -230,8 +122,6 @@ class Heatmaps():
         features_domain = self.domain
         fitness_domain = (fitness_min, fitness_max)
 
-        bins = self.bins
-
         horizontal_bins = bins[::2]
         horizontal_bins = [3,10]
         vertical_bins = bins[1::2]
@@ -242,59 +132,90 @@ class Heatmaps():
         figure_size = [2.1 + (bins[0] + bins[1] + bins[2]) * bin_size_inches,
                        1.5 + max(bins) * bin_size_inches]
 
+        plt.rcParams['axes.titley'] = 1.02
         fig, ax = plt.subplots(nrows=len(all_data), ncols=len(data), figsize=figure_size)
 
         for d in range(len(all_data)):
             for x in range(len(data)):
+
+                # without rotating in 2D and old collapse format
+                # if x == 0: title = "conditionality (x) vs rotations (y)"
+                # if x == 1: title = "conditionality (x) vs movement (y)"
+                # if x == 2: title = "movement (x) vs rotations (y)"
+
+                # with 2D rotation and old collapse format
+                # if x == 0: title = "rotations (x) vs conditionality (y)"
+                # if x == 1: title = "movement (x) vs conditionality (y)"
+                # if x == 2: title = "rotations (x) vs movement (y)"
+
+                # new collapse format
+                if x == 0: title = "rotations (x) vs movement (y)"
+                if x == 1: title = "rotations (x) vs conditionality (y)"
+                if x == 2: title = "conditionality (x) vs movement (y)"
+
                 ax = plt.subplot(len(all_data), len(data), x + 1)
                 show_y_tick_labels = False
-                if x == 0 or self.params.project == "legacy":
+                if x == 0 or self.small_repertoire:
                     show_y_tick_labels = True
                 if x == 0:
                     ticks = (bins[0],bins[1])
                     features_domain=[self.domain[0],self.domain[1]]
-                    title = x_string+" (x) vs "+y_string+" (y)"
+                    # title = x_string+" (x) vs "+y_string+" (y)" # without 2D rotation
+                    # title = y_string+" (x) vs "+x_string+" (y)" # with 2D rotation
+                    title = y_string+" (x) vs "+z_string+" (y)"
                 if x == 1:
                     ticks = (bins[1],bins[2])
                     features_domain=[self.domain[1],self.domain[2]]
-                    title = y_string+" (x) vs "+z_string+" (y)"
+                    # title = x_string+" (x) vs "+z_string+" (y)" # without 2D rotation
+                    # title = z_string+" (x) vs "+x_string+" (y)" # with 2D rotation
+                    title = y_string+" (x) vs "+x_string+" (y)"
                 if x == 2:
-                    ticks = (bins[0],bins[2])
-                    features_domain=[self.domain[0],self.domain[2]]
-                    title = x_string+" (x) vs "+z_string+" (y)"
+                    ticks = (bins[2],bins[0])
+                    features_domain=[self.domain[2],self.domain[0]]
+                    # title = y_string+" (x) vs "+z_string+" (y)" # without 2D rotation
+                    # title = z_string+" (x) vs "+y_string+" (y)" # with 2D rotation
+                    title = z_string+" (x) vs "+x_string+" (y)"
                 cax = self.draw2DSubplot(ax,
                                          data[x],
-                                         self.rotateGrid2D(data[x]),
+                                         self.convertToNumpy2D(data[x]),
                                          colour_map=colour_map,
                                          features_domain=features_domain,
                                          fitness_domain=fitness_domain[-2:],
                                          title=title, show_y_tick_labels=show_y_tick_labels,
-                                         bins=(len(data[0]), len(data[0][0])))
+                                         bins=ticks)
 
         plt.tight_layout()
 
-        output_filename = "./heatmaps/temp.png"
+        image_filename = "./heatmaps/temp.png"
         if self.save:
-            print("\nWriting to "+output_filename+"\n")
-            fig.savefig(output_filename)
+            print("\nWriting to "+image_filename+"\n")
+            fig.savefig(image_filename)
         else:
-            print("\nOutput file: "+output_filename+"\n")
+            print("\nOutput file: "+image_filename+"\n")
 
-        plt.show()
+        if self.show:
+            plt.show()
 
     def draw2DSubplot(self, ax, data, data_t, colour_map, features_domain, fitness_domain, title, show_y_tick_labels, bins=None):
 
         vertical_min = fitness_domain[0]
         vertical_max = fitness_domain[1]
+        dst_bins = bins[0]
 
         cax = ax.imshow(data_t, interpolation="none", cmap=colour_map, vmin=vertical_min, vmax=vertical_max, aspect="equal")
 
-        if self.params.project == "legacy":
+        if self.small_repertoire:
             num_x_ticks = 4
             num_y_ticks = 4
+        elif dst_bins in [8, 16]:
+            num_x_ticks = math.floor(dst_bins / 2)
+            num_y_ticks = math.floor(dst_bins / 2)
+        elif dst_bins == 32:
+            num_x_ticks = math.floor(dst_bins / 4)
+            num_y_ticks = math.floor(dst_bins / 4)
         else:
-            num_x_ticks = len(data) / 10
-            num_y_ticks = len(data[0]) / 10
+            num_x_ticks = 8
+            num_y_ticks = 8
 
         ax.xaxis.set_tick_params(which='major', left=True, bottom=True, top=False, right=False)
         ax.yaxis.set_tick_params(which='major', left=True, bottom=True, top=False, right=False)
@@ -306,18 +227,32 @@ class Heatmaps():
         else:
             yticks = list(np.arange(0, len(data[0]) + 1, len(data[0]) / num_y_ticks))
 
+        # uncomment to hide tick labels
+        # xticks = []
+        # yticks = []
+
         ax.set_xticks(xticks)
         ax.set_yticks(yticks)
+
+        # comment to hide chart titles
+        ax.set_title(title,fontsize=18)
+
+        if features_domain[0][1] < 2.0:
+            features_domain[0] = (features_domain[0][0], 1.12)
+            features_domain[1] = (features_domain[1][0], 1.12)
+        else:
+            features_domain[0] = (features_domain[0][0], 2.24)
+            features_domain[1] = (features_domain[1][0], 2.24)
 
         delta_x = features_domain[0][1] - features_domain[0][0]
         delta_y = features_domain[1][1] - features_domain[1][0]
 
-        if self.params.project == "legacy":
+        if self.small_repertoire:
             ax.set_xticklabels([f'{round(float(x / float(len(data))    * delta_x + features_domain[0][0]), 2):1.0f}' for x in xticks], fontsize=10)
             ax.set_yticklabels([f'{round(float(y / float(len(data[0])) * delta_y + features_domain[1][0]), 2):1.0f}' for y in yticks], fontsize=10)
         else:
-            ax.set_xticklabels([f'{round(float(x / float(len(data))    * delta_x + features_domain[0][0]), 2):1.1f}' for x in xticks], fontsize=10)
-            ax.set_yticklabels([f'{round(float(y / float(len(data[0])) * delta_y + features_domain[1][0]), 2):1.1f}' for y in yticks], fontsize=10)
+            ax.set_xticklabels([f'{round(float(x / float(len(data))    * delta_x + features_domain[0][0]), 2):1.1f}' for x in xticks], fontsize=14)
+            ax.set_yticklabels([f'{round(float(y / float(len(data[0])) * delta_y + features_domain[1][0]), 2):1.1f}' for y in yticks], fontsize=14)
 
         plt.xticks(xticks, rotation='vertical')
         plt.yticks(yticks)
@@ -326,12 +261,15 @@ class Heatmaps():
         ax.yaxis.set_tick_params(which='minor', direction="in", left=False, bottom=False, top=False, right=False)
 
         ax.invert_yaxis()
-
         ax.autoscale_view()
 
         return cax
 
     def collapse(self, data):
+
+        # x = conditionality
+        # y = rotations
+        # z = movement
 
         xy = []
         for i in range(self.bins[1]):
@@ -345,6 +283,18 @@ class Heatmaps():
                     if not math.isnan(data[z][y][x]):
                         xy[y][x] = 1.0
 
+        yx = []
+        for i in range(self.bins[1]):
+            yx.append([])
+            for j in range(self.bins[2]):
+                yx[-1].append(None)
+
+        for z in range(len(data)):
+            for x in range(len(data[0][0])):
+                for y in range(len(data[0])):
+                    if not math.isnan(data[z][y][x]):
+                        yx[x][y] = 1.0
+
         xz = []
         for i in range(self.bins[0]):
             xz.append([])
@@ -357,6 +307,18 @@ class Heatmaps():
                     if not math.isnan(data[z][y][x]):
                         xz[z][x] = 1.0
 
+        zx = []
+        for i in range(self.bins[0]):
+            zx.append([])
+            for j in range(self.bins[2]):
+                zx[-1].append(None)
+
+        for y in range(len(data[0])):
+            for x in range(len(data[0][0])):
+                for z in range(len(data)):
+                    if not math.isnan(data[z][y][x]):
+                        zx[x][z] = 1.0
+
         yz = []
         for i in range(self.bins[1]):
             yz.append([])
@@ -367,17 +329,20 @@ class Heatmaps():
             for y in range(len(data[0])):
                 for z in range(len(data)):
                     if not math.isnan(data[z][y][x]):
-                        yz[y][z] = 1.0
+                        yz[z][y] = 1.0
 
-        return [xy, xz, yz]
+        # return [xy, xz, yz]
+        # returns rotations vs movement          yz
+        #         rotations vs conditionality    yx
+        #         conditionality vs movement     xz
+
+        return [yz, yx, zx]
 
 if __name__ == "__main__":
-
-    algorithms = ["qdpy"]
 
     heatmaps = Heatmaps()
 
     if not heatmaps.cancelled:
-        heatmaps.drawCollapsedDiagram(algorithms)
+        heatmaps.drawCollapsedDiagram()
 
 

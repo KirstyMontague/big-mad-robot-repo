@@ -6,11 +6,15 @@ import time
 
 from params import eaParams
 from redundancy import Redundancy
+from repertoire import Repertoire
 from utilities import Utilities
 
 """
 
 Work in progress for analysing repertoires and generating CSVs retrospectively
+
+postpro input type is for BT repertoires in the GA folder
+(ie, source repertoires for heterogeneous swarms)
 
 """
 
@@ -21,181 +25,301 @@ class Statistics():
         self.params = eaParams()
         self.params.is_qdpy = True
 
-        self.algorithm = "qdpy"
-        self.objective = self.params.indexes[0]
-        self.objective = self.params.objectives[self.objective]
-        self.bins = self.params.nb_bins
-        self.domain = self.params.features_domain
-        self.generations = 1000
-        self.mode = "append"
-        self.save = False
-        self.pause = 10.0
-        self.seeds = []
-
-        self.cancelled = False
-        self.configure()
-
-        algorithm_type = "qdpy" if self.algorithm == "qdpy" else "gp"
-        self.input_dir = self.params.input_path+"/"+algorithm_type+self.params.directoryPath()
-        self.output_dir = self.params.output_path+"/"+algorithm_type+self.params.directoryPath()
-        print()
-        print("input dir "+self.input_dir)
-        print("output dir "+self.output_dir)
+        self.repertoire = Repertoire(self.params)
+        self.repertoire.configure()
+        self.cancelled = self.repertoire.cancelled
         print()
 
         self.utilities = Utilities(self.params, None)
-        self.utilities.toolbox = self.utilities.setupToolboxGP(None)
 
-        self.redundancy = Redundancy(self.params)
+        if self.params.project == "heterogeneous_genetic_algorithm":
+            self.utilities.toolbox = self.utilities.setupToolboxGA(None, None, None, None, None)
+            self.redundancy = None
+        else:
+            self.utilities.toolbox = self.utilities.setupToolboxGP(None)
+            self.redundancy = Redundancy(self.params)
 
-    def configure(self):
-        permitted = ["algorithm", "project", "experiment", "objective", "bins", "domain", "seeds", "mode", "save", "pause"]
-        with open(self.params.shared_path+"/repertoire.txt", 'r') as f:
-            for line in f:
-                data = line.split()
-                if len(data) > 0:
-                    if data[0] in permitted:
-                        print(line.strip('\t\n\r'))
-                        self.update(data)
-                    else:
-                        print("\nconfig entry not recognised: "+data[0]+"\n")
-                        self.cancelled = True
+        self.repertoire.setUp(self.utilities, self.redundancy)
 
-    def update(self, data):
+        self.objective = self.repertoire.objective
+        self.bins = self.repertoire.dst_bins
 
-        if data[0] == "mode":
-            types = ["write", "append"]
-            if data[1] in types:
-                self.mode = data[1]
-            else:
-                print("mode not recognised")
-                self.cancelled = True
+        self.input = self.repertoire.input
+        self.output = self.repertoire.output
+        self.mode = self.repertoire.mode
+        self.save = self.repertoire.save
+        self.pause = self.repertoire.pause
 
-        if data[0] == "objective":
-            self.objective = int(data[1])
-            self.params.indexes = [self.objective]
-            self.params.description = self.params.objectives[self.objective]
+        self.seeds = self.repertoire.seedsList()
+        self.algorithm = self.repertoire.algorithms[0]
+        self.experiment = self.repertoire.experiments[0]
 
-        if data[0] == "bins" and len(data) > 1:
-            self.params.nb_bins = []
-            for b in data[1:]:
-                self.params.nb_bins.append(int(b))
+        self.params.algorithm = self.algorithm
+        self.params.indexes = self.utilities.getExperimentIndexes(self.objective, self.algorithm)
+        self.params.description = self.utilities.getExperimentDescription(self.objective, self.algorithm)
+        self.params.nb_bins = self.bins
 
-        if data[0] == "domain" and len(data) > 1:
-            self.domain = []
-            for i in range(1, len(data), 2):
-                self.domain.append((float(data[i]), float(data[i+1])))
-
-        if data[0] == "seeds" and len(data) > 1:
-            self.seeds = []
-            for seed in data[1:]:
-                self.seeds.append(int(seed))
-
-        if data[0] == "algorithm": self.algorithm = data[1]
-        if data[0] == "project": self.params.project = data[1]
-        if data[0] == "experiment" and len(data) > 1: self.params.experiment = data[1]
-        if data[0] == "save": self.save = True if data[1] == "True" else False
-        if data[0] == "pause": self.pause = float(data[1])
-
-    def loadCombined(self):
-
-        if self.cancelled:
+        if self.input == "combined" and "csv" in self.output:
+            print("\nCan only write CSVs from separate seeds\n")
+            self.cancelled = True
             return
 
-        filename = self.input_dir+"/"+self.params.description+"-with-all-seeds-small-bins.txt"
-        print("input "+filename)
-
-        container = self.utilities.createContainer(self.params.nb_bins, self.domain, 1)
-        self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, filename, 0, 0)
-        self.containers = [container]
-
-        print(self.utilities.printExtrema(container))
-
-    def loadSeparate(self):
+    def loadContainers(self):
 
         if self.cancelled:
             return
 
         try:
-            self.containers = []
-            for seed in self.seeds:
 
-                filename = self.input_dir+"/"+str(seed)+"/checkpoint-"
-                filename += self.params.description+"-"+str(seed)+"-"+str(self.generations)+"-"+self.params.description+".txt"
-                print("input file "+filename)
+            description = self.utilities.getExperimentDescription(self.objective, self.algorithm)
 
-                container = self.utilities.createContainer(self.params.nb_bins, self.domain, 1)
-                self.utilities.updateContainerFromString(self.redundancy, self.utilities.toolbox, container, filename, 0, 0)
-                self.containers.append(container)
+            self.features = []
 
-                print("pausing for "+str(self.pause)+"s\n")
-                time.sleep(self.pause)
+            for i in self.params.indexes:
+
+                containers = []
+
+                if self.input == "separate":
+                    for seed in self.seeds:
+                        containers.append(self.repertoire.getData([seed], self.algorithm, self.experiment, i))
+
+                elif self.input in ["combined" , "postpro"]:
+                    containers.append(self.repertoire.getData(0, self.algorithm, self.experiment, i))
+
+                else:
+                    print("\nInput type not supported\n")
+                    self.cancelled = True
+
+                print()
+
+                if self.pause > 0.0:
+                    print("pausing for "+str(self.pause)+"s\n")
+                    time.sleep(self.pause)
+
+                self.features.append(containers)
 
         except FileNotFoundError as e:
             print("\n"+str(e)+"\n")
             self.cancelled = True
 
-    def generateCSV(self):
+    def generateExtremaCSV(self):
 
         if self.cancelled:
             return
 
+        algorithm_type = self.repertoire.getAlgorithmDir(self.algorithm)
+        description = self.utilities.getExperimentDescription(self.objective, self.algorithm)
+        output_dir = self.repertoire.getOutputDir(algorithm_type, self.experiment, description)
+
         headings = "Objective,Time,Seed,Robots,Pop,Tourn,Iterations,Params,,0,1000,,Chromosome,,Nodes"
 
-        csv = []
-        for i in range(len(self.params.nb_bins)):
-            if self.mode == "write":
-                csv.append(headings+"\n")
-            else:
-                csv.append("")
+        for i in range(len(self.params.indexes)):
 
-        for seed in range(len(self.containers)):
-            extrema = self.utilities.getExtremaFromContainer(self.containers[seed])
-            for i in range(len(self.params.nb_bins)):
-                csv[i] += self.params.description+",0,"+str(seed)+",3,25,3,6,0.2,,0,"+str(extrema[i].features[i])+",,,,\n"
-            print()
+            containers = self.features[i]
+            objective_name = self.params.objectives[self.params.indexes[i]]
 
-        for i in range(len(self.params.nb_bins)):
+            csv = []
 
-            output_file = self.output_dir+"/extrema1000-"+str(i+1)+".csv"
-            print("output file "+output_file)
-            print()
+            for axis in range(len(self.bins)):
+                if self.mode == "write":
+                    csv.append(headings+"\n")
+                else:
+                    csv.append("")
 
-            print(headings.replace(",", "\t"))
-            print(csv[i].replace(",", "\t"))
-            print()
+            for i in range(len(containers)):
+                extrema = self.utilities.getExtremaFromContainer(containers[i])
+                seed = self.seeds[i]
+                for axis in range(len(self.bins)):
+                    ind = extrema[axis]
+                    csv[axis] += self.params.description+",0,"+str(seed)+",3,25,3,6,0.2,,0,"+str(ind.features[axis])+",,,,\n"
 
+            for axis in range(len(self.bins)):
+
+                if len(self.params.indexes) > 1:
+                    output_file = output_dir+"/extrema-"+objective_name+"-1000-"+str(axis+1)+".csv"
+                else:
+                    output_file = output_dir+"/extrema1000-"+str(axis+1)+".csv"
+                print("output file "+output_file)
+                print()
+
+                print(csv[axis].replace(",", "\t"))
+                print()
+
+                if self.save:
+                    mode = "w" if self.mode == "write" else "a"
+                    with open(output_file, mode) as f:
+                        f.write(csv[axis])
+
+    def generateAdjustedQdScoreCSV(self):
+
+        if self.cancelled:
+            return
+
+        algorithm_type = self.repertoire.getAlgorithmDir(self.algorithm)
+        description = self.utilities.getExperimentDescription(self.objective, self.algorithm)
+        output_dir = self.repertoire.getOutputDir(algorithm_type, self.experiment, description)
+
+        headings = "Objective,Time,Seed,Robots,Pop,Tourn,Iterations,Params,,0,1000,,Chromosome,,Nodes"
+
+        csv = ""
+        if self.mode == "write":
+            csv = headings+"\n"
+
+        for seed in range(len(self.seeds)):
+
+            csv += self.utilities.getExperimentDescription(self.objective, self.algorithm)+",0,"+str(seed)+",3,25,3,6,0.2,,"
+
+            for feature in range(len(self.params.indexes)):
+                csv += "0.0 "
+            csv = csv[:-1]+","
+
+            for feature in range(len(self.params.indexes)):
+                container = self.features[feature][seed]
+                csv += str(self.utilities.getAdjustedQDScore(container))+" "
+
+            csv = csv[:-1]+",,,,\n"
+
+        output_file = output_dir+"/adjusted-qd-scores1000.csv"
+        print("CSV file "+output_file)
+        print()
+
+        print(csv.replace(",", "\t"))
+        print()
+
+        if self.save:
             mode = "w" if self.mode == "write" else "a"
-            if self.save:
-                with open(output_file, mode) as f:
-                    f.write(csv[i])
+            with open(output_file, mode) as f:
+                f.write(csv)
 
     def getBest(self):
-        best = self.utilities.getBestFromContainer(self.containers[0])
-        print("Best: "+str("%1.6f" % best.fitness.values[0])+"\n")
+
+        output = ""
+
+        for i in range(len(self.features)):
+
+            if self.algorithm == "ga":
+
+                if self.params.bias > -1:
+                    output += "Best with bias:\n"
+                    best = self.utilities.getBestSwarmFromContainer(self.features[i][0], self.params.bias)
+                    raw_fitness = self.utilities.getAdjustedSwarmFitness(best, -1)
+                    adj_fitness = self.utilities.getAdjustedSwarmFitness(best, self.params.bias)
+                    output += str("%1.6f" % adj_fitness)+" ("+str("%1.6f" % raw_fitness)+")   "
+                    output += str(best.features)+"\n\n"
+
+                output += "Best ever:\n"
+                best = self.utilities.getBestSwarmFromContainer(self.features[i][0], -1)
+                fitness = best.features[0] + best.features[1] + best.features[2]
+                output += str("%1.6f" % fitness)+"    "
+                output += str(best.features)
+
+            else:
+
+                best = self.utilities.getBestFromContainer(self.features[i][0])
+                output += "Best fitness:\n"
+                output += str(best.fitness.values)
+
+        print(output)
+        print()
 
     def getCoverage(self):
-        coverage = self.utilities.getCoverage(self.containers[0])
-        print("Coverage: "+str("%1.6f" % coverage)+"\n")
+        output = "Coverage: "
+        for i in range(len(self.features)):
+            coverage = self.utilities.getCoverage(self.features[i][0])
+            coverage *= self.bins[0] * self.bins[1] * self.bins[2]
+            output += str("%1.6f" % coverage)+"    "
+        print(output)
+        print()
 
     def getQdScore(self):
-        qd_score = self.utilities.getQDScore(self.containers[0], self.params.nb_bins)
-        print("QD Score: "+str("%1.6f" % qd_score)+"\n")
+        qd_score = "QD Score: "
+        adj_score = "Adjusted: "
+        for i in range(len(self.features)):
+            if self.algorithm == "ga":
+                qd = self.utilities.getQDScoreWithBias(self.features[i][0], self.bins)
+                qd_score += str("%1.6f" % qd)+"    "
+            else:
+                qd = self.utilities.getQDScore(self.features[i][0], self.bins)
+                adj = self.utilities.getAdjustedQDScore(self.features[i][0], self.bins)
+                qd_score += str("%1.6f" % qd)+"    "
+                adj_score += str("%1.6f" % adj)+"    "
+        print(qd_score)
+        if self.algorithm != "ga":
+            print(adj_score)
+        print()
 
+    def getAvgQuality(self):
+        avg_quality = "Avg quality: "
+        total_bins = self.bins[0] * self.bins[1] * self.bins[2]
+        for i in range(len(self.features)):
+            coverage = self.utilities.getCoverage(self.features[i][0]) * total_bins
+            if self.algorithm == "ga":
+                quality = self.utilities.getQDScoreWithBias(self.features[i][0], self.bins)
+            else:
+                quality = self.utilities.getQDScore(self.features[i][0], self.bins)
+            quality = quality * total_bins
+            quality = quality / coverage
+            avg_quality += str("%1.6f" % quality)+"    "
+        print(avg_quality)
+        print()
+
+    def getExtrema(self):
+        output = "Extrema per axis: "
+        for i in range(len(self.features)):
+            extrema = self.utilities.getExtremaFromContainer(self.features[i][0])
+            for axis in range(len(extrema)):
+                output += str("%.6f" % extrema[axis].features[axis])+" "
+        print(output)
+        print()
+
+    def getAvgPerAxis(self):
+        for i in range(len(self.features)):
+            output = "Average per axis: "
+            avg = [0,0,0]
+            for index, ind in self.features[i][0].items():
+                for axis in range(len(self.bins)):
+                    avg[axis] += ind.features[axis]
+            for axis in range(len(avg)):
+                avg[axis] /= len(self.features[i][0].items())
+                output += str("%.6f" % avg[axis])+" "
+            print(output)
+            print()
+
+    def getQdScorePerAxis(self):
+        for i in range(len(self.features)):
+            output = "QD per axis: "
+            avg = [0,0,0]
+            for index, ind in self.features[i][0].items():
+                for axis in range(len(self.bins)):
+                    avg[axis] += ind.features[axis]
+            for axis in range(len(avg)):
+                avg[axis] /= self.bins[0]*self.bins[1]*self.bins[2]
+                output += str("%.6f" % avg[axis])+" "
+            print(output)
+            print()
 
 if __name__ == "__main__":
 
-    algorithms = ["qdpy"]
-
     statistics = Statistics()
 
-    statistics.loadSeparate()
-    statistics.generateCSV()
+    statistics.loadContainers()
 
-    statistics.loadCombined()
     if not statistics.cancelled:
-        statistics.getBest()
-        statistics.getCoverage()
-        statistics.getQdScore()
+
+        if statistics.output == "qd_score_csv":
+            statistics.generateAdjustedQdScoreCSV()
+
+        if statistics.output == "extrema_csv":
+            statistics.generateExtremaCSV()
+
+        if statistics.output == "combined":
+            print()
+            statistics.getBest()
+            statistics.getCoverage()
+            statistics.getQdScore()
+            statistics.getAvgQuality()
+            statistics.getExtrema()
+            statistics.getAvgPerAxis()
+            statistics.getQdScorePerAxis()
 
 

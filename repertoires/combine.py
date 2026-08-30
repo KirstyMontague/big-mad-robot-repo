@@ -78,8 +78,8 @@ class Combine():
         print()
 
     def configure(self):
-        permitted = ["project", "algorithm", "input", "src_experiment", "src_experiments", "src_bins",
-                     "dst_bins", "arena", "objective", "objectives", "domain", "runs", "generations",
+        permitted = ["project", "algorithm", "input", "src_experiment", "src_experiments", "baseline",
+                     "src_bins", "dst_bins", "arena", "objective", "objectives", "domain", "runs", "generations",
                      "output_type", "repertoire_type", "destination", "dst_experiment", "save", "legacy"]
         with open(self.params.shared_path+"/combine.txt", 'r') as f:
             for line in f:
@@ -166,6 +166,7 @@ class Combine():
         if data[0] == "project": self.params.project = data[1]
         if data[0] == "src_experiment" and len(data) > 1: self.src_experiment = data[1]
         if data[0] == "dst_experiment" and len(data) > 1: self.dst_experiment = data[1]
+        if data[0] == "baseline": self.params.baseline = data[1]
         if data[0] == "arena" and len(data) > 1: self.params.arena_layout = int(data[1])
         if data[0] == "runs": self.runs = int(data[1])
         if data[0] == "generations": self.params.generations = int(data[1])
@@ -368,6 +369,7 @@ class Combine():
                 path += "local:"+self.params.local_path+"\n"
                 path += "shared:"+self.params.shared_path+"\n"
                 path += "input:"+self.params.input_path+"\n"
+                path += "directory:"+self.directory+"\n"
 
                 params = ""
                 with open(self.params.shared_path+"/combine.txt", 'r') as f:
@@ -391,7 +393,7 @@ class Combine():
                                                              self.utilities.toolbox,
                                                              container,
                                                              input_filename,
-                                                             0, 0, 0)
+                                                             2000, 0, 0)
 
     def assignPopulationFitness(self, population, fitnesses):
         for ind, fit in zip(population, fitnesses):

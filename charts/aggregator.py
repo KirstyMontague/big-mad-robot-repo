@@ -29,6 +29,8 @@ class Aggregator():
         self.using_repertoire = False
         self.repertoire_type = "qd"
         self.repertoire_size = 1
+        self.bins_per_axis = 1
+        self.baseline = "baseline"
         self.characteristics = 3
         self.objective = self.objectives[0]
         self.description = "density"
@@ -42,12 +44,15 @@ class Aggregator():
         self.configure()
         self.cancelled = self.cancelled or "repro" in self.shared_path
 
+        if self.algorithm == "cma-es" and "ifood" in self.description:
+            self.description = "ifood"
+
         self.input_path = self.addRepertoireDir(self.input_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description)
         self.output_path = self.addRepertoireDir(self.home_path+"/"+self.algorithm+"/"+self.experiment+"/"+self.description)
 
     def configure(self):
-        permitted = ["algorithm", "experiment", "runs", "generations", "save", "delete",
-                     "indexes", "using_repertoire", "repertoire_type", "bins_per_axis"]
+        permitted = ["algorithm", "experiment", "runs", "generations", "save", "delete", "indexes",
+                     "using_repertoire", "repertoire_type", "bins_per_axis", "baseline"]
         with open(self.shared_path+"/aggregator.txt", 'r') as f:
             for line in f:
                 data = line.split()
@@ -63,7 +68,7 @@ class Aggregator():
 
         if data[0] == "algorithm":
 
-            algorithms = ["gp", "qdpy", "cma-es"]
+            algorithms = ["gp", "qdpy", "cma-es", "ga"]
             if data[1] in algorithms:
                 self.algorithm = data[1]
             else:
@@ -86,23 +91,28 @@ class Aggregator():
             self.features = len(self.indexes)
 
         if data[0] == "bins_per_axis":
+            self.bins_per_axis = int(data[1])
             self.repertoire_size = int(data[1]) ** self.characteristics
 
         if data[0] == "experiment" and len(data) > 1: self.experiment = data[1]
         if data[0] == "using_repertoire": self.using_repertoire = True if data[1] == "True" else False
         if data[0] == "repertoire_type": self.repertoire_type = data[1]
         if data[0] == "repertoire_size": self.repertoire_size = int(data[1])
+        if data[0] == "baseline": self.baseline = data[1]
         if data[0] == "runs": self.runs = int(data[1])
         if data[0] == "generations": self.generations = int(data[1])
         if data[0] == "save": self.save = True if data[1] == "True" else False
         if data[0] == "delete": self.delete = True if data[1] == "True" else False
 
     def addRepertoireDir(self, path):
-        if self.objective == "foraging":
+        if self.objective == "foraging" and self.algorithm != "cma-es":
             if self.using_repertoire:
-                path += "/"+self.repertoire_type+str(self.repertoire_size)
+                if self.algorithm == "ga":
+                    path += "/bins-"+str(self.bins_per_axis)
+                else:
+                    path += "/"+self.repertoire_type+str(self.repertoire_size)
             else:
-                path += "/baseline"
+                path += "/"+self.baseline
         return path
 
     def checkFilesExist(self):
@@ -195,14 +205,18 @@ class Aggregator():
 
                 if not confirmed and os.path.exists(filename):
 
-                    test = input("Output files already exist at "+self.output_path+"\n\nContinue? (y/N)\n")
-                    if test == "y":
-                        confirmed = True
-                        print()
+                    if self.save:
+                        test = input("Output files already exist at "+self.output_path+"\n\nContinue? (y/N)\n")
+                        if test == "y":
+                            confirmed = True
+                            print()
+                        else:
+                            self.cancelled = True
+                            print("Cancelled\n")
+                            return
                     else:
-                        self.cancelled = True
-                        print("Cancelled\n")
-                        return
+                        confirmed = True
+                        print("Output files already exist at "+self.output_path+"\n")
 
                 if self.save:
                     print("Writing to "+filename)
