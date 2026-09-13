@@ -33,6 +33,7 @@ class eaParams():
         self.using_repertoire = False
         self.repertoire_type = "qd"
         self.bins_per_axis = 1
+        self.baseline = "baseline"
 
         self.readCheckpoint = False
         self.loadCheckpoint = False
@@ -290,6 +291,7 @@ class eaParams():
         if data[0] == "experiments":
             for i in range(1, len(data)):
                 self.experiments.append(data[i])
+            self.experiment = self.experiments[0]
 
         if data[0] == "objectives" and len(data) > 1:
             self.objectives = []

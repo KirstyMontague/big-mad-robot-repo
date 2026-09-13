@@ -9,6 +9,7 @@ from operator import mul
 import numpy as np
 import math
 import re
+import subprocess
 
 import sys
 sys.path.insert(0, '..')
@@ -46,7 +47,7 @@ class Chromosome():
 
         self.params.makePaths()
 
-        repertoire_path = self.params.shared_path+"/ga/"+self.params.experiment+"/foraging"
+        repertoire_path = self.params.shared_path+"/ga/"+self.params.experiments[0]+"/foraging"
         repertoire_file = repertoire_path+"/foraging-"+str(self.params.src_bins[0])+"-bins.txt"
 
         self.repertoire = self.utilities.createContainer(self.params.src_bins,
@@ -77,6 +78,8 @@ class Chromosome():
             grid_indexes = [self.repertoire.index_grid(inds[0].features) for index, inds in container if len(inds) > 0]
             self.params.console("repertoire size "+str(len(self.repertoire))+"\n")
 
+        self.utilities.toolbox = self.utilities.setupToolboxGA(self.repertoire, None, None, flat_indexes, grid_indexes)
+
         max_per_axis = [0,0,0]
         for index in grid_indexes:
             for i in range(len(index)):
@@ -101,6 +104,7 @@ class Chromosome():
                         chromosomes.append(sections[1])
 
         except FileNotFoundError as e:
+            self.params.cancelled = True
             print(str(e)+"\n")
             return
 
@@ -109,9 +113,9 @@ class Chromosome():
     def getSwarms(self):
 
         if self.params.bias != -1:
-            experiment = self.params.experiment+"-bias-"+str(self.params.bias)
+            experiment = self.params.experiments[1]+"-bias-"+str(self.params.bias)
         else:
-            experiment = self.params.experiment
+            experiment = self.params.experiments[1]
 
         csv_path = self.params.input_path+"/ga/"+experiment+"/foraging"
         csv_file = csv_path+"/bins-"+str(self.params.src_bins[0])+"/best"+str(self.params.generations)+".csv"
@@ -140,22 +144,166 @@ class Chromosome():
 
         return swarms
 
-    def printTrees(self):
+    def getTrees(self, swarms, seed = 1):
 
-        swarms = self.getSwarms()
         if len(swarms) == 0:
             return
 
-        swarm =swarms[0]
-        print(str(swarm)+"\n")
+        swarm = swarms[seed-1]
+        print("Swarm: "+str(swarm)+"\n")
 
         chromosomes = ""
         for ind in swarm:
             ind = self.repertoire.container[tuple(ind)]
             chromosomes += str(ind)+"\n"
 
-        print(chromosomes)
-        return
+        return chromosomes
+
+    def printTrees(self, swarms, seed = 1):
+
+        trees = self.getTrees(swarms, seed)
+        print(trees)
+
+    def chromosomeContributions(self, swarms, x, y, z, seed = 1):
+
+        if len(swarms) == 0:
+            return
+
+        print("\n\nLooking for "+str(tuple((x, y, z)))+"\n")
+
+        seed -= 1
+        for i in range(len(swarms)):
+
+            if i < seed:
+                continue
+
+            swarm = swarms[i]
+            positions = []
+            for j in range(len(swarm)):
+                if swarm[j] == tuple((x, y, z)):
+                    positions.append(j)
+
+            if len(positions) > 0:
+
+                print("Seed "+str(i+1)+"\n")
+                for position in positions:
+                    print("result "+str(position))
+                print()
+
+                trees = self.getTrees(swarms, i+1)
+                with open("../argos3/best.txt", "w") as f:
+                    f.write(trees)
+
+                subprocess.call(["/bin/bash", "./evaluate"])
+
+                print()
+                return
+
+        print("Not found\n")
+
+    def chromosomePositions(self, swarms, x, y, z):
+
+        if len(swarms) == 0:
+            return
+
+        print(str(x)+"-"+str(y)+"-"+str(z))
+
+        for i in range(len(swarms)):
+            swarm = swarms[i]
+            exists = False
+            for j in range(len(swarm)):
+                if swarm[j] == tuple((x, y, z)):
+                    print(j)
+                    exists = True
+        print()
+
+    def printTreeFromRepertoire(self, x, y, z):
+        print("\n"+str(self.repertoire.container[x,y,z])+"\n")
+        print(self.repertoire.container[x,y,z].fitness.values)
+        print(self.repertoire.container[x,y,z].features)
+        print()
+
+    def printRepertoireScores(self):
+
+        increments = [0.08, 0.16, 0.24, 0.32, 0.40, 0.48]
+
+        # one food / (six iterations * nine robots) = 0.018518518518518517
+        min_contribution = 1 / (6 * 9)
+
+        # maximum fitness score for each bin # and how much food can be deposited
+        increments[0] = 0.07407407407407407 # 4
+        increments[1] = 0.14814814814814814 # 8
+        increments[2] = 0.2222222222222222 # 12
+        increments[3] = 0.3148148148148148 # 17
+        increments[4] = 0.3888888888888889 # 21
+        increments[5] = 0.46296296296296297 # 25
+
+        src = self.repertoire.container
+        count = 0
+        for z in range(0, 6):
+            for x in range(0, 6):
+                for y in range(0, 6):
+                    deviation = []
+                    coords = [x,y,z]
+                    for f in range(3):
+                        if src[x, y, z].features[f] not in increments:
+                            deviation.append(f)
+                    if len(deviation) != 0:
+                        count += 1
+                        print(str(x)+"-"+str(y)+"-"+str(z)+"  "+str(deviation))
+
+            print("\nTotal deviations: "+str(count)+"\n")
+
+
+    def heterogenousRepertoireContributions(self, x, y, z):
+
+        dst_repertoire = self.utilities.createContainer(self.params.nb_bins, self.params.features_domain, 1)
+
+        src_bins = str(self.params.src_bins[0])
+        dst_bins = str(self.params.nb_bins[0])
+        repertoire_path = self.params.input_path+"/ga/"+self.params.experiments[1]+"/foraging"
+        repertoire_file = repertoire_path+"/bins-"+src_bins+"/foraging-with-all-seeds-"+dst_bins+"-bins.txt"
+
+        try:
+            self.params.console("\nReading from "+repertoire_file)
+            self.utilities.updateContainerFromString(None, self.utilities.toolbox,
+                                                     dst_repertoire, repertoire_file, 2000, 0, 0)
+        except FileNotFoundError as e:
+            self.params.cancelled = True
+            print("\n"+str(e)+"\n")
+            return
+
+        print("\nRepertoire size: "+str(len(dst_repertoire.values()))+"\n")
+
+        for x in range(self.params.src_bins[0]):
+            for y in range(self.params.src_bins[1]):
+                for z in range(self.params.src_bins[2]):
+
+                    output = str(x)+"-"+str(y)+"-"+str(z)+" "
+
+                    total_pos = 0
+                    count_pos = 0
+                    for index, swarm in dst_repertoire.items():
+                        if tuple((x,y,z)) in swarm:
+                            total_pos += swarm.fitness.values[0]
+                            count_pos += 1
+                    avg_pos = total_pos / count_pos if count_pos > 0 else 0
+                    output += str(avg_pos)+" "
+                    output += str(count_pos)+" "
+
+                    total_neg = 0
+                    count_neg = 0
+                    for index, swarm in dst_repertoire.items():
+                        if tuple((x,y,z)) not in swarm:
+                            total_neg += swarm.fitness.values[0]
+                            count_neg += 1
+                    avg_neg = total_neg / count_neg if count_neg > 0 else 0
+                    output += str(avg_neg)+" "
+                    output += str(count_neg)+" "
+
+                    if count_pos > 0:
+                        print(output)
+
 
     def heterogeneity(self):
 
@@ -235,8 +383,12 @@ class Chromosome():
             section_end = section["end"]
             section_interval = section["interval"]
             section_size = (section_end - section_start) / section_interval
-            bins = (int(section_size), 1, bins[2], bins[3])
 
+            if section_start >= section_end:
+                print("Section start must be less than section end")
+                return
+
+            bins = (int(section_size), 1, bins[2], bins[3])
             horizontal_bins = bins[::2]
             vertical_bins = bins[1::2]
             horizontal_bins_total = reduce(mul, horizontal_bins, 1)
@@ -364,7 +516,6 @@ class Chromosome():
                     if not math.isnan(data[x][y][z]):
                         data[x][y][z] = 1.0
 
-
 def main():
 
     params = eaParams()
@@ -372,8 +523,24 @@ def main():
     chromosome = Chromosome(params)
 
     if not params.cancelled:
-        # chromosome.printTrees()
-        chromosome.heterogeneity()
+        swarms = chromosome.getSwarms()
+
+    if not params.cancelled:
+
+        chromosome.printTrees(swarms, 1)
+        # chromosome.printTreeFromRepertoire(0,1,0)
+        # chromosome.printRepertoireScores()
+
+        # chromosome.chromosomeContributions(swarms,1,0,3, 1 )
+
+        # chromosome.heterogeneity()
+
+        # chromosome.heterogenousRepertoireContributions(0,0,0)
+
+        # x = 0
+        # for y in range(1):
+            # for z in range(4):
+                # chromosome.chromosomePositions(swarms, x,y,z)
 
 if __name__ == "__main__":
     main()

@@ -490,7 +490,7 @@ class Utilities():
 
                 if redundancy == None:
 
-                    numbers = re.sub('\D', ' ', ind)
+                    numbers = re.sub(r'\D', ' ', ind)
                     bits = numbers.split(" ")
 
                     tokens = []

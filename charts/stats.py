@@ -16,6 +16,9 @@ Work in progress for analysing repertoires and generating CSVs retrospectively
 postpro input type is for BT repertoires in the GA folder
 (ie, source repertoires for heterogeneous swarms)
 
+population output type identifies points of interest in the repertoire and prints
+the index and features of the individuals at these locations
+
 """
 
 class Statistics():
@@ -298,6 +301,223 @@ class Statistics():
             print(output)
             print()
 
+    def printIndividual(self, x, y, z):
+        for i in range(len(self.features)):
+            container = self.features[i][0]
+
+            print(str(x)+", "+str(y)+", "+str(z))
+            print(container.container[x,y,z].features)
+            print()
+
+    def printPopulation(self):
+
+        extrema = [-1,-1,-1]
+        for axis in range(len(self.bins)):
+            for index, ind in self.features[0][0].items():
+                if index[axis] >= extrema[axis]:
+                    extrema[axis] = index[axis]
+
+        x = extrema[0]
+        y = extrema[1]
+        z = extrema[2]
+
+
+        print("== max x, min y/z =================================================================\n")
+
+        max_x = -1
+        min_y = self.bins[1]
+        min_zy = self.bins[1]
+        min_z = self.bins[2]
+        min_yz = self.bins[2]
+
+        for index, ind in self.features[0][0].items():
+            if index[0] == x:
+                if index[1] <= min_y: min_y = index[1]
+                if index[2] <= min_z: min_z = index[2]
+
+        for index, ind in self.features[0][0].items():
+            if index[0] == x:
+                if index[1] == min_y and index[2] <= min_yz:
+                    min_yz = index[2]
+                if index[2] == min_z and index[1] <= min_zy:
+                    min_zy = index[1]
+
+        self.printIndividual(x, min_y, min_yz)
+        self.printIndividual(x, min_zy, min_z)
+
+
+        print("== max y, min x/z =================================================================\n")
+
+        max_y = -1
+        min_x = self.bins[0]
+        min_zx = self.bins[0]
+        min_z = self.bins[2]
+        min_xz = self.bins[2]
+
+        for index, ind in self.features[0][0].items():
+            if index[1] == y:
+                if index[0] <= min_x: min_x = index[0]
+                if index[2] <= min_z: min_z = index[2]
+
+        for index, ind in self.features[0][0].items():
+            if index[1] == y:
+                if index[0] == min_x and index[2] <= min_xz:
+                    min_xz = index[2]
+                if index[2] == min_z and index[0] <= min_zx:
+                    min_zx = index[0]
+
+        self.printIndividual(min_x, y, min_xz)
+        self.printIndividual(min_zx, y, min_z)
+
+        print("== max z, min x/y =================================================================\n")
+
+        max_z = -1
+        min_x = self.bins[0]
+        min_yx = self.bins[0]
+        min_y = self.bins[1]
+        min_xy = self.bins[1]
+
+        for index, ind in self.features[0][0].items():
+            if index[2] == z:
+                if index[0] <= min_x: min_x = index[0]
+                if index[1] <= min_y: min_y = index[1]
+
+        for index, ind in self.features[0][0].items():
+            if index[2] == z:
+                if index[0] == min_x and index[1] <= min_xy:
+                    min_xy = index[1]
+                if index[1] == min_y and index[0] <= min_yx:
+                    min_yx = index[0]
+
+        self.printIndividual(min_x, min_xy, z)
+        self.printIndividual(min_yx, min_y, z)
+
+        print("== max x/y, min z =================================================================\n")
+
+        max_x = -1
+        max_y = -1
+        min_z1 = self.bins[2]
+        min_z2 = self.bins[2]
+        for index, ind in self.features[0][0].items():
+            if index[0] == x and index[1] >= max_y: max_y = index[1]
+            if index[1] == y and index[0] >= max_x: max_x = index[0]
+
+        for index, ind in self.features[0][0].items():
+            if index[0] == x and index[1] == max_y and index[2] <= min_z1:
+                min_z1 = index[2]
+
+        for index, ind in self.features[0][0].items():
+            if index[0] == max_x and index[1] == y and index[2] <= min_z2:
+                min_z2 = index[2]
+
+        self.printIndividual(x, max_y, min_z1)
+        self.printIndividual(max_x, y, min_z2)
+
+        print("== max x/z, min y =================================================================\n")
+
+        max_x = -1
+        max_z = -1
+        min_y1 = self.bins[1]
+        min_y2 = self.bins[1]
+        for index, ind in self.features[0][0].items():
+            if index[0] == x and index[2] >= max_z: max_z = index[2]
+            if index[2] == z and index[0] >= max_x: max_x = index[0]
+
+        for index, ind in self.features[0][0].items():
+            if index[0] == x and index[2] == max_z and index[1] <= min_y1:
+                min_y1 = index[1]
+
+        for index, ind in self.features[0][0].items():
+            if index[0] == max_x and index[2] == z and index[1] <= min_y2:
+                min_y2 = index[1]
+
+        self.printIndividual(x, min_y1, max_z)
+        self.printIndividual(max_x, min_y2, z)
+
+        print("== max y/z, min x =================================================================\n")
+
+        max_y = -1
+        max_z = -1
+        min_x1 = self.bins[0]
+        min_x2 = self.bins[0]
+        for index, ind in self.features[0][0].items():
+            if index[1] == y and index[2] >= max_z: max_z = index[2]
+            if index[2] == z and index[1] >= max_y: max_y = index[1]
+
+        for index, ind in self.features[0][0].items():
+            if index[1] == y and index[2] == max_z and index[0] <= min_x1:
+                min_x1 = index[0]
+
+        for index, ind in self.features[0][0].items():
+            if index[1] == max_y and index[2] == z and index[0] <= min_x2:
+                min_x2 = index[0]
+
+        self.printIndividual(min_x1, y, max_z)
+        self.printIndividual(min_x2, max_y, z)
+
+        print("== max x/y/z =================================================================\n")
+
+        max_y = -1
+        max_z = -1
+        max_yz = -1
+        max_zy = -1
+        for index, ind in self.features[0][0].items():
+            if index[0] == x and index[1] >= max_y: max_y = index[1]
+            if index[0] == x and index[2] >= max_z: max_z = index[2]
+
+        for index, ind in self.features[0][0].items():
+            if index[0] == x and index[1] == max_y and index[2] >= max_yz:
+                max_yz = index[2]
+
+        for index, ind in self.features[0][0].items():
+            if index[0] == x and index[2] == max_z and index[1] >= max_zy:
+                max_zy = index[1]
+
+        self.printIndividual(x, max_y, max_yz)
+        self.printIndividual(x, max_zy, max_z)
+
+        print("== max y/x/z =================================================================\n")
+
+        max_x = -1
+        max_z = -1
+        max_xz = -1
+        max_zx = -1
+        for index, ind in self.features[0][0].items():
+            if index[1] == y and index[0] >= max_x: max_x = index[0]
+            if index[1] == y and index[2] >= max_z: max_z = index[2]
+
+        for index, ind in self.features[0][0].items():
+            if index[1] == y and index[0] == max_x and index[2] >= max_xz:
+                max_xz = index[2]
+
+        for index, ind in self.features[0][0].items():
+            if index[1] == y and index[2] == max_z and index[0] >= max_zx:
+                max_zx = index[0]
+
+        self.printIndividual(max_x, y, max_xz)
+        self.printIndividual(max_zx, y, max_z)
+
+        print("== max z/x/y =================================================================\n")
+
+        max_x = -1
+        max_y = -1
+        max_xy = -1
+        max_yx = -1
+        for index, ind in self.features[0][0].items():
+            if index[2] == z and index[0] >= max_x: max_x = index[0]
+            if index[2] == z and index[1] >= max_y: max_y = index[1]
+
+        for index, ind in self.features[0][0].items():
+            if index[2] == z and index[0] == max_x and index[1] >= max_xy:
+                max_xy = index[1]
+
+        for index, ind in self.features[0][0].items():
+            if index[2] == z and index[1] == max_y and index[0] >= max_yx:
+                max_yx = index[0]
+
+        self.printIndividual(max_x, max_xy, z)
+        self.printIndividual(max_yx, max_y, z)
+
 if __name__ == "__main__":
 
     statistics = Statistics()
@@ -312,6 +532,9 @@ if __name__ == "__main__":
         if statistics.output == "extrema_csv":
             statistics.generateExtremaCSV()
 
+        if statistics.output == "population":
+            statistics.printPopulation()
+
         if statistics.output == "combined":
             print()
             statistics.getBest()
@@ -322,4 +545,4 @@ if __name__ == "__main__":
             statistics.getAvgPerAxis()
             statistics.getQdScorePerAxis()
 
-
+    print()

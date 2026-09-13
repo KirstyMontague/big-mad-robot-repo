@@ -66,7 +66,7 @@ class Repertoire():
                 self.cancelled = True
 
         if data[0] == "output":
-            types = ["combined", "qd_score_csv", "extrema_csv"]
+            types = ["combined", "qd_score_csv", "extrema_csv", "population"]
             if data[1] in types:
                 self.output = data[1]
             else:
@@ -243,8 +243,6 @@ class Repertoire():
 
             elif self.input == "postpro":
                 filename = output_dir+"/"+output_file
-                if False:
-                    filename = input_dir+"/foraging-"+str(self.dst_bins[0])+"-bins.txt"
                 print("Postpro file "+filename)
                 self.readContainer(container, filename)
 
@@ -265,7 +263,7 @@ class Repertoire():
                         time.sleep(self.pause)
 
             if self.save_combined:
-                print("writing to "+output_dir+"/"+output_file)
+                print("Writing to "+output_dir+"/"+output_file)
                 self.utilities.saveContainer(container, output_dir, output_dir+"/"+output_file)
             else:
                 print("Output file "+output_dir+"/"+output_file)

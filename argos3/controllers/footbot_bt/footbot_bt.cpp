@@ -379,13 +379,10 @@ float CFootBotBT::hypotenuseSquared(float x1, float y1, float x2, float y2) cons
 void CFootBotBT::setColour() const
 {
     if (m_project == "straight_to_foraging" ||
-        m_project == "multi_food_foraging_with_subbehaviours")
+        m_project == "multi_food_foraging_with_subbehaviours" ||
+        m_project == "heterogeneous_genetic_algorithm")
     {
-        if (m_blackBoard->getInNest())
-        {
-            m_pcLEDs->SetAllColors(inTrackingIDs() ? CColor::YELLOW : CColor::RED);
-        }
-        else if (m_blackBoard->getCarryingFood(0))
+        if (m_blackBoard->getCarryingFood(0))
         {
             m_pcLEDs->SetAllColors(inTrackingIDs() ? CColor::YELLOW : CColor::GREEN);
         }

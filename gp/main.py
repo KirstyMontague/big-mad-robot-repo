@@ -50,6 +50,7 @@ if not params.stop:
         print(individual)
 
         ea = EA(params)
+        ea.utilities.saveConfigurationFile()
         fitness = ea.utilities.evaluateRobot(individual, 1)
         print("\n"+str(fitness)+"\n")
 

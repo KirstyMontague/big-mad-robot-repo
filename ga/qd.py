@@ -117,7 +117,7 @@ class EA():
 
         self.archive.saveArchive(None, self.params.generations)
 
-        # self.params.deleteTempFiles()
+        self.params.deleteTempFiles()
 
         end_time = round(time.time() * 1000)
         self.utilities.saveDuration(start_time, end_time)
