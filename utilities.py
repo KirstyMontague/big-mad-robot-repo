@@ -226,7 +226,7 @@ class Utilities():
         else:
             return (fitness + features)
 
-    def evaluateSwarm(self, swarm, thread_index):
+    def evaluateSwarm(self, swarm, thread_index, argos_seed = 0):
 
         # print ("")
         # print (swarm)
@@ -251,7 +251,7 @@ class Utilities():
         fitness = []
         features = []
         robots = {}
-        seed = 0
+        seed = argos_seed
         error = False
 
         num_data = self.params.max_objectives

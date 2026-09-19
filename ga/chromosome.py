@@ -128,7 +128,7 @@ class Chromosome():
 
         for chromosome in ga_chromosomes:
 
-            numbers = re.sub('\D', ' ', chromosome)
+            numbers = re.sub(r'\D', ' ', chromosome)
             bits = numbers.split(" ")
 
             tokens = []
@@ -194,7 +194,7 @@ class Chromosome():
                 with open("../argos3/best.txt", "w") as f:
                     f.write(trees)
 
-                subprocess.call(["/bin/bash", "./evaluate"])
+                subprocess.call(["/bin/bash", "./headless"])
 
                 print()
                 return
@@ -304,6 +304,19 @@ class Chromosome():
                     if count_pos > 0:
                         print(output)
 
+    def evaluateSwarm(self, swarms, seed = 1, argos_seed = 0):
+
+        if len(swarms) == 0:
+            return
+
+        swarm = swarms[seed-1]
+        print("\nSeed "+str(seed)+"\n")
+
+        self.utilities.saveConfigurationFile()
+
+        print(self.utilities.evaluateSwarm(swarm, 1, argos_seed))
+
+        self.params.deleteTempFiles()
 
     def heterogeneity(self):
 
@@ -519,6 +532,7 @@ class Chromosome():
 def main():
 
     params = eaParams()
+    params.deapSeed = 1
     params.configure()
     chromosome = Chromosome(params)
 
@@ -526,6 +540,11 @@ def main():
         swarms = chromosome.getSwarms()
 
     if not params.cancelled:
+
+        # x = 0
+        # for y in range(4):
+            # for z in range(4):
+                # chromosome.chromosomePositions(swarms, x,y,z)
 
         chromosome.printTrees(swarms, 1)
         # chromosome.printTreeFromRepertoire(0,1,0)
@@ -537,10 +556,7 @@ def main():
 
         # chromosome.heterogenousRepertoireContributions(0,0,0)
 
-        # x = 0
-        # for y in range(1):
-            # for z in range(4):
-                # chromosome.chromosomePositions(swarms, x,y,z)
+        # chromosome.evaluateSwarm(swarms, 1, 0)
 
 if __name__ == "__main__":
     main()
