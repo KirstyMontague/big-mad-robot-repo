@@ -43,3 +43,14 @@ class Params():
         self.objective = self.objectives[self.objective_index]
 
         self.csv = "./test/"+self.objective+"/"+str(self.precision)+"dp/results.csv"
+
+        with open("../path.txt", "r") as f:
+            for line in f:
+                data = line.split(":")
+                if data[0] == "path": path = data[1][0:-1]
+
+        with open(path, "r") as f:
+            for line in f:
+                data = line.split(":")
+                if data[0] == "local": self.local_path = data[1][0:-1]
+                if data[0] == "shared": self.shared_path = data[1][0:-1]

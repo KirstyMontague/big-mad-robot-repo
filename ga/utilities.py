@@ -1,9 +1,15 @@
 
 import argparse
 import numpy
+import os
 import random
 import subprocess
 import threading
+
+from pathlib import Path
+
+import warnings
+warnings.filterwarnings("error")
 
 from deap import tools, base, creator
 
@@ -11,7 +17,6 @@ class Utilities():
 
     def __init__(self, params):
         self.params = params
-        self.writeConfigurationFile()
         self.setupToolbox()
 
     def setupToolbox(self):
@@ -40,7 +45,7 @@ class Utilities():
 
     def writeConfigurationFile(self):
         experiment_length = 500 if self.params.objective == "foraging" else 100
-        with open('../txt/configuration.txt', 'w') as f:
+        with open(self.params.local_path+'/configuration.txt', 'w') as f:
             f.write("numInputs:"+str(self.params.num_inputs))
             f.write("\n")
             f.write("numHidden:"+str(self.params.num_hidden))
@@ -50,11 +55,13 @@ class Utilities():
             f.write("experimentLength:"+str(experiment_length))
             f.write("\n")
             f.write("sqrtRobots:"+str(self.params.sqrt_robots))
+            f.write("\n")
+            f.write("objective:"+str(self.params.objectives[self.params.objective_index]))
 
     def evaluateRobot(self, individual, thread_index):
 
         # save number of robots and chromosome to file
-        with open('../txt/chromosome'+str(thread_index)+'.txt', 'w') as f:
+        with open(self.params.local_path+'/chromosome'+str(thread_index)+'.txt', 'w') as f:
             f.write(str(self.params.ind_size))
             for s in individual:
                 f.write(" ")
@@ -68,16 +75,16 @@ class Utilities():
 
             # write seed to file
             seed += 1
-            with open('../txt/seed'+str(thread_index)+'.txt', 'w') as f:
+            with open(self.params.local_path+'/seed'+str(thread_index)+'.txt', 'w') as f:
                 f.write(str(seed))
                 f.write("\n")
                 f.write(str(i))
 
             # run argos
-            subprocess.call(["/bin/bash", "./evaluate"+str(thread_index), "", "./"])
+            subprocess.call(["/bin/bash", "./evaluate", str(thread_index), self.params.local_path, "", "./"])
 
             # result from file
-            with open("../txt/result"+str(thread_index)+".txt", 'r') as f:
+            with open(self.params.local_path+"/result"+str(thread_index)+".txt", 'r') as f:
 
                 # print ("")
                 for line in f:
@@ -99,6 +106,15 @@ class Utilities():
         # divide to get average per seed and arena configuration
         fitness /= self.params.arena_iterations
         fitness /= len(self.params.arena_params)
+
+        try:
+            os.remove(self.params.local_path+"/seed"+str(thread_index)+".txt")
+            os.remove(self.params.local_path+"/chromosome"+str(thread_index)+".txt")
+            os.remove(self.params.local_path+"/result"+str(thread_index)+".txt")
+        except Exception as e:
+            print(str(e))
+            with open(self.params.local_path+"/runtime.txt", "w") as f:
+                f.write("stop\n")
 
         return (fitness,)
 
@@ -185,13 +201,14 @@ class Utilities():
             return args.seed
 
     def configure(self):
-        with open("../config.txt", 'r') as f:
+
+        with open(self.params.shared_path+"/config.txt", 'r') as f:
             for line in f:
                 data = line.split()
                 if len(data) > 0:
                     if data[0] == "generations": self.params.generations = int(data[1])
-                    if data[0] == "saveOutput": self.params.saveOutput = False if data[1] == "False" else True
-                    if data[0] == "saveCSV": self.params.saveCSV = False if data[1] == "False" else True
+                    if data[0] == "saveOutput": self.params.save_output = True if data[1] == "True" else False
+                    if data[0] == "saveCSV": self.params.save_csv = True if data[1] == "True" else False
                     if data[0] == "stop":
                         self.params.saveCSV = False
                         self.params.generations = 0
@@ -201,3 +218,34 @@ class Utilities():
                         self.params.saveCSV = False
                         self.params.generations = 0
                         self.params.cancelled = True
+
+        if os.path.exists(self.params.shared_path+"/runtime.txt"):
+            with open(self.params.shared_path+"/runtime.txt", 'r') as f:
+                for line in f:
+                    data = line.split()
+                    if len(data) > 0 and data[0] == "stop":
+                        self.params.saveCSV = False
+                        self.params.generations = 0
+                        self.params.cancelled = True
+
+        if os.path.exists(self.params.local_path+"/runtime.txt"):
+            with open(self.params.local_path+"/runtime.txt", 'r') as f:
+                for line in f:
+                    data = line.split()
+                    if len(data) > 0 and data[0] == "stop":
+                        self.params.saveCSV = False
+                        self.params.generations = 0
+                        self.params.cancelled = True
+
+    def makePaths(self):
+        self.params.local_path += "/"+str(self.params.seed)
+        Path(self.params.local_path+"/").mkdir(parents=False, exist_ok=True)
+
+    def deleteTempFiles(self):
+
+        if os.path.exists(self.params.local_path+"/runtime.txt"):
+            os.remove(self.params.local_path+"/runtime.txt")
+        os.remove(self.params.local_path+"/configuration.txt")
+
+        if len(os.listdir(self.params.local_path)) == 0:
+            os.rmdir(self.params.local_path)

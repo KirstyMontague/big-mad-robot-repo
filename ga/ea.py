@@ -28,8 +28,11 @@ class EA():
             print("no seed")
             return
 
+        self.utilities.makePaths()
+        self.utilities.writeConfigurationFile()
         self.archive = Archive(self.utilities, self.params)
         self.eaInit()
+        self.utilities.deleteTempFiles()
 
     def eaInit(self):
 
@@ -39,6 +42,7 @@ class EA():
 
         pop = self.utilities.toolbox.population(n=self.params.population_size)
         self.evaluateNewPopulation(0, pop)
+        self.utilities.configure()
 
         self.eaLoop(pop)
 
@@ -133,3 +137,7 @@ class EA():
     def assignPopulationFitness(self, population, fitnesses):
         for ind, fit in zip(population, fitnesses):
             ind.fitness.values = fit
+
+
+if __name__ == "__main__":
+    ea = EA()
