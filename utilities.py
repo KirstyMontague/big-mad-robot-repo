@@ -4,6 +4,7 @@ import numpy
 import pickle
 import random
 import re
+import statistics
 import subprocess
 import threading
 import time
@@ -103,6 +104,7 @@ class Utilities():
                 return []
 
         self.repertoire = repertoire
+        num_robots = self.params.sqrt_robots * self.params.sqrt_robots
 
         creator.create("FitnessGA", base.Fitness, weights=(1.0,))
         creator.create("IndividualGA", list, fitness=creator.FitnessGA)
@@ -111,7 +113,7 @@ class Utilities():
 
         def randomIndex(): return random.choice(grid_indexes)
         toolbox.register("attr_index", randomIndex)
-        toolbox.register("individual", tools.initRepeat, creator.IndividualGA, toolbox.attr_index, 9)
+        toolbox.register("individual", tools.initRepeat, creator.IndividualGA, toolbox.attr_index, num_robots)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
         toolbox.register("select", tournament, tournsize=self.params.tournamentSize)
@@ -120,46 +122,50 @@ class Utilities():
         toolbox.register("evaluate", self.evaluateSwarm, thread_index=1)
 
         self.evaluation_functions = []
-        for i in range(1,9):
+        for i in range(1, self.params.num_threads + 1):
             toolbox.register("evaluate"+str(i), self.evaluateSwarm, thread_index=i)
             self.evaluation_functions.append(self.makeEvaluationFunction("evaluate"+str(i)))
 
         def zero(): return [0,0,0]
         toolbox.register("attr_empty", zero)
-        toolbox.register("empty_individual", tools.initRepeat, creator.IndividualGA, toolbox.attr_empty, 9)
+        toolbox.register("empty_individual", tools.initRepeat, creator.IndividualGA, toolbox.attr_empty, num_robots)
         toolbox.register("empty_population", tools.initRepeat, list, toolbox.empty_individual)
 
         return toolbox
 
-    def evaluateRobot(self, individual, thread_index):
-        
+    def evaluateRobot(self, individual, thread_index, argos_seed = 0):
+
         # print ("")
         # print (individual)
-        
+
         # save chromosome to file
         with open(self.params.local_path+'/chromosome'+str(thread_index)+'.txt', 'w') as f:
             f.write(str(individual))
-        
-        totals = []
-        # qdpy optimisation
-        # for i in range(self.params.features):
-        for i in range(self.params.features + 3):
-            # end qdpy
-            totals.append(0.0)
-        
-        fitness = []
-        features = []
+
+        num_robots = self.params.sqrt_robots * self.params.sqrt_robots
+        num_data = len(self.params.objectives)
+        num_scores = len(self.params.indexes) + self.params.characteristics
+
+        scores = {}
         robots = {}
-        seed = 0
+        totals = []
+        seed = argos_seed
         error = False
 
-        num_data = self.params.max_objectives
+        for j in range(num_scores):
+            totals.append(0.0)
+            scores[j] = []
+            for k in range(num_robots):
+                scores[j].append([])
+
+        for j in range(num_robots):
+            robots[j] = []
 
         for i in self.params.arena_params:
-            
+
             # get maximum food available with the current gap between the nest and food
             # maxFood = self.calculateMaxFood(i)
-            
+
             # write seed and offset to file
             seed += 1
             with open(self.params.local_path+'/seed'+str(thread_index)+'.txt', 'w') as f:
@@ -184,32 +190,45 @@ class Utilities():
                     if first == "result":
                         lines = line.split()
                         robotId = int(float(lines[1]))
-                        robots[robotId] = []
+                        score_index = 0
                         for j in range(num_data):
-                            for k in range(self.params.iterations):
-                                if j in self.params.indexes:
+                            if j in self.params.indexes:
+                                for k in range(self.params.iterations):
                                     index = (j * self.params.iterations) + k + 2
                                     robots[robotId].append(float(lines[index]))
+                                    scores[score_index][robotId].append(float(lines[index]))
+                                score_index += 1
                         for j in range(3):
                             for k in range(self.params.iterations):
                                 index = (j * self.params.iterations) + (num_data * self.params.iterations) + k + 2
                                 robots[robotId].append(float(lines[index]))
+                                scores[score_index][robotId].append(float(lines[index]))
+                            score_index += 1
 
             # get scores for each robot and add to cumulative total
-            for k in range(self.params.features + 3):
+            for k in range(num_scores):
                 totals[k] += self.collectFitnessScore(robots, k)
 
             # increment counter and pause to free up CPU
             time.sleep(self.params.trialSleep)
 
-        # divide to get average per seed and arena configuration then apply derating factor
-        deratingFactor = 1.0
-        features = []
+        aggregated = []
+        for i in range(num_scores):
+            aggregated.append([])
+            if self.params.fitness_function == "median":
+                # get median from all trials and arenas per robot
+                for robot in scores[i]:
+                    aggregated[i].append(statistics.median(robot))
+            else:
+                # divide to get average per seed and arena configuration
+                aggregated[i].append(self.getAvgFitness(totals[i], individual))
 
-        for i in range(self.params.features):
-            fitness.append(self.getAvgAndDerate(totals[i], individual, deratingFactor))
+        fitness = []
+        features = []
+        for i in range(len(self.params.indexes)):
+            fitness.append(statistics.mean(aggregated[i]))
         for i in range(self.params.characteristics):
-            features.append(self.getAvgAndDerate(totals[i + self.params.features], individual, deratingFactor))
+            features.append(statistics.mean(aggregated[i + self.params.features]))
 
         try:
             os.remove(self.params.local_path+"/seed"+str(thread_index)+".txt")
@@ -244,24 +263,31 @@ class Utilities():
         with open(self.params.local_path+'/chromosome'+str(thread_index)+'.txt', 'w') as f:
             f.write(str(chromosomes[0:-1]))
 
-        totals = []
-        for i in range(self.params.features + 3):
-            totals.append(0.0)
+        num_robots = self.params.sqrt_robots * self.params.sqrt_robots
+        num_data = len(self.params.objectives)
+        num_scores = len(self.params.indexes) + self.params.characteristics
 
-        fitness = []
-        features = []
+        scores = {}
         robots = {}
+        totals = []
         seed = argos_seed
         error = False
 
-        num_data = self.params.max_objectives
+        for j in range(num_scores):
+            totals.append(0.0)
+            scores[j] = []
+            for k in range(num_robots):
+                scores[j].append([])
+
+        for j in range(num_robots):
+            robots[j] = []
 
         for i in self.params.arena_params:
 
             # write seed and offset to file
-            seed += 1
+            argos_seed += 1
             with open(self.params.local_path+'/seed'+str(thread_index)+'.txt', 'w') as f:
-                f.write(str(seed))
+                f.write(str(argos_seed))
                 f.write("\n")
                 f.write(str(self.params.arenaOffset(i)))
 
@@ -282,32 +308,44 @@ class Utilities():
                     if first == "result":
                         lines = line.split()
                         robotId = int(float(lines[1]))
-                        robots[robotId] = []
+                        score_index = 0
                         for j in range(num_data):
-                            for k in range(self.params.iterations):
-                                if j in self.params.indexes:
+                            if j in self.params.indexes:
+                                for k in range(self.params.iterations):
                                     index = (j * self.params.iterations) + k + 2
                                     robots[robotId].append(float(lines[index]))
-                        for j in range(3):
+                                    scores[score_index][robotId].append(float(lines[index]))
+                                score_index += 1
+                        for j in range(self.params.characteristics):
                             for k in range(self.params.iterations):
                                 index = (j * self.params.iterations) + (num_data * self.params.iterations) + k + 2
                                 robots[robotId].append(float(lines[index]))
+                                scores[score_index][robotId].append(float(lines[index]))
+                            score_index += 1
 
             # get scores for each robot and add to cumulative total
-            for k in range(self.params.features + 3):
+            for k in range(num_scores):
                 totals[k] += self.collectFitnessScore(robots, k)
 
-            # increment counter and pause to free up CPU
             time.sleep(self.params.trialSleep)
 
-        # divide to get average per seed and arena configuration then apply derating factor
-        deratingFactor = 1.0
-        features = []
+        aggregated = []
+        for i in range(num_scores):
+            aggregated.append([])
+            if self.params.fitness_function == "median":
+                # get median from all trials and arenas per robot
+                for robot in scores[i]:
+                    aggregated[i].append(statistics.median(robot))
+            else:
+                # divide to get average per seed and arena configuration
+                aggregated[i].append(self.getAvgFitness(totals[i], swarm))
 
-        for i in range(self.params.features):
-            fitness.append(self.getAvgAndDerate(totals[i], swarm, deratingFactor))
+        fitness = []
+        features = []
+        for i in range(len(self.params.indexes)):
+            fitness.append(statistics.mean(aggregated[i]))
         for i in range(self.params.characteristics):
-            features.append(self.getAvgAndDerate(totals[i + self.params.features], swarm, deratingFactor))
+            features.append(statistics.mean(aggregated[i + self.params.features]))
 
         if self.params.bias != -1:
             for i in range(self.params.features):
@@ -345,11 +383,10 @@ class Utilities():
         thisFitness /= maxScore
 
         return thisFitness
-    
-    def getAvgAndDerate(self, score, individual, deratingFactor):
+
+    def getAvgFitness(self, score, individual):
         fitness = score / self.params.iterations
         fitness = fitness / len(self.params.arena_params)
-        fitness /= deratingFactor
         return fitness
 
     def deratingFactor(self, individual):
@@ -458,6 +495,9 @@ class Utilities():
 
     def updateContainerFromString(self, redundancy, toolbox, container, filename, interval = 0, start = 0, stop = 0):
 
+        if start != 0 or stop != 0:
+            self.params.console("\nWARNING: abridged repertoire\n")
+
         count = 0
         individuals = []
 
@@ -477,7 +517,7 @@ class Utilities():
 
                 if interval != 0 and count % interval == 0:
                     sleep = 10.0
-                    print("count = "+str(count)+", sleeping for "+str(sleep))
+                    self.params.console("count = "+str(count)+", sleeping for "+str(sleep))
                     time.sleep(sleep)
 
                 info = line.split(":")

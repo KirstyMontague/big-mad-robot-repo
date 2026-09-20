@@ -58,7 +58,7 @@ class EA():
                                                          self.params.max_items_per_bin)
         self.utilities.updateContainerFromString(self.redundancy, self.gp_toolbox,
                                                  self.repertoire, repertoire_file,
-                                                 0, 0, 0)
+                                                 2000, 0, 0)
 
         self.params.console("")
         flat_indexes = []

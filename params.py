@@ -26,6 +26,7 @@ class eaParams():
         self.penalty = 1.0
         self.populationSize = 25
         self.tournament = "selTournament"
+        self.fitness_function = "mean"
 
         self.start_gen   = 0
         self.generations = 0
@@ -254,6 +255,16 @@ class eaParams():
                 self.applyParameter(line)
         self.runtime()
 
+        if self.cancelled:
+            self.stop = True
+            self.saveOutput = False
+            self.saveCheckpoint = False
+            self.saveContainer = False
+            self.saveCSV = False
+            self.generations = 0
+        elif self.stop:
+            self.generations = 0
+
     def runtime(self):
         permitted = ["generations", "genSleep", "evalSleep", "trialSleep",
                      "saveContainer", "saveCheckpoint",
@@ -275,10 +286,10 @@ class eaParams():
                         self.applyParameter(line)
 
     def applyParameter(self, line):
+        self.console(line.strip('\t\n\r'))
         data = line.split()
         if len(data) > 0:
             self.update(data)
-        self.console(line.strip('\t\n\r'))
 
     def update(self, data):
 
@@ -356,16 +367,20 @@ class eaParams():
                          "multiFoodTournament", "multiFoodFloorTournament", "selTournament"]
             if data[1] not in permitted:
                 self.console("\n"+data[1]+" tournament not supported\n")
-                self.stop = True
+                self.cancelled = True
             elif data[1] == "biasedTournament" and not self.usingNewGrid:
                 self.console("\nBias is not supported by qdpy\n")
-                self.stop = True
-            if self.stop:
-                self.saveOutput = False
-                self.saveCSV = False
-                self.generations = 0
+                self.cancelled = True
             else:
                 self.tournament = data[1]
+
+        if data[0] == "fitness_function":
+            permitted = ["mean", "median"]
+            if data[1] not in permitted:
+                self.console("\nFitness function "+data[1]+" not supported\n")
+                self.cancelled = True
+            else:
+                self.fitness_function = data[1]
 
         if data[0] == "arena_params" and len(data) > 1:
             self.arena_params = []
@@ -420,14 +435,9 @@ class eaParams():
                 self.stop = False
             else:
                 self.stop = True
-                self.saveCSV = False
-                self.generations = 0
 
         if data[0] == "cancel":
-            self.stop = True
-            self.saveOutput = False
-            self.saveCSV = False
-            self.generations = 0
+            self.cancelled = True
 
     def console(self, text):
         if self.output_to_file:

@@ -57,7 +57,8 @@ class Chromosome():
         try:
             self.params.console("\nReading from "+repertoire_file)
             self.utilities.updateContainerFromString(self.redundancy, self.gp_toolbox,
-                                                     self.repertoire, repertoire_file, 2000, 0, 0)
+                                                     self.repertoire, repertoire_file,
+                                                     2000, 0, 0)
 
         except FileNotFoundError as e:
             self.params.cancelled = True
@@ -267,7 +268,8 @@ class Chromosome():
         try:
             self.params.console("\nReading from "+repertoire_file)
             self.utilities.updateContainerFromString(None, self.utilities.toolbox,
-                                                     dst_repertoire, repertoire_file, 2000, 0, 0)
+                                                     dst_repertoire, repertoire_file,
+                                                     2000, 0, 0)
         except FileNotFoundError as e:
             self.params.cancelled = True
             print("\n"+str(e)+"\n")
@@ -310,7 +312,12 @@ class Chromosome():
             return
 
         swarm = swarms[seed-1]
-        print("\nSeed "+str(seed)+"\n")
+
+        num_robots = self.params.sqrt_robots * self.params.sqrt_robots
+        swarm = swarm[0:num_robots]
+
+        print("\nSeed "+str(seed))
+        print("Swarm "+str(swarm)+"\n")
 
         self.utilities.saveConfigurationFile()
 
@@ -534,7 +541,9 @@ def main():
     params = eaParams()
     params.deapSeed = 1
     params.configure()
-    chromosome = Chromosome(params)
+
+    if not params.cancelled:
+        chromosome = Chromosome(params)
 
     if not params.cancelled:
         swarms = chromosome.getSwarms()
