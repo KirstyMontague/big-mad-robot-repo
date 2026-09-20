@@ -21,6 +21,6 @@ echo "
 
 " >> test1.txt
 
-cat test1.txt > /cluster/sharedscratch/slurm.txt
+cat test1.txt > ../cluster/sharedscratch/slurm.txt
 
 rm test1.txt
