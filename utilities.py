@@ -659,11 +659,16 @@ class Utilities():
         for individual in population:
 
             fitness = 0.0
-            for axis in range(len(self.params.nb_bins)):
-                if bias == -1 or axis == bias:
-                    fitness += individual.features[axis]
-                else:
-                    fitness += individual.features[axis] * self.params.penalty
+
+            if bias == -1:
+                fitness = individual.fitness.values[0]
+
+            else:
+                for axis in range(len(self.params.nb_bins)):
+                    if axis == bias:
+                        fitness += individual.features[axis]
+                    else:
+                        fitness += individual.features[axis] * self.params.penalty
 
             if best is None or fitness > best_fitness:
                 best = individual
@@ -673,10 +678,12 @@ class Utilities():
 
     def getAdjustedSwarmFitness(self, individual, bias = -1):
 
-        fitness = 0.0
+        if bias == -1:
+            return individual.fitness.values[0]
 
+        fitness = 0.0
         for axis in range(len(self.params.nb_bins)):
-            if bias == -1 or axis == bias:
+            if axis == bias:
                 fitness += individual.features[axis]
             else:
                 fitness += individual.features[axis] * self.params.penalty
