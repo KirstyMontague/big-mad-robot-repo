@@ -74,7 +74,11 @@ class EA():
             grid_indexes = [self.repertoire.index_grid(inds[0].features) for index, inds in container if len(inds) > 0]
             self.params.console("repertoire size "+str(len(self.repertoire))+"\n")
 
-        self.utilities.toolbox = self.utilities.setupToolboxGA(self.repertoire, self.mutateOneIndividual, self.selTournament, flat_indexes, grid_indexes)
+        mutation_operator = self.mutateOneIndividual
+        if self.params.mutation == "axes":
+            mutation_operator = self.mutateAxes
+
+        self.utilities.toolbox = self.utilities.setupToolboxGA(self.repertoire, mutation_operator, self.selTournament, flat_indexes, grid_indexes)
 
         self.logs = Logs(self.params, self.utilities)
 
@@ -148,9 +152,7 @@ class EA():
                     del child2.fitness.values
 
             for mutant in offspring:
-                if random.random() < self.params.mutNRProbability:
-                    self.utilities.toolbox.mutate(mutant)
-                    del mutant.fitness.values
+                self.utilities.toolbox.mutate(mutant)
 
             self.evaluateNewPopulation(generation, offspring, "a")
 
@@ -253,23 +255,28 @@ class EA():
             ind.fitness.values = fit[0]
             ind.features = fit[1]
 
-    def mutateOneIndividual(self, swarm, flat_indexes, grid_indexes, indpb=0.05):
+    def mutateOneIndividual(self, swarm, flat_indexes, grid_indexes):
 
-        index = int(random.random() * len(swarm))
-        swarm[index] = random.choice(grid_indexes)
+        if random.random() < self.params.mutNRProbability:
+            index = int(random.random() * len(swarm))
+            swarm[index] = random.choice(grid_indexes)
+            del swarm.fitness.values
 
-    def mutateAllAxes(self, swarm, flat_indexes, grid_indexes, indpb=0.05):
+    def mutateAxes(self, swarm, flat_indexes, grid_indexes):
 
-        count = 0
-        for index in range(len(swarm)):
-            if random.random() < 0.5:
-                swarm[index] = random.choice(grid_indexes)
-                count += 1
-        return swarm
+        if random.random() < self.params.mutSRProbability:
 
-    def mutateOneAxis(self, swarm, flat_indexes, grid_indexes, indpb=0.05):
+            # mutate all axes
 
-        for index in range(len(swarm)):
+            index = int(random.random() * len(swarm))
+            swarm[index] = random.choice(grid_indexes)
+            del swarm.fitness.values
+
+        if random.random() < self.params.mutNRProbability:
+
+            # mutate one axis
+
+            index = int(random.random() * len(swarm))
 
             ind = swarm[index]
             axis = random.choice([0,1,2])
@@ -277,10 +284,12 @@ class EA():
             if axis == 1: i, j = 0, 2
             if axis == 2: i, j = 0, 1
 
-            candidates = [x for x in grid_indexes if x[i] == ind[i] and x[j] == ind[j] and x[axis] != ind[axis]]
+            candidates = [x for x in grid_indexes if x[i] == ind[i] and x[j] == ind[j] and x[axis] - ind[axis] in [-1, 1]]
 
             if (len(candidates) > 0):
-                swarm[index] = random.choice(candidates)
+                candidate = random.choice(candidates)
+                swarm[index] = candidate
+                del swarm.fitness.values
 
         return swarm
 

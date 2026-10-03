@@ -118,7 +118,7 @@ class Utilities():
 
         toolbox.register("select", tournament, tournsize=self.params.tournamentSize)
         toolbox.register("mate", tools.cxTwoPoint)
-        toolbox.register("mutate", mutation_operator, flat_indexes=flat_indexes, grid_indexes=grid_indexes, indpb=0.05)
+        toolbox.register("mutate", mutation_operator, flat_indexes=flat_indexes, grid_indexes=grid_indexes)
         toolbox.register("evaluate", self.evaluateSwarm, thread_index=1)
 
         self.evaluation_functions = []

@@ -25,6 +25,7 @@ class eaParams():
         self.bias_interval = 0
         self.penalty = 1.0
         self.populationSize = 25
+        self.mutation = "individual"
         self.tournament = "selTournament"
         self.fitness_function = "mean"
 
@@ -195,7 +196,7 @@ class eaParams():
         elif description == "foraging":
             if self.algorithm == "ga":
                 if self.project == "heterogeneous_genetic_algorithm":
-                    path += "/bins-"+str(self.repertoire_size)
+                    path += "/bins-"+str(self.src_bins[0])
             elif self.using_repertoire:
                 path += "/"+self.repertoire_type+str(self.repertoire_size)
             else:
@@ -361,6 +362,14 @@ class eaParams():
                     self.src_domain.append([float(data[i]), float(data[i+1])])
                 else:
                     self.src_domain.append((float(data[i]), float(data[i+1])))
+
+        if data[0] == "mutation":
+            permitted = ["individual", "axes"]
+            if data[1] not in permitted:
+                self.console("\nMutation operator "+data[1]+" not supported\n")
+                self.cancelled = True
+            else:
+                self.mutation = data[1]
 
         if data[0] == "tournament":
             permitted = ["agnosticTournament", "biasedTournament", "multiFoodMaxTournament",
