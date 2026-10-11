@@ -301,6 +301,7 @@ class eaParams():
             self.experiment = data[1]
 
         if data[0] == "experiments":
+            self.experiments = []
             for i in range(1, len(data)):
                 self.experiments.append(data[i])
             self.experiment = self.experiments[0]

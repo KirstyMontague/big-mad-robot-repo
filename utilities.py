@@ -329,6 +329,16 @@ class Utilities():
 
             time.sleep(self.params.trialSleep)
 
+        # use each robot's characteristics with bias to calculate total fitness for each iteration
+        if self.params.bias != -1:
+            for robot in range(num_robots):
+                for iteration in range(self.params.iterations):
+                    fitness = 0.0
+                    for axis in range(1, num_scores):
+                        penalty = 1.0 if axis - 1 == self.params.bias else self.params.penalty
+                        fitness += scores[axis][robot][iteration] * penalty
+                    scores[0][robot][iteration] = fitness
+
         aggregated = []
         for i in range(num_scores):
             aggregated.append([])
@@ -346,13 +356,6 @@ class Utilities():
             fitness.append(statistics.mean(aggregated[i]))
         for i in range(self.params.characteristics):
             features.append(statistics.mean(aggregated[i + self.params.features]))
-
-        if self.params.bias != -1:
-            for i in range(self.params.features):
-                adjusted_fitness = 0.0
-                for axis in range(len(self.params.nb_bins)):
-                    adjusted_fitness += features[axis] if axis == self.params.bias else features[axis] * self.params.penalty
-                fitness[i] = adjusted_fitness
 
         try:
             os.remove(self.params.local_path+"/seed"+str(thread_index)+".txt")
