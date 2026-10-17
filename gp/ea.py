@@ -166,7 +166,7 @@ class EA():
 
         self.logs.logFitness(generation, best)
         self.logs.logQdScore(generation, self.grid.getQDScores())
-        self.logs.logCoverage(generation, self.utilities.getCoverage(self.grid.grids[0]))
+        self.logs.logCoverage(generation, self.utilities.getFilledBins(self.grid.grids[0]))
 
         return matched
 

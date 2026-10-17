@@ -9,6 +9,7 @@ from operator import mul
 import numpy as np
 import math
 import re
+import statistics
 import subprocess
 
 import sys
@@ -17,6 +18,8 @@ sys.path.insert(0, '..')
 # from containers import *
 from grid import Grid
 
+from deap import creator
+from deap import gp
 from deap import tools
 
 from params import eaParams
@@ -32,6 +35,17 @@ class Chromosome():
         self.params.is_qdpy = True
         self.params.using_repertoire = False
 
+        self.queries = []
+        self.seed = 1
+        self.start = 1
+        self.stop = 2
+        self.x = 0
+        self.y = 0
+        self.z = 0
+        self.threads = 8
+
+        self.configure()
+
         self.utilities = Utilities(self.params, None)
 
         if self.params.repertoire_size <= 512:
@@ -40,7 +54,7 @@ class Chromosome():
             print("Repertoire too large: "+str(self.params.repertoire_size)+"\n(derived from params.repertoire_size)")
             return
 
-        self.gp_toolbox = self.utilities.setupToolboxGP(None)
+        self.gp_toolbox = self.utilities.setupToolboxGP(None, True)
 
         if not self.utilities.checkContainerSize():
             return
@@ -79,7 +93,7 @@ class Chromosome():
             grid_indexes = [self.repertoire.index_grid(inds[0].features) for index, inds in container if len(inds) > 0]
             self.params.console("repertoire size "+str(len(self.repertoire))+"\n")
 
-        self.utilities.toolbox = self.utilities.setupToolboxGA(self.repertoire, None, None, flat_indexes, grid_indexes)
+        self.utilities.toolbox = self.utilities.setupToolboxGA(self.repertoire, None, None, flat_indexes, grid_indexes, True)
 
         max_per_axis = [0,0,0]
         for index in grid_indexes:
@@ -145,7 +159,7 @@ class Chromosome():
 
         return swarms
 
-    def getTrees(self, swarms, seed = 1):
+    def getTrees(self, swarms, seed):
 
         if len(swarms) == 0:
             return
@@ -160,19 +174,23 @@ class Chromosome():
 
         return chromosomes
 
-    def printTrees(self, swarms, seed = 1):
+    def printTrees(self):
 
-        trees = self.getTrees(swarms, seed)
+        swarms = self.getSwarms()
+        trees = self.getTrees(swarms, self.seed)
         print(trees)
 
-    def chromosomeContributions(self, swarms, x, y, z, seed = 1):
+    def chromosomeContributions(self):
 
+        swarms = self.getSwarms()
         if len(swarms) == 0:
             return
 
-        print("\n\nLooking for "+str(tuple((x, y, z)))+"\n")
+        location = tuple((self.x, self.y, self.z))
 
-        seed -= 1
+        print("\n\nLooking for "+str(location)+"\n")
+
+        seed = self.seed - 1
         for i in range(len(swarms)):
 
             if i < seed:
@@ -181,7 +199,7 @@ class Chromosome():
             swarm = swarms[i]
             positions = []
             for j in range(len(swarm)):
-                if swarm[j] == tuple((x, y, z)):
+                if swarm[j] == location:
                     positions.append(j)
 
             if len(positions) > 0:
@@ -202,29 +220,52 @@ class Chromosome():
 
         print("Not found\n")
 
-    def chromosomePositions(self, swarms, x, y, z):
+    def chromosomePositions(self):
+
+        swarms = self.getSwarms()
+
+        csv = ""
+
+        for x in range(self.repertoire.nb_bins[0]):
+            for y in range(self.repertoire.nb_bins[1]):
+                for z in range(self.repertoire.nb_bins[2]):
+                    csv += self.chromosomePosition(swarms, x,y,z)
+
+        print(csv)
+
+    def chromosomePosition(self, swarms, x, y, z):
 
         if len(swarms) == 0:
             return
 
-        print(str(x)+"-"+str(y)+"-"+str(z))
+        index = str(x)+"-"+str(y)+"-"+str(z)
 
+        occurrences = 0
+        positions = []
         for i in range(len(swarms)):
             swarm = swarms[i]
-            exists = False
             for j in range(len(swarm)):
                 if swarm[j] == tuple((x, y, z)):
-                    print(j)
-                    exists = True
+                    occurrences += 1
+                    positions.append(j)
+
+        if occurrences > 0:
+            unique, qty = np.unique(positions, return_counts=True)
+            occurrences = str(len(positions))
+            num_positions = str(len(set(positions)))
+            max_one_location = str(np.max(qty))
+            return index+","+occurrences+","+num_positions+","+max_one_location+"\n"
+
+        return ""
+
+    def printTreeFromRepertoire(self):
+        index = tuple((self.x, self.y, self.z))
+        print("\n"+str(self.repertoire.container[index])+"\n")
+        print(self.repertoire.container[index].fitness.values)
+        print(self.repertoire.container[index].features)
         print()
 
-    def printTreeFromRepertoire(self, x, y, z):
-        print("\n"+str(self.repertoire.container[x,y,z])+"\n")
-        print(self.repertoire.container[x,y,z].fitness.values)
-        print(self.repertoire.container[x,y,z].features)
-        print()
-
-    def printRepertoireScores(self):
+    def printRepertoireScores6Bins(self):
 
         increments = [0.08, 0.16, 0.24, 0.32, 0.40, 0.48]
 
@@ -255,8 +296,16 @@ class Chromosome():
 
             print("\nTotal deviations: "+str(count)+"\n")
 
+    def printRepertoireScores(self):
 
-    def heterogenousRepertoireContributions(self, x, y, z):
+        for index, ind in self.repertoire.items():
+            output = str(index)+" \t"
+            output += str("%.6f" % ind.fitness.values)+" \t"
+            for feature in ind.features:
+                output += str("%.6f" % feature)+" "
+            print(output)
+
+    def heterogenousRepertoireContributions(self):
 
         dst_repertoire = self.utilities.createContainer(self.params.nb_bins, self.params.features_domain, 1)
 
@@ -306,24 +355,387 @@ class Chromosome():
                     if count_pos > 0:
                         print(output)
 
-    def evaluateSwarm(self, swarms, seed = 1, argos_seed = 0):
+    def evaluateSwarm(self):
 
+        swarms = self.getSwarms()
         if len(swarms) == 0:
             return
 
-        swarm = swarms[seed-1]
+        for seed in range(self.start, self.stop):
+            swarm = swarms[seed-1]
 
-        num_robots = self.params.sqrt_robots * self.params.sqrt_robots
-        swarm = swarm[0:num_robots]
+            num_robots = self.params.sqrt_robots * self.params.sqrt_robots
+            swarm = swarm[0:num_robots]
 
-        print("\nSeed "+str(seed))
-        print("Swarm "+str(swarm)+"\n")
+            results = []
+            for i in range(self.threads):
+                result = creator.IndividualGA(swarm)
+                results.append(result)
 
-        self.utilities.saveConfigurationFile()
+            self.utilities.saveConfigurationFile()
 
-        print(self.utilities.evaluateSwarm(swarm, 1, argos_seed))
+            self.utilities.evaluate(self.assignPopulationFitness, results)
+
+            print()
+            output = str(seed)
+            for result in results:
+                output += ",%.6f" % result.fitness.values[0]+",,"
+                output += ",%.6f" % self.utilities.getAdjustedSwarmFitness(result)+",,"
+                for feature in result.features:
+                    output += "%.6f" % feature+","
+                output += "\n"
+            print(output)
+            print()
 
         self.params.deleteTempFiles()
+
+    def evaluateTree(self):
+
+        index = tuple([self.x,self.y,self.z])
+        if index not in self.repertoire.container:
+            return
+
+        primitivetree = gp.PrimitiveTree([])
+
+        trees = []
+        for i in range(self.threads):
+            tree = str(self.repertoire.container[index])
+            tree = primitivetree.from_string(tree, self.utilities.pset)
+            individual = creator.IndividualGP(tree)
+            trees.append(individual)
+
+        output = "\n\n"+str(tree)+"\n\n"
+        output += str(self.x)+"-"+str(self.y)+"-"+str(self.z)
+        ind = self.repertoire.container[index]
+        print(output)
+
+        self.utilities.saveConfigurationFile()
+        self.utilities.toolbox = self.gp_toolbox
+
+        self.params.fitness_function = "median"
+        self.utilities.evaluate(self.assignPopulationFitness, trees)
+
+        print()
+        for tree in trees:
+            output = "%.6f" % tree.fitness.values[0]+",,"
+            for feature in tree.features:
+                output += "%.6f" % feature+","
+            print(output)
+        print()
+
+        self.params.fitness_function = "mean"
+        self.utilities.evaluate(self.assignPopulationFitness, trees)
+
+        print()
+        for tree in trees:
+            output = "%.6f" % tree.fitness.values[0]+",,"
+            for feature in tree.features:
+                output += "%.6f" % feature+","
+            print(output)
+        print()
+
+        self.params.deleteTempFiles()
+
+    def evaluateTrees(self):
+
+        primitivetree = gp.PrimitiveTree([])
+
+        for index, ind in self.repertoire.items():
+
+            trees = []
+            for i in range(self.threads):
+                tree = str(ind)
+                tree = primitivetree.from_string(tree, self.utilities.pset)
+                individual = creator.IndividualGP(tree)
+                trees.append(individual)
+
+            self.utilities.saveConfigurationFile()
+            self.utilities.toolbox = self.gp_toolbox
+
+            self.utilities.evaluate(self.assignPopulationFitness, trees)
+
+            output = str(index[0])+"-"+str(index[1])+"-"+str(index[2])
+            for tree in trees:
+                output += ",%.6f" % tree.fitness.values[0]+",,"
+                for feature in tree.features:
+                    output += "%.6f" % feature+","
+                output += "\n"
+            print()
+            print(output)
+
+        self.params.deleteTempFiles()
+
+    def getMeanFitnessFromTraining(self):
+
+        repertoire = "median"
+        results = "median"
+        query = "mean"
+        bins = str(9)
+
+        filename = "./"+self.params.project+"/"
+        if self.params.project == "heterogeneous_genetic_algorithm":
+            filename += repertoire+"-then-"+results+"-argos-seeds-"+bins+"-bins-"+query+"-fitness.txt"
+        else:
+            filename += repertoire+"-argos-seeds-"+bins+"-bins-"+query+"-fitness.txt"
+
+        print("Loading from: "+filename+"\n")
+
+        try:
+            with open(filename, "r") as f:
+
+                native = []
+                for line in f:
+                    if len(line) > 2:
+                        if (line[1] == "," or line[2] == "," or line[5] == ","):
+                            sections = line.split(",")
+                            native.append(float(sections[1]))
+
+        except FileNotFoundError as e:
+            self.params.cancelled = True
+            print(str(e)+"\n")
+            return
+
+        for n in native:
+            print(n)
+        print()
+
+    def writeUnseenSeedScores(self):
+
+        repertoire = "mean"
+        results = "median"
+        query = "mean"
+        bins = str(8)
+
+        filename = "./"+self.params.project+"/"
+        if self.params.project == "heterogeneous_genetic_algorithm":
+            filename += repertoire+"-then-"+results+"-argos-seeds-"+bins+"-bins-"+query+"-fitness.txt"
+        else:
+            filename += repertoire+"-argos-seeds-"+bins+"-bins-"+query+"-fitness.txt"
+
+        print("Loading from: "+filename+"\n")
+
+        try:
+            with open(filename, "r") as f:
+
+                native = []
+                unseen = []
+
+                for line in f:
+
+                    if len(line) > 6:
+                        if "," in [line[1], line[2], line[5]]:
+                            sections = line.split(",")
+                            native.append(float(sections[1]))
+                            unseen.append([])
+
+                    if line[0] == ",":
+                        sections = line.split(",")
+                        value = float(sections[1]) / native[-1]
+                        unseen[-1].append(value)
+
+        except FileNotFoundError as e:
+            self.params.cancelled = True
+            print(str(e)+"\n")
+            return
+
+        avg_unseen = []
+        for u in unseen:
+            print(u)
+            avg_unseen.append(statistics.mean(u))
+
+        algorithm = "ga" if self.params.project == "heterogeneous_genetic_algorithm" else "qdpy"
+        subdirectory = "bins-"+str(bins) if self.params.project == "heterogeneous_genetic_algorithm" else "baseline"
+
+        print(self.params.experiments)
+
+        csv_path = self.params.input_path+"/"+algorithm+"/"+self.params.experiments[1]+"/foraging"
+        csv_file = csv_path+"/"+subdirectory+"/total-unseen-"+query+"s"+str(self.params.generations)+".csv"
+
+        csv_headers = "Objective,,1000\n"
+        csv_prefix = "foraging,"
+
+        # with open(csv_file, "w") as f:
+            # f.write(csv_headers)
+            # for deap_seed in unseen:
+                # for argos_seed in deap_seed:
+                    # f.write(csv_prefix+","+str(argos_seed)+"\n")
+
+        # csv = csv_headers
+        # for deap_seed in unseen:
+            # for argos_seed in deap_seed:
+                # csv += csv_prefix+","+str(argos_seed)+"\n"
+        # print(csv)
+
+        print("\n"+csv_file+"\n")
+
+    def writeNewUnseenSeedScores(self):
+
+        repertoire = "median"
+        results = "median"
+        query = "median"
+        arena = "argos-seeds"
+        bins = str(9)
+
+        filename = "./"+self.params.project+"/"
+        if self.params.project == "heterogeneous_genetic_algorithm":
+            # filename += "raw-"+repertoire+"-then-"+results+"-fitness/"
+            filename += "axis-mutation/"
+            filename += repertoire+"-then-"+results+"-"+arena+"-"+bins+"-bins-"+query+"-raw-fitness.txt"
+        else:
+            filename += repertoire+"-"+arena+"-"+bins+"-bins-"+query+"-raw-fitness.txt"
+
+        print("Loading from: "+filename+"\n")
+
+        try:
+            with open(filename, "r") as f:
+
+                native = []
+                unseen = []
+
+                for line in f:
+
+                    if len(line) > 6:
+                        if "," in [line[1], line[2], line[5]]:
+                            sections = line.split(",")
+                            native.append(float(sections[1]))
+                            unseen.append([])
+
+                    if "," in line[0:5]:
+                        sections = line.split(",")
+                        value = float(sections[1])
+                        unseen[-1].append(value)
+
+        except FileNotFoundError as e:
+            self.params.cancelled = True
+            print(str(e)+"\n")
+            return
+
+        avg_unseen = []
+        for u in unseen:
+            print(u[-6:])
+            avg_unseen.append(statistics.mean(u))
+
+        algorithm = "ga" if self.params.project == "heterogeneous_genetic_algorithm" else "qdpy"
+        subdirectory = "bins-"+str(bins) if self.params.project == "heterogeneous_genetic_algorithm" else "baseline"
+
+        arena = "unseen"
+        csv_path = self.params.input_path+"/"+algorithm+"/"+self.params.experiments[1]+"/foraging"
+        csv_file = csv_path+"/"+subdirectory+"/total-"+arena+"-"+query+"s"+str(self.params.generations)+".csv"
+
+        csv_headers = "Objective,,"+str(self.params.generations)+"\n"
+        csv_prefix = "foraging,"
+
+        # with open(csv_file, "w") as f:
+            # f.write(csv_headers)
+            # for i in range(len(unseen)):
+                # for j in range(len(unseen[i])):
+                    # f.write(csv_prefix+","+str(unseen[i][j])+"\n")
+
+        # csv = csv_headers
+        # for deap_seed in unseen:
+            # for argos_seed in deap_seed:
+                # csv += csv_prefix+","+str(argos_seed)+"\n"
+        # print(csv)
+
+        print("\nCSV file: "+csv_file+"\n")
+
+    def readEvaluationOutput(self):
+
+        repertoire = "median"
+        results = "median"
+        query = "median"
+        bins = str(9)
+
+        filename = "./"+self.params.project+"/"
+        if self.params.project == "heterogeneous_genetic_algorithm":
+            filename += repertoire+"-then-"+results+"-argos-seeds-"+bins+"-bins-"+query+"-fitness.txt"
+        else:
+            filename += repertoire+"-argos-seeds-"+bins+"-bins-"+query+"-fitness.txt"
+
+        print("Loading from: "+filename+"\n")
+
+        try:
+            with open(filename, "r") as f:
+
+                native = []
+                unseen = []
+
+                for line in f:
+
+                    if len(line) > 6:
+                        if "," in [line[1], line[2], line[5]]:
+                            sections = line.split(",")
+                            native.append(float(sections[1]))
+                            unseen.append([])
+
+                    if line[0] == ",":
+                        sections = line.split(",")
+                        unseen[-1].append(float(sections[1]))
+
+        except FileNotFoundError as e:
+            self.params.cancelled = True
+            print(str(e)+"\n")
+            return
+
+        avg_unseen = []
+        for u in unseen:
+            print(u)
+            avg_unseen.append(statistics.mean(u))
+
+        print(native)
+        print("\n"+str(statistics.mean(native))+","+str(statistics.mean(avg_unseen))+"\n")
+        print()
+
+    def readEvaluationOutputHeterogeneous(self):
+
+        repertoire = "mean"
+        results = "mean"
+        query = "mean"
+        bins = str(4)
+
+        filename = "./"+self.params.project+"/"
+        if self.params.project == "heterogeneous_genetic_algorithm":
+            filename += repertoire+"-then-"+results+"-argos-seeds-"+bins+"-bins-"+query+"-fitness.txt"
+        else:
+            filename += repertoire+"-argos-seeds-"+bins+"-bins-"+query+"-fitness.txt"
+
+        print("Loading from: "+filename+"\n")
+
+        try:
+            with open(filename, "r") as f:
+
+                native = []
+                unseen = []
+
+                for line in f:
+
+                    if len(line) > 2:
+                        if (line[1] == "," or line[2] == "," or line[5] == ","):
+                            sections = line.split(",")
+                            native.append(float(sections[1]))
+                            unseen.append([])
+
+                    if line[0] == ",":
+                        sections = line.split(",")
+                        unseen[-1].append(native[-1] - float(sections[1]))
+
+        except FileNotFoundError as e:
+            self.params.cancelled = True
+            print(str(e)+"\n")
+            return
+
+        avg_unseen = []
+        for u in unseen:
+            avg_unseen.append(statistics.mean(u))
+
+        print(native)
+        print("\n"+str(statistics.mean(native))+","+str(statistics.mean(avg_unseen))+"\n")
+        print()
+
+    def assignPopulationFitness(self, population, fitnesses):
+        for ind, fit in zip(population, fitnesses):
+            ind.fitness.values = fit[0]
+            ind.features = fit[1]
 
     def heterogeneity(self):
 
@@ -371,8 +783,8 @@ class Chromosome():
         # self.flattenFitnessScores(src)
 
         bins = self.params.src_bins
-        if bins[0]   <= 4:  bin_size_inches = 0.8
-        elif bins[0] <= 8:  bin_size_inches = 0.4
+        if bins[0]   <= 5:  bin_size_inches = 0.8
+        elif bins[0] <= 9:  bin_size_inches = 0.4
         elif bins[0] <= 16: bin_size_inches = 0.2
         elif bins[0] <= 24: bin_size_inches = 0.133
         elif bins[0] <= 32: bin_size_inches = 0.1
@@ -536,6 +948,35 @@ class Chromosome():
                     if not math.isnan(data[x][y][z]):
                         data[x][y][z] = 1.0
 
+    def configure(self):
+        with open(self.params.shared_path+"/chromosome.txt", "r") as f:
+            for line in f:
+                line = line.strip('\t\n\r')
+                data = line.split()
+
+                if len(data) > 0 and data[0] == "queries":
+                    self.queries = []
+                    for i in range(1, len(data)):
+                        self.queries.append(data[i])
+
+                if len(data) > 0 and data[0] == "seed":
+                    self.seed = int(data[1])
+
+                if len(data) > 0 and data[0] == "start":
+                    self.start = int(data[1])
+                if len(data) > 0 and data[0] == "stop":
+                    self.stop = int(data[1])
+
+                if len(data) > 0 and data[0] == "x":
+                    self.x = int(data[1])
+                if len(data) > 0 and data[0] == "y":
+                    self.y = int(data[1])
+                if len(data) > 0 and data[0] == "z":
+                    self.z = int(data[1])
+
+                if len(data) > 0 and data[0] == "threads":
+                    self.threads = int(data[1])
+
 def main():
 
     params = eaParams()
@@ -546,26 +987,42 @@ def main():
         chromosome = Chromosome(params)
 
     if not params.cancelled:
-        swarms = chromosome.getSwarms()
 
-    if not params.cancelled:
+        if "positions" in chromosome.queries:
+            chromosome.chromosomePositions()
 
-        # x = 0
-        # for y in range(4):
-            # for z in range(4):
-                # chromosome.chromosomePositions(swarms, x,y,z)
+        if "trees" in chromosome.queries:
+            chromosome.printTrees()
 
-        chromosome.printTrees(swarms, 1)
-        # chromosome.printTreeFromRepertoire(0,1,0)
-        # chromosome.printRepertoireScores()
+        if "scores" in chromosome.queries:
+            chromosome.printRepertoireScores()
 
-        # chromosome.chromosomeContributions(swarms,1,0,3, 1 )
+        if "tree" in chromosome.queries:
+            chromosome.printTreeFromRepertoire()
 
-        # chromosome.heterogeneity()
+        if "contributions" in chromosome.queries:
+            chromosome.chromosomeContributions()
 
-        # chromosome.heterogenousRepertoireContributions(0,0,0)
+        if "heterogeneity" in chromosome.queries:
+            chromosome.heterogeneity()
 
-        # chromosome.evaluateSwarm(swarms, 1, 0)
+        if "heterogeneous_contributions" in chromosome.queries:
+            chromosome.heterogenousRepertoireContributions()
+
+        if "evaluate" in chromosome.queries:
+            if params.project == "heterogeneous_genetic_algorithm":
+                chromosome.evaluateSwarm()
+            if params.project == "straight_to_foraging":
+                chromosome.evaluateTrees()
+
+        if "read_evaluation" in chromosome.queries:
+            chromosome.readEvaluationOutput()
+
+        if "get_mean_fitness" in chromosome.queries:
+            chromosome.getMeanFitnessFromTraining()
+
+        if "save_unseen" in chromosome.queries:
+            chromosome.writeNewUnseenSeedScores()
 
 if __name__ == "__main__":
     main()

@@ -223,7 +223,7 @@ class EA():
         if self.params.saveCSV or self.params.saveCheckpoint:
             self.logs.logFitness(generation, self.utilities.getBestMax(container))
             self.logs.logQdScore(generation, [self.utilities.getQDScore(container)])
-            self.logs.logCoverage(generation, self.utilities.getCoverage(container))
+            self.logs.logCoverage(generation, self.utilities.getFilledBins(container))
 
         if generation != 0 and generation % 100 == 0 and invalid_new == 0:
             time.sleep(10.0)

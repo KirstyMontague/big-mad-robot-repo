@@ -50,7 +50,7 @@ class Utilities():
         self.behaviours = behaviours
         self.primitivetree = gp.PrimitiveTree([])
 
-    def setupToolboxGP(self, tournament):
+    def setupToolboxGP(self, tournament, increment_seed = False):
 
         if tournament == None:
             def tournament():
@@ -72,12 +72,13 @@ class Utilities():
         toolbox.register("individual", tools.initIterate, creator.IndividualGP, toolbox.expr_init)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-        toolbox.register("evaluate", self.evaluateRobot, thread_index=1)
+        toolbox.register("evaluate", self.evaluateRobot, thread_index=1, argos_seed = 0)
         toolbox.register("select", tournament, tournsize=self.params.tournamentSize)
 
         self.evaluation_functions = []
         for i in range(1, self.params.num_threads + 1):
-            toolbox.register("evaluate"+str(i), self.evaluateRobot, thread_index=i)
+            argos_seed = i if increment_seed else 0
+            toolbox.register("evaluate"+str(i), self.evaluateRobot, thread_index=i, argos_seed=argos_seed)
             self.evaluation_functions.append(self.makeEvaluationFunction("evaluate"+str(i)))
 
         toolbox.register("mate", gp.cxOnePoint)
@@ -93,7 +94,7 @@ class Utilities():
 
         return toolbox
 
-    def setupToolboxGA(self, repertoire, mutation_operator, tournament, flat_indexes, grid_indexes):
+    def setupToolboxGA(self, repertoire, mutation_operator, tournament, flat_indexes, grid_indexes, increment_seed = False):
 
         if tournament == None:
             def tournament():
@@ -119,11 +120,12 @@ class Utilities():
         toolbox.register("select", tournament, tournsize=self.params.tournamentSize)
         toolbox.register("mate", tools.cxTwoPoint)
         toolbox.register("mutate", mutation_operator, flat_indexes=flat_indexes, grid_indexes=grid_indexes)
-        toolbox.register("evaluate", self.evaluateSwarm, thread_index=1)
+        toolbox.register("evaluate", self.evaluateSwarm, thread_index=1, argos_seed = 0)
 
         self.evaluation_functions = []
         for i in range(1, self.params.num_threads + 1):
-            toolbox.register("evaluate"+str(i), self.evaluateSwarm, thread_index=i)
+            argos_seed = i if increment_seed else 0
+            toolbox.register("evaluate"+str(i), self.evaluateSwarm, thread_index=i, argos_seed=argos_seed)
             self.evaluation_functions.append(self.makeEvaluationFunction("evaluate"+str(i)))
 
         def zero(): return [0,0,0]
@@ -499,7 +501,7 @@ class Utilities():
     def updateContainerFromString(self, redundancy, toolbox, container, filename, interval = 0, start = 0, stop = 0):
 
         if start != 0 or stop != 0:
-            self.params.console("\nWARNING: abridged repertoire\n")
+            self.params.console("\nWARNING: abridged repertoire, "+str(start)+" - "+str(stop)+"\n")
 
         count = 0
         individuals = []
