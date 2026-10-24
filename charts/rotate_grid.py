@@ -103,6 +103,7 @@ class Heatmaps():
             z_string = "Green"
             if bins[0] == 100:  bin_size_inches = 0.03
             elif bins[0] == 50: bin_size_inches = 0.06
+            elif bins[0] == 36: bin_size_inches = 0.12
             elif bins[0] == 32: bin_size_inches = 0.08
             elif bins[0] >= 13: bin_size_inches = 0.20
             elif bins[0] >= 7:  bin_size_inches = 0.37
@@ -186,7 +187,7 @@ class Heatmaps():
 
         plt.tight_layout()
 
-        image_filename = "./heatmaps/temp.png"
+        image_filename = "../charts/heatmaps/temp.png"
         if self.save:
             print("\nWriting to "+image_filename+"\n")
             fig.savefig(image_filename)
@@ -237,12 +238,13 @@ class Heatmaps():
         # comment to hide chart titles
         ax.set_title(title,fontsize=18)
 
-        if features_domain[0][1] < 2.0:
-            features_domain[0] = (features_domain[0][0], 1.12)
-            features_domain[1] = (features_domain[1][0], 1.12)
-        else:
-            features_domain[0] = (features_domain[0][0], 2.24)
-            features_domain[1] = (features_domain[1][0], 2.24)
+        # for cropped repertoires
+        # if features_domain[0][1] < 2.0:
+            # features_domain[0] = (features_domain[0][0], 1.12)
+            # features_domain[1] = (features_domain[1][0], 1.12)
+        # else:
+            # features_domain[0] = (features_domain[0][0], 2.24)
+            # features_domain[1] = (features_domain[1][0], 2.24)
 
         delta_x = features_domain[0][1] - features_domain[0][0]
         delta_y = features_domain[1][1] - features_domain[1][0]

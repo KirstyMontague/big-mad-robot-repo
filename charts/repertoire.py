@@ -1,4 +1,6 @@
 
+import time
+
 """
 
 Utility class for loading and working with repertoires
@@ -10,6 +12,7 @@ class Repertoire():
     def __init__(self, params):
 
         self.params = params
+        self.params.output_to_file = False
 
         self.objective = self.params.objectives[0]
         self.src_bins = self.params.nb_bins
@@ -25,7 +28,7 @@ class Repertoire():
 
         self.input = "separate"
         self.mode = "append"
-        self.output = "combined"
+        self.output = "none"
 
         self.save = False
         self.save_combined = False
@@ -66,7 +69,7 @@ class Repertoire():
                 self.cancelled = True
 
         if data[0] == "output":
-            types = ["combined", "qd_score_csv", "extrema_csv", "population"]
+            types = ["combined", "qd_score_csv", "extrema_csv", "population", "none"]
             if data[1] in types:
                 self.output = data[1]
             else:

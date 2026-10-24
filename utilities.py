@@ -72,7 +72,7 @@ class Utilities():
         toolbox.register("individual", tools.initIterate, creator.IndividualGP, toolbox.expr_init)
         toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-        toolbox.register("evaluate", self.evaluateRobot, thread_index=1, argos_seed = 0)
+        toolbox.register("evaluate", self.evaluateRobot, thread_index=1, argos_seed=0)
         toolbox.register("select", tournament, tournsize=self.params.tournamentSize)
 
         self.evaluation_functions = []
@@ -120,7 +120,7 @@ class Utilities():
         toolbox.register("select", tournament, tournsize=self.params.tournamentSize)
         toolbox.register("mate", tools.cxTwoPoint)
         toolbox.register("mutate", mutation_operator, flat_indexes=flat_indexes, grid_indexes=grid_indexes)
-        toolbox.register("evaluate", self.evaluateSwarm, thread_index=1, argos_seed = 0)
+        toolbox.register("evaluate", self.evaluateSwarm, thread_index=1, argos_seed=0)
 
         self.evaluation_functions = []
         for i in range(1, self.params.num_threads + 1):
@@ -515,7 +515,7 @@ class Utilities():
                     continue
 
                 if count > stop and stop != 0:
-                    break
+                    continue
 
                 if len(line) < 2:
                     break
@@ -570,6 +570,9 @@ class Utilities():
             container.update(population)
         else:
             container.update(population, issue_warning = True)
+
+        if stop > 0 and stop < count:
+            self.params.console(str(count)+" lines\n")
 
         return container
 
@@ -651,49 +654,25 @@ class Utilities():
 
         return best
 
-    def getBestSwarmFromContainer(self, container, bias = -1):
+    def getBestSwarmFromContainer(self, container):
 
         population = container.values() if self.params.usingNewGrid else container
-        return self.getBestSwarmFromPopulation(population, bias)
+        return self.getBestSwarmFromPopulation(population)
 
-    def getBestSwarmFromPopulation(self, population, bias = -1):
+    def getBestSwarmFromPopulation(self, population):
 
         best = None
         best_fitness = 0.0
 
         for individual in population:
 
-            fitness = 0.0
-
-            if bias == -1:
-                fitness = individual.fitness.values[0]
-
-            else:
-                for axis in range(len(self.params.nb_bins)):
-                    if axis == bias:
-                        fitness += individual.features[axis]
-                    else:
-                        fitness += individual.features[axis] * self.params.penalty
+            fitness = individual.fitness.values[0]
 
             if best is None or fitness > best_fitness:
                 best = individual
                 best_fitness = fitness
 
         return best
-
-    def getAdjustedSwarmFitness(self, individual, bias = -1):
-
-        if bias == -1:
-            return individual.fitness.values[0]
-
-        fitness = 0.0
-        for axis in range(len(self.params.nb_bins)):
-            if axis == bias:
-                fitness += individual.features[axis]
-            else:
-                fitness += individual.features[axis] * self.params.penalty
-
-        return fitness
 
     def getBestAll(self, population, derate = True):
 
@@ -997,22 +976,6 @@ class Utilities():
 
         if self.params.description != "foraging":
             total_fitness += 0.5
-
-        return total_fitness
-
-    def getQDScoreWithBias(self, container, shape = None):
-
-        if shape == None:
-            shape = self.params.nb_bins
-
-        grid = self.getGridForQDScore(container, shape)
-
-        population = grid.values() if self.params.usingNewGrid else grid
-
-        total_fitness = 0.0
-        for ind in population:
-            total_fitness += self.getAdjustedSwarmFitness(ind, self.params.bias)
-        total_fitness /= shape[0]*shape[1]*shape[2]
 
         return total_fitness
 

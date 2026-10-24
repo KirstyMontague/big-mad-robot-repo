@@ -165,6 +165,9 @@ class EA():
             self.logs.saveCSV(generation, self.container.values() if self.params.usingNewGrid else self.container)
             self.checkpoint.save(generation, offspring, [self.container], self.logs)
 
+            self.params.runtime()
+            max_gen = self.params.generations
+
     def evaluateNewPopulation(self, generation, offspring, mode):
 
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
@@ -202,16 +205,16 @@ class EA():
                     f.write(self.utilities.printExtrema(self.container, True))
 
         if self.params.printBestIndividuals and generation == self.params.generations:
-            best = self.utilities.getBestSwarmFromContainer(self.container, self.params.bias)
+            best = self.utilities.getBestSwarmFromContainer(self.container)
             self.utilities.printHeterogeneousSwarm(self.repertoire, best)
-            qd_score_and_coverage = "QD Score: "+str("%.9f" % self.utilities.getQDScoreWithBias(self.container))+"\n"
+            qd_score_and_coverage = "QD Score: "+str("%.9f" % self.utilities.getQDScore(self.container))+"\n"
             qd_score_and_coverage += "Coverage: "+str("%.9f" % self.utilities.getCoverage(self.container))+"\n"
             self.params.console(qd_score_and_coverage)
             self.params.console(self.utilities.printRepertoireQdScores(self.container))
 
         if self.params.saveCSV:
-            self.logs.logFitness(generation, [self.utilities.getBestSwarmFromContainer(self.container, self.params.bias)])
-            self.logs.logQdScore(generation, [self.utilities.getQDScoreWithBias(self.container)])
+            self.logs.logFitness(generation, [self.utilities.getBestSwarmFromContainer(self.container)])
+            self.logs.logQdScore(generation, [self.utilities.getQDScore(self.container)])
             self.logs.logCoverage(generation, self.utilities.getFilledBins(self.container))
 
         if generation != 0 and generation % 100 == 0 and invalid_new == 0:
@@ -222,20 +225,20 @@ class EA():
 
     def printOutput(self, generation, invalid_new, invalid_orig, matched):
 
-        best = self.utilities.getBestSwarmFromContainer(self.container, self.params.bias)
-        adjusted_fitness = str("%.6f" % self.utilities.getAdjustedSwarmFitness(best, self.params.bias))
-        raw_fitness = str("%.6f" % self.utilities.getAdjustedSwarmFitness(best, -1))
+        best = self.utilities.getBestSwarmFromContainer(self.container)
+        fitness = str("%.6f" % best.fitness.values[0])
+        features = str("%.3f" % best.features[0])+" "+str("%.3f" % best.features[1])+" "+str("%.3f" % best.features[2])
 
         coverage = str("%.6f" % self.utilities.getCoverage(self.container))
         filled = str(int(self.utilities.getFilledBins(self.container)))
         total = str(self.params.nb_bins[0] * self.params.nb_bins[1] * self.params.nb_bins[2])
 
-        qd_score = str("%.6f" % self.utilities.getQDScoreWithBias(self.container))
+        qd_score = str("%.6f" % self.utilities.getQDScore(self.container))
 
         description = self.params.description
 
         output_string = "\t"+description+" - "+str(self.params.deapSeed)+" - "+str(generation)+"\t | "
-        output_string += adjusted_fitness+" ("+raw_fitness+") | "
+        output_string += fitness+" | "+features+" | "
         output_string += filled+" / "+total+" = "+coverage+" | "
         output_string += qd_score
         output_string += "\t| invalid "+str(invalid_new)+" / "+str(invalid_orig)
@@ -298,7 +301,7 @@ class EA():
         chosen = []
         for i in range(k):
             aspirants = tools.selRandom(individuals, tournsize)
-            best = self.utilities.getBestSwarmFromPopulation(aspirants, self.params.bias)
+            best = self.utilities.getBestSwarmFromPopulation(aspirants)
             chosen.append(best)
         return chosen
 

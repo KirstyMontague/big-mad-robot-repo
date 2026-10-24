@@ -48,20 +48,23 @@ class Chromosome():
 
         self.utilities = Utilities(self.params, None)
 
+        self.gp_toolbox = self.utilities.setupToolboxGP(None, True)
+
+        if self.params.project == "straight_to_foraging":
+            return
+
         if self.params.repertoire_size <= 512:
             self.redundancy = Redundancy(self.params)
         else:
             print("Repertoire too large: "+str(self.params.repertoire_size)+"\n(derived from params.repertoire_size)")
             return
 
-        self.gp_toolbox = self.utilities.setupToolboxGP(None, True)
-
         if not self.utilities.checkContainerSize():
             return
 
         self.params.makePaths()
 
-        repertoire_path = self.params.shared_path+"/ga/"+self.params.experiments[0]+"/foraging"
+        repertoire_path = self.params.shared_path+"/ga/"+self.params.experiments[1]+"/foraging"
         repertoire_file = repertoire_path+"/foraging-"+str(self.params.src_bins[0])+"-bins.txt"
 
         self.repertoire = self.utilities.createContainer(self.params.src_bins,
@@ -127,10 +130,9 @@ class Chromosome():
 
     def getSwarms(self):
 
+        experiment = self.params.experiments[2]
         if self.params.bias != -1:
-            experiment = self.params.experiments[1]+"-bias-"+str(self.params.bias)
-        else:
-            experiment = self.params.experiments[1]
+            experiment += "-bias-"+str(self.params.bias)
 
         csv_path = self.params.input_path+"/ga/"+experiment+"/foraging"
         csv_file = csv_path+"/bins-"+str(self.params.src_bins[0])+"/best"+str(self.params.generations)+".csv"
@@ -179,6 +181,27 @@ class Chromosome():
         swarms = self.getSwarms()
         trees = self.getTrees(swarms, self.seed)
         print(trees)
+
+    def getBaselineTrees(self):
+
+        filename = self.params.input_path+"/qdpy/"+self.params.experiments[0]+"/foraging/baseline/best2000.csv"
+
+        print("Loading from: "+filename+"\n")
+
+        try:
+            with open(filename, "r") as f:
+                chromosomes = []
+                for line in f:
+                    sections = line.split("\"")
+                    if len(sections) > 1:
+                        chromosomes.append(sections[1])
+
+        except FileNotFoundError as e:
+            self.params.cancelled = True
+            print(str(e)+"\n")
+            return
+
+        return chromosomes
 
     def chromosomeContributions(self):
 
@@ -311,7 +334,7 @@ class Chromosome():
 
         src_bins = str(self.params.src_bins[0])
         dst_bins = str(self.params.nb_bins[0])
-        repertoire_path = self.params.input_path+"/ga/"+self.params.experiments[1]+"/foraging"
+        repertoire_path = self.params.input_path+"/ga/"+self.params.experiments[2]+"/foraging"
         repertoire_file = repertoire_path+"/bins-"+src_bins+"/foraging-with-all-seeds-"+dst_bins+"-bins.txt"
 
         try:
@@ -376,11 +399,9 @@ class Chromosome():
 
             self.utilities.evaluate(self.assignPopulationFitness, results)
 
-            print()
-            output = str(seed)
+            output = "\nSeed "+str(seed)+"\n"
             for result in results:
                 output += ",%.6f" % result.fitness.values[0]+",,"
-                output += ",%.6f" % self.utilities.getAdjustedSwarmFitness(result)+",,"
                 for feature in result.features:
                     output += "%.6f" % feature+","
                 output += "\n"
@@ -465,6 +486,38 @@ class Chromosome():
 
         self.params.deleteTempFiles()
 
+    def evaluateBaselineTrees(self):
+
+        trees = self.getBaselineTrees()
+
+        primitivetree = gp.PrimitiveTree([])
+
+        for seed in range(self.start, self.stop):
+
+            tree = str(trees[seed-1])
+            tree = primitivetree.from_string(tree, self.utilities.pset)
+
+            duplicates = []
+            for j in range(self.threads):
+                individual = creator.IndividualGP(tree)
+                duplicates.append(individual)
+
+            self.utilities.saveConfigurationFile()
+            self.utilities.toolbox = self.gp_toolbox
+
+            self.utilities.evaluate(self.assignPopulationFitness, duplicates)
+
+            output = "\nSeed "+str(seed)+"\n"
+            for tree in duplicates:
+                output += ",%.6f" % tree.fitness.values[0]+",,"
+                for feature in tree.features:
+                    output += "%.6f" % feature+","
+                output += "\n"
+            print(output)
+            print()
+
+        self.params.deleteTempFiles()
+
     def getMeanFitnessFromTraining(self):
 
         repertoire = "median"
@@ -544,11 +597,10 @@ class Chromosome():
             avg_unseen.append(statistics.mean(u))
 
         algorithm = "ga" if self.params.project == "heterogeneous_genetic_algorithm" else "qdpy"
+        experiment_index = 2 if self.params.project == "heterogeneous_genetic_algorithm" else 0
         subdirectory = "bins-"+str(bins) if self.params.project == "heterogeneous_genetic_algorithm" else "baseline"
 
-        print(self.params.experiments)
-
-        csv_path = self.params.input_path+"/"+algorithm+"/"+self.params.experiments[1]+"/foraging"
+        csv_path = self.params.input_path+"/"+algorithm+"/"+self.params.experiments[experiment_index]+"/foraging"
         csv_file = csv_path+"/"+subdirectory+"/total-unseen-"+query+"s"+str(self.params.generations)+".csv"
 
         csv_headers = "Objective,,1000\n"
@@ -570,37 +622,34 @@ class Chromosome():
 
     def writeNewUnseenSeedScores(self):
 
-        repertoire = "median"
-        results = "median"
-        query = "median"
-        arena = "argos-seeds"
-        bins = str(9)
+        bins = str(12)
+        arena_index = 4
 
-        filename = "./"+self.params.project+"/"
+        arenas = ["20-80", "30-75", "40-70", "50-65", "60-60"]
+        arena = arenas[arena_index]
+
+        experiment_index = 2 if self.params.project == "heterogeneous_genetic_algorithm" else 0
+        experiment = self.params.experiments[experiment_index]
+
+        filename = "./"+self.params.project+"/"+experiment+"/"+experiment+"-"+arena
         if self.params.project == "heterogeneous_genetic_algorithm":
-            # filename += "raw-"+repertoire+"-then-"+results+"-fitness/"
-            filename += "axis-mutation/"
-            filename += repertoire+"-then-"+results+"-"+arena+"-"+bins+"-bins-"+query+"-raw-fitness.txt"
-        else:
-            filename += repertoire+"-"+arena+"-"+bins+"-bins-"+query+"-raw-fitness.txt"
+            filename += "-bins-"+bins
+        filename += ".txt"
 
         print("Loading from: "+filename+"\n")
 
         try:
             with open(filename, "r") as f:
 
-                native = []
                 unseen = []
 
                 for line in f:
 
                     if len(line) > 6:
-                        if "," in [line[1], line[2], line[5]]:
-                            sections = line.split(",")
-                            native.append(float(sections[1]))
+                        if line[0:4] == "Seed" or "," in line[1:3]:
                             unseen.append([])
 
-                    if "," in line[0:5]:
+                    if "," in line[0:3]:
                         sections = line.split(",")
                         value = float(sections[1])
                         unseen[-1].append(value)
@@ -616,11 +665,11 @@ class Chromosome():
             avg_unseen.append(statistics.mean(u))
 
         algorithm = "ga" if self.params.project == "heterogeneous_genetic_algorithm" else "qdpy"
+        experiment_index = 2 if self.params.project == "heterogeneous_genetic_algorithm" else 0
         subdirectory = "bins-"+str(bins) if self.params.project == "heterogeneous_genetic_algorithm" else "baseline"
 
-        arena = "unseen"
-        csv_path = self.params.input_path+"/"+algorithm+"/"+self.params.experiments[1]+"/foraging"
-        csv_file = csv_path+"/"+subdirectory+"/total-"+arena+"-"+query+"s"+str(self.params.generations)+".csv"
+        csv_path = self.params.input_path+"/"+algorithm+"/"+self.params.experiments[experiment_index]+"/foraging"
+        csv_file = csv_path+"/"+subdirectory+"/total-"+arena+"-medians"+str(self.params.generations)+".csv"
 
         csv_headers = "Objective,,"+str(self.params.generations)+"\n"
         csv_prefix = "foraging,"
@@ -857,7 +906,7 @@ class Chromosome():
             plt.tight_layout()
             self.drawColourBar(fig, ax, cax, figure_size)
 
-            filename = "./heatmaps/temp.png"
+            filename = "../charts/heatmaps/temp.png"
             print(filename)
             # plt.savefig(filename)
 
@@ -1013,7 +1062,7 @@ def main():
             if params.project == "heterogeneous_genetic_algorithm":
                 chromosome.evaluateSwarm()
             if params.project == "straight_to_foraging":
-                chromosome.evaluateTrees()
+                chromosome.evaluateBaselineTrees()
 
         if "read_evaluation" in chromosome.queries:
             chromosome.readEvaluationOutput()

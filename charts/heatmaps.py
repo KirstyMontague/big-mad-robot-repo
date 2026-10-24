@@ -172,6 +172,7 @@ class Heatmaps():
             elif self.bins[0] <= 16: bin_size_inches = 0.1
             elif self.bins[0] <= 24: bin_size_inches = 0.133
             elif self.bins[0] <= 32: bin_size_inches = 0.1
+            elif self.bins[0] <= 36: bin_size_inches = 0.08
             else: bin_size_inches = 0.04
 
             if self.bins[0]   <= 4:  ticks = 5
@@ -179,6 +180,7 @@ class Heatmaps():
             elif self.bins[0] <= 16: ticks = 8
             elif self.bins[0] <= 24: ticks = 4
             elif self.bins[0] <= 32: ticks = 4
+            elif self.bins[0] <= 36: ticks = 4
             else: ticks = 5
 
             self.flattenFitnessScores(all_data)
@@ -243,9 +245,9 @@ class Heatmaps():
             if self.bins[0] <= 8:
                 self.drawColourBar(fig, ax, cax, figure_size)
 
-            output_filename = "./heatmaps/enucc/"+self.params.project+"/cross-sections/"
-            output_filename += "bins-"+str(self.bins[0])+"-"
-            output_filename += self.experiments[0]+"/"
+            output_filename = "./heatmaps/enucc/"+self.params.project+"/cross-sections/"+self.repertoire.experiments[0]+"/"
+            if self.params.project == "heterogeneous_genetic_algorithm":
+                output_filename += "bins-"+str(self.bins[0])+"-"
             output_filename += "sections-"+str(section_start)+"-"+str(section_end)+".png"
 
             if self.save:
@@ -298,8 +300,8 @@ class Heatmaps():
             ax.set_xticklabels([f'{round(float(x / float(len(data_t))    * delta_x + features_domain[0][0]), 2):1.0f}' for x in xticks], fontsize=10)
             ax.set_yticklabels([f'{round(float(y / float(len(data_t[0])) * delta_y + features_domain[1][0]), 2):1.0f}' for y in yticks], fontsize=10)
         else:
-            ax.set_xticklabels([f'{round(float(x / float(len(data_t))    * delta_x + features_domain[0][0]), 2):1.2f}' for x in xticks], fontsize=20)
-            ax.set_yticklabels([f'{round(float(y / float(len(data_t[0])) * delta_y + features_domain[1][0]), 2):1.2f}' for y in yticks], fontsize=20)
+            ax.set_xticklabels([f'{round(float(x / float(len(data_t))    * delta_x + features_domain[0][0]), 2):1.1f}' for x in xticks], fontsize=20)
+            ax.set_yticklabels([f'{round(float(y / float(len(data_t[0])) * delta_y + features_domain[1][0]), 2):1.1f}' for y in yticks], fontsize=20)
 
         if bins[1] == 1:
             yticks = []

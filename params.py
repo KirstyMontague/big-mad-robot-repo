@@ -256,16 +256,6 @@ class eaParams():
                 self.applyParameter(line)
         self.runtime()
 
-        if self.cancelled:
-            self.stop = True
-            self.saveOutput = False
-            self.saveCheckpoint = False
-            self.saveContainer = False
-            self.saveCSV = False
-            self.generations = 0
-        elif self.stop:
-            self.generations = 0
-
     def runtime(self):
         permitted = ["generations", "genSleep", "evalSleep", "trialSleep",
                      "saveContainer", "saveCheckpoint",
@@ -285,6 +275,15 @@ class eaParams():
                     data = line.split()
                     if len(data) > 0 and data[0] in permitted:
                         self.applyParameter(line)
+        if self.cancelled:
+            self.stop = True
+            self.saveOutput = False
+            self.saveCheckpoint = False
+            self.saveContainer = False
+            self.saveCSV = False
+            self.generations = 0
+        elif self.stop:
+            self.generations = 0
 
     def applyParameter(self, line):
         self.console(line.strip('\t\n\r'))

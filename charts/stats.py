@@ -201,29 +201,17 @@ class Statistics():
         for i in range(len(self.features)):
 
             if self.algorithm == "ga":
-
-                if self.params.bias > -1:
-                    output += "Best with bias:\n"
-                    best = self.utilities.getBestSwarmFromContainer(self.features[i][0], self.params.bias)
-                    raw_fitness = self.utilities.getAdjustedSwarmFitness(best, -1)
-                    adj_fitness = self.utilities.getAdjustedSwarmFitness(best, self.params.bias)
-                    output += str("%1.6f" % adj_fitness)+" ("+str("%1.6f" % raw_fitness)+")   "
-                    output += str(best.features)+"\n\n"
-
-                output += "Best ever:\n"
-                best = self.utilities.getBestSwarmFromContainer(self.features[i][0], -1)
-                fitness = best.features[0] + best.features[1] + best.features[2]
-                output += str("%1.6f" % fitness)+"    "
-                output += str(best.features)
-
+                best = self.utilities.getBestSwarmFromContainer(self.features[i][0])
             else:
-
                 best = self.utilities.getBestFromContainer(self.features[i][0])
-                output += "Best fitness:\n"
-                output += str(best.fitness.values)
+
+            output += "Best fitness:\n"
+            output += str("%1.6f" % best.fitness.values[0])+"    "
+            output += "["+str("%1.6f" % best.features[0])+", "
+            output +=     str("%1.6f" % best.features[1])+", "
+            output +=     str("%1.6f" % best.features[2])+"]\n"
 
         print(output)
-        print()
 
     def getCoverage(self):
         output = "Coverage: "
@@ -239,7 +227,7 @@ class Statistics():
         adj_score = "Adjusted: "
         for i in range(len(self.features)):
             if self.algorithm == "ga":
-                qd = self.utilities.getQDScoreWithBias(self.features[i][0], self.bins)
+                qd = self.utilities.getQDScore(self.features[i][0], self.bins)
                 qd_score += str("%1.6f" % qd)+"    "
             else:
                 qd = self.utilities.getQDScore(self.features[i][0], self.bins)
@@ -257,7 +245,7 @@ class Statistics():
         for i in range(len(self.features)):
             coverage = self.utilities.getCoverage(self.features[i][0]) * total_bins
             if self.algorithm == "ga":
-                quality = self.utilities.getQDScoreWithBias(self.features[i][0], self.bins)
+                quality = self.utilities.getQDScore(self.features[i][0], self.bins)
             else:
                 quality = self.utilities.getQDScore(self.features[i][0], self.bins)
             quality = quality * total_bins

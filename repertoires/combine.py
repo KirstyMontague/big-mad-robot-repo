@@ -37,6 +37,7 @@ class Combine():
         self.params = eaParams()
         self.params.is_qdpy = True
         self.params.using_repertoire = False
+        self.params.deapSeed = 1
 
         self.save = False
         self.legacy = False
@@ -88,6 +89,8 @@ class Combine():
                     if data[0] in permitted:
                         print(line.strip('\t\n\r'))
                         self.update(data)
+                    elif data[0][0] == "#":
+                        continue
                     else:
                         print("\nConfig entry not recognised: "+data[0]+"\n")
                         self.cancelled = True
