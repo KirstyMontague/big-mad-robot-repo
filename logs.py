@@ -32,10 +32,7 @@ class Logs():
     def logFitness(self, generation, best):
         if generation % self.params.csv_save_interval == 0:
             for i in range(self.params.features):
-                if self.params.algorithm == "ga":
-                    fitness = self.utilities.getAdjustedSwarmFitness(best[i], self.params.bias)
-                else:
-                    fitness = best[i].fitness.values[i]
+                fitness = best[i].fitness.values[i]
                 self.best += str("%.6f" % fitness)+" "
             self.best = self.best[0:-1]
             self.best += ","
@@ -63,7 +60,7 @@ class Logs():
 
         all_best = []
         if self.params.project == "heterogeneous_genetic_algorithm":
-            all_best.append(self.utilities.getBestSwarmFromPopulation(population, self.params.bias))
+            all_best.append(self.utilities.getBestSwarmFromPopulation(population))
         else:
             for i in range(self.params.features):
                 all_best.append(self.utilities.getBestFromPopulation(population, i))

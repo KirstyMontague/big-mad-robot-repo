@@ -214,23 +214,41 @@ class Utilities():
             # increment counter and pause to free up CPU
             time.sleep(self.params.trialSleep)
 
-        aggregated = []
-        for i in range(num_scores):
-            aggregated.append([])
-            if self.params.fitness_function == "median":
-                # get median from all trials and arenas per robot
-                for robot in scores[i]:
-                    aggregated[i].append(statistics.median(robot))
-            else:
-                # divide to get average per seed and arena configuration
-                aggregated[i].append(self.getAvgFitness(totals[i], individual))
+        if self.params.fitness_function in ["mean", "hybrid"]:
+            aggregated = []
+            for i in range(num_scores):
+                aggregated.append([])
+                if self.params.fitness_function == "hybrid":
+                    # get median from all trials and arenas per robot
+                    for robot in scores[i]:
+                        aggregated[i].append(statistics.median(robot))
+                else:
+                    # divide to get average per seed and arena configuration
+                    aggregated[i].append(self.getAvgFitness(totals[i], individual))
 
-        fitness = []
-        features = []
-        for i in range(len(self.params.indexes)):
-            fitness.append(statistics.mean(aggregated[i]))
-        for i in range(self.params.characteristics):
-            features.append(statistics.mean(aggregated[i + self.params.features]))
+            fitness = []
+            features = []
+            for i in range(len(self.params.indexes)):
+                fitness.append(statistics.mean(aggregated[i]))
+            for i in range(self.params.characteristics):
+                features.append(statistics.mean(aggregated[i + self.params.features]))
+
+        if self.params.fitness_function == "median":
+
+            medians = []
+            for feature in range(num_scores):
+                totals = []
+                for i in range(self.params.iterations):
+                    totals.append(0)
+                    for j in range(num_robots):
+                        totals[-1] += scores[feature][j][i]
+                medians.append(statistics.median(totals))
+
+            for i in range(len(medians)):
+                medians[i] /= 9
+
+            fitness = [medians[0]]
+            features = medians[1:4]
 
         try:
             os.remove(self.params.local_path+"/seed"+str(thread_index)+".txt")
@@ -341,23 +359,41 @@ class Utilities():
                         fitness += scores[axis][robot][iteration] * penalty
                     scores[0][robot][iteration] = fitness
 
-        aggregated = []
-        for i in range(num_scores):
-            aggregated.append([])
-            if self.params.fitness_function == "median":
-                # get median from all trials and arenas per robot
-                for robot in scores[i]:
-                    aggregated[i].append(statistics.median(robot))
-            else:
-                # divide to get average per seed and arena configuration
-                aggregated[i].append(self.getAvgFitness(totals[i], swarm))
+        if self.params.fitness_function in ["mean", "hybrid"]:
+            aggregated = []
+            for i in range(num_scores):
+                aggregated.append([])
+                if self.params.fitness_function == "hybrid":
+                    # get median from all trials and arenas per robot
+                    for robot in scores[i]:
+                        aggregated[i].append(statistics.median(robot))
+                else:
+                    # divide to get average per seed and arena configuration
+                    aggregated[i].append(self.getAvgFitness(totals[i], swarm))
 
-        fitness = []
-        features = []
-        for i in range(len(self.params.indexes)):
-            fitness.append(statistics.mean(aggregated[i]))
-        for i in range(self.params.characteristics):
-            features.append(statistics.mean(aggregated[i + self.params.features]))
+            fitness = []
+            features = []
+            for i in range(len(self.params.indexes)):
+                fitness.append(statistics.mean(aggregated[i]))
+            for i in range(self.params.characteristics):
+                features.append(statistics.mean(aggregated[i + self.params.features]))
+
+        if self.params.fitness_function == "median":
+
+            medians = []
+            for feature in range(num_scores):
+                totals = []
+                for i in range(self.params.iterations):
+                    totals.append(0)
+                    for j in range(num_robots):
+                        totals[-1] += scores[feature][j][i]
+                medians.append(statistics.median(totals))
+
+            for i in range(len(medians)):
+                medians[i] /= 9
+
+            fitness = [medians[0]]
+            features = medians[1:4]
 
         try:
             os.remove(self.params.local_path+"/seed"+str(thread_index)+".txt")
