@@ -384,7 +384,7 @@ class eaParams():
                 self.tournament = data[1]
 
         if data[0] == "fitness_function":
-            permitted = ["mean", "median"]
+            permitted = ["mean", "hybrid", "median"]
             if data[1] not in permitted:
                 self.console("\nFitness function "+data[1]+" not supported\n")
                 self.cancelled = True

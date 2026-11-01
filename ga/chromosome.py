@@ -43,6 +43,7 @@ class Chromosome():
         self.y = 0
         self.z = 0
         self.threads = 8
+        self.save = False
 
         self.configure()
 
@@ -131,8 +132,6 @@ class Chromosome():
     def getSwarms(self):
 
         experiment = self.params.experiments[2]
-        if self.params.bias != -1:
-            experiment += "-bias-"+str(self.params.bias)
 
         csv_path = self.params.input_path+"/ga/"+experiment+"/foraging"
         csv_file = csv_path+"/bins-"+str(self.params.src_bins[0])+"/best"+str(self.params.generations)+".csv"
@@ -203,15 +202,41 @@ class Chromosome():
 
         return chromosomes
 
-    def chromosomeContributions(self):
+    def allChromosomeContributions(self, verbose = True):
 
         swarms = self.getSwarms()
         if len(swarms) == 0:
             return
 
+        cancelled = False
+        for x in range(self.params.src_bins[0]):
+            for y in range(self.params.src_bins[1]):
+                for z in range(self.params.src_bins[2]):
+                    self.x = x
+                    self.y = y
+                    self.z = z
+                    cancelled = self.chromosomeContributions(swarms, verbose)
+                    if cancelled: break
+                if cancelled: break
+            if cancelled: break
+
+    def chromosomeContributions(self, swarms, verbose = True):
+
         location = tuple((self.x, self.y, self.z))
 
-        print("\n\nLooking for "+str(location)+"\n")
+        self.utilities.saveConfigurationFile()
+        with open(self.params.local_path+"/seed1.txt", "w") as f:
+            f.write("1\n0.2")
+
+        num_robots = self.params.sqrt_robots * self.params.sqrt_robots
+        num_scores = len(self.params.indexes) + self.params.characteristics
+
+        aggregated = []
+        for i in range(num_scores):
+            aggregated.append([])
+
+        if verbose:
+            print("\nLooking for "+str(location)+"\n")
 
         seed = self.seed - 1
         for i in range(len(swarms)):
@@ -227,21 +252,88 @@ class Chromosome():
 
             if len(positions) > 0:
 
-                print("Seed "+str(i+1)+"\n")
-                for position in positions:
-                    print("result "+str(position))
-                print()
+                if verbose:
+                    print("Seed "+str(i+1)+"\n")
+                    for position in positions:
+                        print("result "+str(position))
+                    print()
 
                 trees = self.getTrees(swarms, i+1)
-                with open("../argos3/best.txt", "w") as f:
+                with open(self.params.local_path+"/chromosome1.txt", "w") as f:
                     f.write(trees)
 
-                subprocess.call(["/bin/bash", "./headless"])
+                subprocess.call(["/bin/bash", "./headless", "1", self.params.local_path])
 
-                print()
-                return
+                scores = {}
+                for j in range(num_scores):
+                    scores[j] = []
+                    for k in range(num_robots):
+                        scores[j].append([])
 
-        print("Not found\n")
+                with open(self.params.local_path+"/result1.txt", "r") as f:
+                    for line in f:
+
+                        first = line[0:line.find(" ")]
+                        if first == "error":
+                            print("error")
+                            return True
+
+                        lines = line.split()
+                        robotId = int(float(lines[1]))
+                        score_index = 0
+                        if robotId in positions:
+                            for k in range(self.params.iterations):
+                                scores[score_index][robotId].append(float(lines[k + 2]))
+                            score_index += 1
+                            for j in range(3):
+                                for k in range(self.params.iterations):
+                                    index = (j * self.params.iterations) + self.params.iterations + k + 2
+                                    scores[score_index][robotId].append(float(lines[index]))
+                                score_index += 1
+
+                if verbose:
+                    for robot_id in range(num_robots):
+                        if robot_id in positions:
+                            print("Robot "+str(robot_id))
+                            for feature in scores.values():
+                                print(feature[robot_id])
+                            print()
+
+                for feature_index in range(len(scores.values())):
+                    feature = scores[feature_index]
+                    for robot_id in range(len(feature)):
+                        if robot_id in positions:
+                            aggregated[feature_index].append(statistics.median(feature[robot_id]))
+
+                if verbose:
+                    for position_id in range(len(positions)):
+                        robot_scores = []
+                        for feature in aggregated:
+                            robot_scores.append(feature[position_id])
+                        print("Robot "+str(positions[position_id])+" "+str(robot_scores))
+                    print()
+
+                    confirm = input("Continue? (Y/n)\n")
+                    if confirm == "n":
+                        return True
+
+        if len(aggregated[0]) == 0:
+            if verbose:
+                print("Not found")
+            return False
+
+        medians = []
+        means = []
+        for feature in aggregated:
+            medians.append(statistics.median(feature))
+            means.append(statistics.mean(feature))
+
+        output = str(location[0])+","+str(location[1])+","+str(location[2])+","
+        output += str(medians[0])+","
+        output += str(means[0])+"\n"
+        print(output)
+
+        return False
 
     def chromosomePositions(self):
 
@@ -384,7 +476,7 @@ class Chromosome():
         if len(swarms) == 0:
             return
 
-        for seed in range(self.start, self.stop):
+        for seed in range(self.start, self.stop + 1):
             swarm = swarms[seed-1]
 
             num_robots = self.params.sqrt_robots * self.params.sqrt_robots
@@ -492,7 +584,7 @@ class Chromosome():
 
         primitivetree = gp.PrimitiveTree([])
 
-        for seed in range(self.start, self.stop):
+        for seed in range(self.start, self.stop + 1):
 
             tree = str(trees[seed-1])
             tree = primitivetree.from_string(tree, self.utilities.pset)
@@ -781,6 +873,32 @@ class Chromosome():
         print("\n"+str(statistics.mean(native))+","+str(statistics.mean(avg_unseen))+"\n")
         print()
 
+    def writeContributionsToCSV(self):
+
+        filename = self.params.input_path+"/"+self.params.algorithm+"/"
+        filename += self.params.experiments[2]+"/foraging/"
+        filename += "bins-"+str(self.params.src_bins[0])+"/contributions"
+
+        output = ""
+
+        with open(filename+".txt", "r") as f:
+            for line in f:
+                if "," in line[0:3]:
+                    columns = line.split(",")
+                    index = tuple([int(columns[0]), int(columns[1]), int(columns[2])])
+                    ind = self.repertoire.container[index]
+                    fitness_in_repertoire = ind.fitness.values[0]
+                    output += columns[0]+","+columns[1]+","+columns[2]+","+str(fitness_in_repertoire)+","+columns[3]+","+columns[4]+""
+
+        print(output)
+
+        if self.save:
+            print("Saving to "+filename+"-abridged.csv")
+            with open(filename+"-abridged.csv", "w") as f:
+                f.write(output)
+        else:
+            print("Output file: "+filename+"-abridged.csv")
+
     def assignPopulationFitness(self, population, fitnesses):
         for ind, fit in zip(population, fitnesses):
             ind.fitness.values = fit[0]
@@ -820,12 +938,14 @@ class Chromosome():
                 return
 
         # from heterogeneous chromosomes
+        output_type = "bins"
         all_data = [results]
         for data in all_data:
             fitness_min = np.nanmin(data)
             fitness_max = np.nanmax(data)
 
         # from source repertoire
+        # output_type = "src"
         # all_data = [src]
         # fitness_min = 0.0
         # fitness_max = 1.8
@@ -906,9 +1026,15 @@ class Chromosome():
             plt.tight_layout()
             self.drawColourBar(fig, ax, cax, figure_size)
 
-            filename = "../charts/heatmaps/temp.png"
+            filename = "../charts/heatmaps/temp-"
+            filename += output_type+"-"+str(self.params.src_bins[0])
+            if len(sections) > 1: filename += "-"+str(count)
+            if self.params.bias != -1: filename += "-bias-"+self.params.bias
+            filename += ".png"
             print(filename)
-            # plt.savefig(filename)
+
+            if self.save:
+                plt.savefig(filename)
 
             plt.show()
 
@@ -998,6 +1124,14 @@ class Chromosome():
                         data[x][y][z] = 1.0
 
     def configure(self):
+
+        """
+        self.params.experiments
+        [0] homogeneous results location
+        [1] heterogeneous repetoire location
+        [2] heterogeneous results location
+        """
+
         with open(self.params.shared_path+"/chromosome.txt", "r") as f:
             for line in f:
                 line = line.strip('\t\n\r')
@@ -1026,6 +1160,9 @@ class Chromosome():
                 if len(data) > 0 and data[0] == "threads":
                     self.threads = int(data[1])
 
+                if len(data) > 0 and data[0] == "save":
+                    self.save = True if data[1] == "True" else False
+
 def main():
 
     params = eaParams()
@@ -1050,7 +1187,7 @@ def main():
             chromosome.printTreeFromRepertoire()
 
         if "contributions" in chromosome.queries:
-            chromosome.chromosomeContributions()
+            chromosome.allChromosomeContributions()
 
         if "heterogeneity" in chromosome.queries:
             chromosome.heterogeneity()
@@ -1067,11 +1204,16 @@ def main():
         if "read_evaluation" in chromosome.queries:
             chromosome.readEvaluationOutput()
 
+        if "read_contributions" in chromosome.queries:
+            chromosome.writeContributionsToCSV()
+
         if "get_mean_fitness" in chromosome.queries:
             chromosome.getMeanFitnessFromTraining()
 
         if "save_unseen" in chromosome.queries:
             chromosome.writeNewUnseenSeedScores()
+
+        print("\nTerminating\n")
 
 if __name__ == "__main__":
     main()
